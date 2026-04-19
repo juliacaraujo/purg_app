@@ -371,20 +371,7 @@ export default function Objetivos() {
         {pontos && (
           <View style={s.pontosCard}>
             <Text style={s.pontosTitle}>Pontos</Text>
-            <View style={s.pontosRow}>
-              <View style={s.pontoItem}>
-                <Text style={s.pontoValor}>{pontos.total}</Text>
-                <Text style={s.pontoLabel}>Total</Text>
-              </View>
-              <View style={s.pontoItem}>
-                <Text style={s.pontoValor}>{pontos.permanentes}</Text>
-                <Text style={s.pontoLabel}>Permanentes</Text>
-              </View>
-              <View style={s.pontoItem}>
-                <Text style={s.pontoValor}>{pontos.volateis}</Text>
-                <Text style={s.pontoLabel}>Voláteis</Text>
-              </View>
-            </View>
+            <Text style={s.pontoValor}>{pontos.total}</Text>
           </View>
         )}
 

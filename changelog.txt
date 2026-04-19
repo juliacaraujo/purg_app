@@ -1,3 +1,15 @@
+purg-develop-2 — 2026-04-18
+- Corrigido: patrimônio na Home vinha zerado (saldo/investido eram strings, não numbers)
+- Corrigido: nome na Home substituído pelo campo "apelido" da API
+- Botão "Sair" movido da Home para o fim da tela de Perfil
+- Tela de Objetivos: card de Pontos simplificado, exibe apenas o total
+- Tela de Patrimônio: cor do botão "Sacar" alterada para vermelho clarinho (#FF6B6B) com texto branco
+- Tela de Patrimônio: "Saldo" movido para acima de "Rendimento diário"
+- Tela de Patrimônio: botão "Sacar" movido para abaixo dos gráficos
+- Gráficos de linha: tooltip interativo com data e valor ao passar o mouse/dedo
+- Ícones personalizados aplicados nas tabs (Home, Patrimônio, Objetivos, Ranking) e header (Chat, Perfil)
+- Adicionado script deploy-web.sh para build e publicação da versão web
+
 purg-develop-1 — 2026-04-18
 - Primeiro commit do projeto
 - App financeiro React Native + Expo (iOS, Android, Web)

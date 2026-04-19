@@ -83,11 +83,11 @@ export default function Home({ navigation }: any) {
         getRendimentosUsuario(user.id),
       ]);
 
-      setNome(cad?.nome ?? "");
+      setNome(cad?.apelido ?? "");
       setAssinatura(cad?.assinatura ?? null);
 
-      setSaldo(cart?.saldo ?? 0);
-      setInvestido(cart?.investido ?? 0);
+      setSaldo(Number(cart?.saldo || 0));
+      setInvestido(Number(cart?.investido || 0));
 
       setRendimentoTotal(rend?.rendimento_total ?? 0);
       setRendimentoDiario(rend?.ultimo_rendimento ?? 0);
@@ -241,12 +241,7 @@ export default function Home({ navigation }: any) {
         <Text style={style.btnPrimaryText}>Depositar</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[style.btn, style.btnGhost]}
-        onPress={logout}
-      >
-        <Text style={style.btnGhostText}>Sair</Text>
-      </TouchableOpacity>
+
     </ScrollView>
     </SwipeTabsWrapper>
   );

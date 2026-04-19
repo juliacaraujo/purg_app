@@ -60,13 +60,13 @@ export const styles = StyleSheet.create({
   },
 
   sacar: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#FF6B6B",
     shadowColor: "transparent",
     elevation: 0,
   },
 
   sacarText: {
-    color: "#555",
+    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
     textAlign: "center",

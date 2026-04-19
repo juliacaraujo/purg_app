@@ -154,7 +154,7 @@ function Campo({
 
 // ─── Tela principal ───────────────────────────────────
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [dados, setDados] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -427,6 +427,10 @@ export default function Profile() {
             </Text>
           )}
         </Secao>
+
+        <TouchableOpacity style={style.botaoSair} onPress={logout}>
+          <Text style={style.botaoSairTexto}>Sair</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Modal — Dados pessoais */}

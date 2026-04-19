@@ -162,21 +162,14 @@ export default function Account({ navigation }: any) {
           </View>
 
           <View style={styles.menuItem}>
-            <Text style={styles.menuText}>Rendimento diário</Text>
-            <Text style={styles.menuValue}>{moneyTrunc8(rendimentoDiario)}</Text>
-          </View>
-
-          <View style={styles.menuItem}>
             <Text style={styles.menuText}>Saldo</Text>
             <Text style={styles.menuValue}>{moneyTrunc8(saldo)}</Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.menuItem, styles.centeredButton, styles.sacar]}
-            onPress={() => go("Withdraw")}
-          >
-            <Text style={styles.sacarText}>Sacar</Text>
-          </TouchableOpacity>
+          <View style={styles.menuItem}>
+            <Text style={styles.menuText}>Rendimento diário</Text>
+            <Text style={styles.menuValue}>{moneyTrunc8(rendimentoDiario)}</Text>
+          </View>
         </View>
 
         {/* Gráfico de Crescimento do Patrimônio */}
@@ -204,6 +197,13 @@ export default function Account({ navigation }: any) {
             />
           </View>
         )}
+
+        <TouchableOpacity
+          style={[styles.menuItem, styles.centeredButton, styles.sacar]}
+          onPress={() => go("Withdraw")}
+        >
+          <Text style={styles.sacarText}>Sacar</Text>
+        </TouchableOpacity>
 
         {/* Pins */}
         <View style={styles.pinsSection}>

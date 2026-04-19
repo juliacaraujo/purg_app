@@ -14,6 +14,12 @@ import {
   Animated,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import imgHome from "./assets/home.png";
+import imgPatrimonio from "./assets/patrimonio.png";
+import imgObjetivos from "./assets/objetivos.png";
+import imgRanking from "./assets/ranking.png";
+import imgChat from "./assets/chat.png";
+import imgPerfil from "./assets/perfil.png";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { isWeb, MAX_WIDTH } from "./src/assets/global/responsive";
 
@@ -243,29 +249,25 @@ function HeaderRight({ navigation }: { navigation: any }) {
         onPress={() => navigation.navigate("Chat")}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <MaterialCommunityIcons name="message-text-outline" size={26} color="#333" />
+        <Image source={imgChat} style={{ width: 26, height: 26 }} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={() => navigation.navigate("Profile")}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <MaterialCommunityIcons name="account-circle-outline" size={28} color="#333" />
+        <Image source={imgPerfil} style={{ width: 28, height: 28 }} />
       </TouchableOpacity>
     </View>
   );
 }
 
-/* ──────────────────────────────────────────────
-   Ícone animado cartoon para as tabs
-────────────────────────────────────────────── */
-function AnimatedTabIcon({
-  name,
-  color,
+
+function AnimatedTabIconImage({
+  source,
   size,
   focused,
 }: {
-  name: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-  color: string;
+  source: any;
   size: number;
   focused: boolean;
 }) {
@@ -275,12 +277,7 @@ function AnimatedTabIcon({
   useEffect(() => {
     if (focused) {
       Animated.parallel([
-        Animated.spring(scale, {
-          toValue: 1.3,
-          useNativeDriver: true,
-          friction: 4,
-          tension: 130,
-        }),
+        Animated.spring(scale, { toValue: 1.3, useNativeDriver: true, friction: 4, tension: 130 }),
         Animated.sequence([
           Animated.timing(rotate, { toValue: -1, duration: 80, useNativeDriver: true }),
           Animated.timing(rotate, { toValue: 1, duration: 80, useNativeDriver: true }),
@@ -288,22 +285,15 @@ function AnimatedTabIcon({
         ]),
       ]).start();
     } else {
-      Animated.spring(scale, {
-        toValue: 1,
-        useNativeDriver: true,
-        friction: 5,
-      }).start();
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 5 }).start();
     }
   }, [focused]);
 
-  const rotateInterp = rotate.interpolate({
-    inputRange: [-1, 1],
-    outputRange: ["-20deg", "20deg"],
-  });
+  const rotateInterp = rotate.interpolate({ inputRange: [-1, 1], outputRange: ["-20deg", "20deg"] });
 
   return (
     <Animated.View style={{ transform: [{ scale }, { rotate: rotateInterp }] }}>
-      <MaterialCommunityIcons name={name} size={size} color={color} />
+      <Image source={source} style={{ width: size, height: size }} />
     </Animated.View>
   );
 }
@@ -354,8 +344,8 @@ function AppTabs() {
         component={Home}
         options={{
           tabBarLabel: "Home",
-          tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon name="campfire" color={color} size={size} focused={focused} />
+          tabBarIcon: ({ size, focused }) => (
+            <AnimatedTabIconImage source={imgHome} size={size} focused={focused} />
           ),
         }}
       />
@@ -364,8 +354,8 @@ function AppTabs() {
         component={Account}
         options={{
           tabBarLabel: "Patrimônio",
-          tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon name="piggy-bank-outline" color={color} size={size} focused={focused} />
+          tabBarIcon: ({ size, focused }) => (
+            <AnimatedTabIconImage source={imgPatrimonio} size={size} focused={focused} />
           ),
         }}
       />
@@ -374,8 +364,8 @@ function AppTabs() {
         component={Objetivos}
         options={{
           tabBarLabel: "Objetivos",
-          tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon name="flag-variant-outline" color={color} size={size} focused={focused} />
+          tabBarIcon: ({ size, focused }) => (
+            <AnimatedTabIconImage source={imgObjetivos} size={size} focused={focused} />
           ),
         }}
       />
@@ -384,8 +374,8 @@ function AppTabs() {
         component={Ranking}
         options={{
           tabBarLabel: "Ranking",
-          tabBarIcon: ({ color, size, focused }) => (
-            <AnimatedTabIcon name="trophy-variant-outline" color={color} size={size} focused={focused} />
+          tabBarIcon: ({ size, focused }) => (
+            <AnimatedTabIconImage source={imgRanking} size={size} focused={focused} />
           ),
         }}
       />
