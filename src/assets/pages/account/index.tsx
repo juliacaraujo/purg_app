@@ -21,18 +21,19 @@ import {
   getHistoricoPatrimonio,
   getHistoricoRendimentos,
 } from "../../../services/api";
+import type { PinUsuario, GraficoPoint } from "../../../types";
 
-const moneyTrunc8 = (v: any) => {
+const moneyTrunc8 = (v: number | string | null | undefined) => {
   const n = Math.trunc((Number(v) || 0) * 1e8) / 1e8;
   return `R$ ${n.toFixed(8).replace(".", ",")}`;
 };
 
-const moneyTrunc2 = (v: any) => {
+const moneyTrunc2 = (v: number | string | null | undefined) => {
   const n = Math.trunc((Number(v) || 0) * 100) / 100;
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
 };
 
-export default function Account({ navigation }: any) {
+export default function Account({ navigation }: { navigation: { navigate: (route: string) => void } }) {
   const { user } = useAuth();
 
   const [loading, setLoading] = useState(false);
@@ -42,12 +43,12 @@ export default function Account({ navigation }: any) {
   const [investido, setInvestido] = useState(0);
   const [rendimentoDiario, setRendimentoDiario] = useState(0);
 
-  const [pins, setPins] = useState<any[]>([]);
+  const [pins, setPins] = useState<PinUsuario[]>([]);
   const [pinsLoaded, setPinsLoaded] = useState(false);
 
   // Gráficos
-  const [historicoPatrimonio, setHistoricoPatrimonio] = useState<{ data: string; valor: number }[]>([]);
-  const [historicoRendimentos, setHistoricoRendimentos] = useState<{ data: string; valor: number }[]>([]);
+  const [historicoPatrimonio, setHistoricoPatrimonio] = useState<GraficoPoint[]>([]);
+  const [historicoRendimentos, setHistoricoRendimentos] = useState<GraficoPoint[]>([]);
 
   // Patrimônio = saldo + investido
   const patrimonio = useMemo(() => saldo + investido, [saldo, investido]);
@@ -80,24 +81,33 @@ export default function Account({ navigation }: any) {
         setRendimentoDiario(Number(r.value?.ultimo_rendimento || 0));
       }
       if (p.status === "fulfilled") {
-        const pinsData = Array.isArray((p.value as any)?.data) ? (p.value as any).data : [];
-        setPins(pinsData);
+        setPins(Array.isArray(p.value?.data) ? p.value.data : []);
         setPinsLoaded(true);
       }
       if (hp.status === "fulfilled") {
         const hist = Array.isArray(hp.value?.historico) ? hp.value.historico : [];
         setHistoricoPatrimonio(
-          hist.map((item: any) => ({ data: item.data, valor: Number(item.carteira_dia) || 0 }))
+          hist.map((item) => ({ data: item.data, valor: Number(item.carteira_dia) || 0 }))
         );
       }
       if (hr.status === "fulfilled") {
         const hist = Array.isArray(hr.value?.historico) ? hr.value.historico : [];
         setHistoricoRendimentos(
-          hist.map((item: any) => ({ data: item.data, valor: Number(item.rendimento_dia) || 0 }))
+          hist.map((item) => ({ data: item.data, valor: Number(item.rendimento_dia) || 0 }))
         );
       }
 
-    } catch (err: any) {
+      const falhas: string[] = [];
+      if (c.status === "rejected") falhas.push("saldo");
+      if (r.status === "rejected") falhas.push("rendimentos");
+      if (p.status === "rejected") falhas.push("pins");
+      if (hp.status === "rejected") falhas.push("histórico de patrimônio");
+      if (hr.status === "rejected") falhas.push("histórico de rendimentos");
+      if (falhas.length > 0) {
+        Alert.alert("Aviso", `Não foi possível carregar: ${falhas.join(", ")}.`);
+      }
+
+    } catch (err: unknown) {
       if (err instanceof ApiError) {
         Alert.alert("Erro", err.message);
       } else {

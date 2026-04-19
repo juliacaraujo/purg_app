@@ -7,8 +7,10 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  Image,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import imgOlhoAberto from "../../../../assets/olho_aberto.png";
+import imgOlhoFechado from "../../../../assets/olho_fechado.png";
 import { style } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
@@ -27,12 +29,12 @@ function getGreeting() {
 }
 
 // Trunca para 2 casas decimais SEM arredondar, exibe como moeda (vírgula)
-function moneyTrunc(value: any) {
+function moneyTrunc(value: number | string | null | undefined) {
   const v = Math.trunc((Number(value) || 0) * 100) / 100;
   return `R$ ${v.toFixed(2).replace(".", ",")}`;
 }
 
-export default function Home({ navigation }: any) {
+export default function Home({ navigation }: { navigation: { navigate: (route: string) => void } }) {
   const { user, logout } = useAuth();
 
   const [hidden, setHidden] = useState(false);
@@ -40,7 +42,7 @@ export default function Home({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
 
   const [nome, setNome] = useState("");
-  const [assinatura, setAssinatura] = useState<any>(null);
+  const [assinatura, setAssinatura] = useState<string | boolean | null>(null);
 
   const [saldo, setSaldo] = useState(0);
   const [investido, setInvestido] = useState(0);
@@ -91,7 +93,7 @@ export default function Home({ navigation }: any) {
 
       setRendimentoTotal(rend?.rendimento_total ?? 0);
       setRendimentoDiario(rend?.ultimo_rendimento ?? 0);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof ApiError) {
         Alert.alert("Erro", err.message || "Falha ao carregar dados.");
       } else {
@@ -177,10 +179,10 @@ export default function Home({ navigation }: any) {
           style={style.eyeBtn}
           onPress={() => setHidden((v) => !v)}
         >
-          <MaterialCommunityIcons
-            name={hidden ? "eye-off-outline" : "eye-outline"}
-            size={20}
-            color="#333"
+          <Image
+            source={hidden ? imgOlhoFechado : imgOlhoAberto}
+            style={{ width: 20, height: 20 }}
+            resizeMode="contain"
           />
         </TouchableOpacity>
       </View>

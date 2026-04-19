@@ -18,6 +18,7 @@ import {
   criarObjetivo,
   cancelarObjetivo,
 } from "../../../services/api";
+import type { ObjetivoItem, PontosInfo } from "../../../types";
 
 const GREEN = "#34C759";
 const DARK = "#111";
@@ -44,7 +45,7 @@ function CardObjetivo({
   item,
   onCancelar,
 }: {
-  item: any;
+  item: ObjetivoItem;
   onCancelar: (id: number, desc: string) => void;
 }) {
   const pct = Number(item.percentual_geral) || 0;
@@ -281,8 +282,8 @@ export default function Objetivos() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  const [objetivos, setObjetivos] = useState<any[]>([]);
-  const [pontos, setPontos] = useState<any>(null);
+  const [objetivos, setObjetivos] = useState<ObjetivoItem[]>([]);
+  const [pontos, setPontos] = useState<PontosInfo | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   const carregar = useCallback(async () => {

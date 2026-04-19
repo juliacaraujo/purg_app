@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer } from "@react-navigation/native";
+import type { LinkingOptions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import {
   Text,
   View,
@@ -20,7 +22,9 @@ import imgObjetivos from "./assets/objetivos.png";
 import imgRanking from "./assets/ranking.png";
 import imgChat from "./assets/chat.png";
 import imgPerfil from "./assets/perfil.png";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import imgOlhoAberto from "./assets/olho_aberto.png";
+import imgOlhoFechado from "./assets/olho_fechado.png";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { isWeb, MAX_WIDTH } from "./src/assets/global/responsive";
 
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
@@ -136,10 +140,10 @@ function LoginScreen({ navigation }: any) {
             onPress={() => setShowSenha((v) => !v)}
             style={{ position: "absolute", right: 12, top: 0, bottom: 0, justifyContent: "center" }}
           >
-            <MaterialCommunityIcons
-              name={showSenha ? "eye-off-outline" : "eye-outline"}
-              size={20}
-              color="#999"
+            <Image
+              source={showSenha ? imgOlhoFechado : imgOlhoAberto}
+              style={{ width: 20, height: 20 }}
+              resizeMode="contain"
             />
           </TouchableOpacity>
         </View>
@@ -225,7 +229,7 @@ const bioLoginStyle = StyleSheet.create({
 /* ──────────────────────────────────────────────
    Tela de Chat (em construção)
 ────────────────────────────────────────────── */
-const EmConstrucao = require("./src/assets/purg_contrucao.png");
+import EmConstrucao from "./src/assets/purg_contrucao.png";
 
 function ChatScreen() {
   return (
@@ -249,13 +253,13 @@ function HeaderRight({ navigation }: { navigation: any }) {
         onPress={() => navigation.navigate("Chat")}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Image source={imgChat} style={{ width: 26, height: 26 }} />
+        <Image source={imgChat} style={{ width: 26, height: 26 }} resizeMode="contain" />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={() => navigation.navigate("Profile")}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Image source={imgPerfil} style={{ width: 28, height: 28 }} />
+        <Image source={imgPerfil} style={{ width: 28, height: 28 }} resizeMode="contain" />
       </TouchableOpacity>
     </View>
   );
@@ -293,7 +297,7 @@ function AnimatedTabIconImage({
 
   return (
     <Animated.View style={{ transform: [{ scale }, { rotate: rotateInterp }] }}>
-      <Image source={source} style={{ width: size, height: size }} />
+      <Image source={source} style={{ width: size, height: size }} resizeMode="contain" />
     </Animated.View>
   );
 }
@@ -318,6 +322,68 @@ function AuthStack() {
 }
 
 /* ──────────────────────────────────────────────
+   Tab bar customizada — garante distribuição
+   uniforme dos ícones em qualquer tamanho de tela
+────────────────────────────────────────────── */
+function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+  const paddingBottom = isWeb ? Math.max(insets.bottom, 10) : insets.bottom;
+
+  return (
+    <View style={[tabBarStyles.bar, { paddingBottom }]}>
+      {state.routes.map((route, index) => {
+        const { options } = descriptors[route.key];
+        if (!options.tabBarIcon) return null;
+
+        const isFocused = state.index === index;
+
+        const onPress = () => {
+          const event = navigation.emit({
+            type: "tabPress",
+            target: route.key,
+            canPreventDefault: true,
+          });
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        return (
+          <TouchableOpacity
+            key={route.key}
+            style={tabBarStyles.tab}
+            onPress={onPress}
+            activeOpacity={0.7}
+          >
+            {options.tabBarIcon({
+              focused: isFocused,
+              color: isFocused ? PRIMARY : "#999",
+              size: 26,
+            })}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+const tabBarStyles = StyleSheet.create({
+  bar: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#e0e0e0",
+    paddingTop: 8,
+  },
+  tab: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 4,
+  },
+});
+
+/* ──────────────────────────────────────────────
    Tabs do app logado
    Home | Patrimônio | Objetivos | Ranking
    + ícones de Perfil e Chat no header
@@ -325,6 +391,7 @@ function AuthStack() {
 function AppTabs() {
   return (
     <Tab.Navigator
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={({ navigation }) => ({
         headerShown: true,
         headerStyle: { backgroundColor: "#fff", elevation: 0, shadowOpacity: 0 },
@@ -333,17 +400,12 @@ function AppTabs() {
           <Image source={Logo} style={{ width: 80, height: 36, resizeMode: "contain", marginLeft: 14 }} />
         ),
         headerRight: () => <HeaderRight navigation={navigation} />,
-        tabBarActiveTintColor: PRIMARY,
-        tabBarInactiveTintColor: "#999",
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
-        tabBarStyle: { paddingTop: 6 },
       })}
     >
       <Tab.Screen
         name="Home"
         component={Home}
         options={{
-          tabBarLabel: "Home",
           tabBarIcon: ({ size, focused }) => (
             <AnimatedTabIconImage source={imgHome} size={size} focused={focused} />
           ),
@@ -353,7 +415,6 @@ function AppTabs() {
         name="Patrimônio"
         component={Account}
         options={{
-          tabBarLabel: "Patrimônio",
           tabBarIcon: ({ size, focused }) => (
             <AnimatedTabIconImage source={imgPatrimonio} size={size} focused={focused} />
           ),
@@ -363,7 +424,6 @@ function AppTabs() {
         name="Objetivos"
         component={Objetivos}
         options={{
-          tabBarLabel: "Objetivos",
           tabBarIcon: ({ size, focused }) => (
             <AnimatedTabIconImage source={imgObjetivos} size={size} focused={focused} />
           ),
@@ -373,7 +433,6 @@ function AppTabs() {
         name="Ranking"
         component={Ranking}
         options={{
-          tabBarLabel: "Ranking",
           tabBarIcon: ({ size, focused }) => (
             <AnimatedTabIconImage source={imgRanking} size={size} focused={focused} />
           ),
@@ -491,11 +550,43 @@ const appStyles = StyleSheet.create({
   },
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const linking: LinkingOptions<any> = {
+  prefixes: ["https://purg.com.br", "purg://"],
+  config: {
+    screens: {
+      AuthStack: {
+        screens: {
+          Login: "login",
+          Signup: "cadastro",
+          RecoverAccount: "recuperar-conta",
+          CodeValidation: "validar-codigo",
+          NewPassword: "nova-senha",
+          Terms: "termos",
+        },
+      },
+      AppTabs: {
+        screens: {
+          Home: "home",
+          "Patrimônio": "patrimonio",
+          Objetivos: "objetivos",
+          Ranking: "ranking",
+          Profile: "perfil",
+          Chat: "chat",
+        },
+      },
+      Withdraw: "sacar",
+      Deposit: "depositar",
+      PixInfo: "pix",
+    },
+  },
+};
+
 export default function App() {
   return (
     <SafeAreaProvider>
     <AuthProvider>
-      <NavigationContainer>
+      <NavigationContainer linking={linking}>
         <StatusBar style="auto" />
         {isWeb ? (
           <View style={appStyles.webOuter}>

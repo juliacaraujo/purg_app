@@ -1,3 +1,17 @@
+purg-develop-3 — 2026-04-19
+- Type safety: criado src/types.ts com interfaces para todos os responses da API (CarteiraResponse, RendimentosResponse, DadosCadastroResponse, PinUsuario, ObjetivoItem, etc.)
+- Type safety: removidos todos os `any` implícitos em home, account, profile e objetivos
+- Type safety: EXPO_PUBLIC_API_BASE_URL tipado corretamente em pgn.d.ts (sem cast `as any`)
+- Type safety: credential/assertion em biometria tipados como Record<string, unknown>
+- Tratamento de erro: allSettled em account agora exibe alert listando quais dados falharam ao carregar
+- Ícones de olho: olho_aberto.png e olho_fechado.png aplicados no campo de senha (login) e no botão de ocultar valores (Home)
+- resizeMode="contain" aplicado em todos os ícones de imagem (tabs, header, olho) para evitar distorção no web
+- Web: roteamento por URL configurado (/login, /home, /patrimonio, /objetivos, etc.) com botão voltar do browser funcional
+- Web: tab bar reconstruída como CustomTabBar com ícones distribuídos uniformemente em qualquer tamanho de tela
+- Web: labels das tabs removidos (apenas ícones visíveis)
+- Web: fix de viewport com 100dvh e viewport-fit=cover no deploy-web.sh para mobile browsers
+- deploy-web.sh: patches automáticos no index.html gerado pelo Expo a cada build
+
 purg-develop-2 — 2026-04-18
 - Corrigido: patrimônio na Home vinha zerado (saldo/investido eram strings, não numbers)
 - Corrigido: nome na Home substituído pelo campo "apelido" da API

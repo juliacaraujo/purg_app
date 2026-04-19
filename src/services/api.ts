@@ -1,8 +1,17 @@
 // src/services/api.ts
+import type {
+  CarteiraResponse,
+  RendimentosResponse,
+  DadosCadastroResponse,
+  PinUsuario,
+  PinsResponse,
+  HistoricoPatrimonioResponse,
+  HistoricoRendimentosResponse,
+  ObjetivosResponse,
+} from "../types";
 
 const BASE_URL =
-  (process.env as any)?.EXPO_PUBLIC_API_BASE_URL ??
-  "https://jinx.purg.com.br";
+  process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://jinx.purg.com.br";
 
 export class ApiError extends Error {
   constructor(message: string, public status?: number) {
@@ -69,40 +78,40 @@ export async function checkSession(_usuarioId: number): Promise<boolean> {
 /* ======================================================
    CARTEIRA
    ====================================================== */
-export async function getCarteira(usuarioId: number) {
+export async function getCarteira(usuarioId: number): Promise<CarteiraResponse> {
   const response = await apiFetch(`/api/v1/carteira/${usuarioId}`);
 
   if (!response.ok) {
     throw new ApiError("Erro ao buscar dados da carteira", response.status);
   }
 
-  return response.json();
+  return response.json() as Promise<CarteiraResponse>;
 }
 
 /* ======================================================
    RENDIMENTOS
    ====================================================== */
-export async function getRendimentosUsuario(usuarioId: number) {
+export async function getRendimentosUsuario(usuarioId: number): Promise<RendimentosResponse> {
   const response = await apiFetch(`/api/v1/rendimentos-usuario/${usuarioId}`);
 
   if (!response.ok) {
     throw new ApiError("Erro ao buscar rendimentos do usuário", response.status);
   }
 
-  return response.json();
+  return response.json() as Promise<RendimentosResponse>;
 }
 
 /* ======================================================
    PINS DO USUÁRIO
    ====================================================== */
-export async function getPinsUsuario(usuarioId: number) {
+export async function getPinsUsuario(usuarioId: number): Promise<PinsResponse> {
   const response = await apiFetch(`/api/v1/pins-usuario/${usuarioId}`);
 
   if (!response.ok) {
     throw new ApiError("Erro ao buscar pins do usuário", response.status);
   }
 
-  return response.json();
+  return response.json() as Promise<PinsResponse>;
 }
 
 /* ======================================================
@@ -311,27 +320,27 @@ export async function getHistoricoDepositos(usuarioId: number) {
 /* ======================================================
    DADOS DE CADASTRO
    ====================================================== */
-export async function getDadosCadastro(usuarioId: number) {
+export async function getDadosCadastro(usuarioId: number): Promise<DadosCadastroResponse> {
   const response = await apiFetch(`/api/v1/dados-cadastro/${usuarioId}`);
 
   if (!response.ok) {
     throw new ApiError("Erro ao buscar dados cadastrais do usuário", response.status);
   }
 
-  return response.json();
+  return response.json() as Promise<DadosCadastroResponse>;
 }
 
 /* ======================================================
    OBJETIVOS
    ====================================================== */
-export async function getObjetivos(usuarioId: number) {
+export async function getObjetivos(usuarioId: number): Promise<ObjetivosResponse> {
   const response = await apiFetch(`/api/v1/objetivos/${usuarioId}`);
 
   if (!response.ok) {
     throw new ApiError("Erro ao buscar objetivos", response.status);
   }
 
-  return response.json();
+  return response.json() as Promise<ObjetivosResponse>;
 }
 
 export async function getObjetivoDetalhe(usuarioId: number, objetivoId: number) {
@@ -410,7 +419,7 @@ export async function biometriaCadastroIniciar() {
 }
 
 /** POST /api/v1/biometria/cadastro/concluir */
-export async function biometriaCadastroConcluir(credential: any) {
+export async function biometriaCadastroConcluir(credential: Record<string, unknown>) {
   const response = await apiFetch("/api/v1/biometria/cadastro/concluir", {
     method: "POST",
     body: JSON.stringify(credential),
@@ -441,7 +450,7 @@ export async function biometriaLoginIniciar(email: string) {
 }
 
 /** POST /api/v1/biometria/login/concluir — rota pública */
-export async function biometriaLoginConcluir(assertion: any) {
+export async function biometriaLoginConcluir(assertion: Record<string, unknown>) {
   const response = await apiFetch("/api/v1/biometria/login/concluir", {
     method: "POST",
     body: JSON.stringify(assertion),
@@ -507,29 +516,28 @@ export async function trocarSenha(
 /* ======================================================
    HISTÓRICO DE PATRIMÔNIO
    ====================================================== */
-export async function getHistoricoPatrimonio(usuarioId: number) {
+export async function getHistoricoPatrimonio(usuarioId: number): Promise<HistoricoPatrimonioResponse> {
   const response = await apiFetch(`/api/v1/historico-patrimonio/${usuarioId}`);
   if (!response.ok) {
     throw new ApiError("Erro ao buscar histórico de patrimônio", response.status);
   }
-  return response.json(); // { success, historico: [{ data, carteira_dia }] }
+  return response.json() as Promise<HistoricoPatrimonioResponse>;
 }
 
 /* ======================================================
    HISTÓRICO DE RENDIMENTOS
    ====================================================== */
-export async function getHistoricoRendimentos(usuarioId: number) {
+export async function getHistoricoRendimentos(usuarioId: number): Promise<HistoricoRendimentosResponse> {
   const response = await apiFetch(`/api/v1/historico-rendimentos/${usuarioId}`);
   if (!response.ok) {
     throw new ApiError("Erro ao buscar histórico de rendimentos", response.status);
   }
-  return response.json(); // { success, historico: [{ data, rendimento_dia }] }
+  return response.json() as Promise<HistoricoRendimentosResponse>;
 }
 
 /* ======================================================
    HELPERS
    ====================================================== */
-export function getTotalPinsFromPins(pins: any[]) {
-  if (!Array.isArray(pins)) return 0;
+export function getTotalPinsFromPins(pins: PinUsuario[]): number {
   return pins.length;
 }

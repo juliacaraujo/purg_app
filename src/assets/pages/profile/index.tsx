@@ -15,6 +15,7 @@ import { style } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import { getDadosCadastro, editarPerfil, trocarSenha } from "../../../services/api";
+import type { DadosCadastroResponse } from "../../../types";
 import {
   cadastrarBiometria,
   isPasskeySupported,
@@ -132,7 +133,7 @@ function Campo({
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
-  keyboardType?: any;
+  keyboardType?: import("react-native").KeyboardTypeOptions;
   secureTextEntry?: boolean;
 }) {
   return (
@@ -155,7 +156,7 @@ function Campo({
 // ─── Tela principal ───────────────────────────────────
 export default function Profile() {
   const { user, logout } = useAuth();
-  const [dados, setDados] = useState<any>(null);
+  const [dados, setDados] = useState<DadosCadastroResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 

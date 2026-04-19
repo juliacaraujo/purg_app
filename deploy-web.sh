@@ -4,6 +4,39 @@ set -e
 echo "Gerando build web..."
 npx expo export --platform web
 
+echo "Aplicando patches no index.html..."
+python3 - <<'EOF'
+import re
+
+with open("dist/index.html", "r") as f:
+    html = f.read()
+
+# 1. viewport-fit=cover — habilita env(safe-area-inset-*) em mobile browsers
+html = html.replace(
+    'width=device-width, initial-scale=1, shrink-to-fit=no',
+    'width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover'
+)
+
+# 2. 100dvh — desconta a barra de endereços em mobile browsers,
+#    evitando que a tab bar fique cortada abaixo da área visível.
+#    Substitui todas as ocorrências de "height: 100%;" dentro do bloco <style id="expo-reset">
+def patch_style(m):
+    return m.group(0).replace("height: 100%;", "height: 100dvh;")
+
+html = re.sub(
+    r'<style id="expo-reset">.*?</style>',
+    patch_style,
+    html,
+    flags=re.DOTALL
+)
+
+with open("dist/index.html", "w") as f:
+    f.write(html)
+
+print("  viewport-fit=cover: ok")
+print("  height 100dvh: ok")
+EOF
+
 echo "Publicando em /var/www/purg..."
 cp -r dist/. /var/www/purg/
 
