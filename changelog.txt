@@ -1,3 +1,16 @@
+purg-develop-4 — 2026-04-19
+- Dark mode: ThemeContext com paletas claro/escuro; preferência salva no localStorage (web)
+- Dark mode: toggle "Claro / Escuro" na tela de Perfil, antes da seção Dados Pessoais
+- Dark mode: todos os estilos convertidos para factories dinâmicas (home, account, profile, objetivos, login, GraficoLinha, tab bar, header)
+- Gráficos: removidas anotações de mínimo/máximo com setinhas
+- Gráficos: adicionado eixo Y com 3 referências (mín, meio, máx) em formato abreviado e linhas de grade sutis
+- Tela de Patrimônio: seção Carteira reformatada no mesmo padrão da seção Dados Pessoais do Perfil (card com borda, título verde, linhas separadas)
+- Tela de Patrimônio: botão Depositar à esquerda e Sacar à direita
+- Tela de Login: placeholder do e-mail corrigido para "e-mail@dominio.com"
+- Tela de Login: ícone de olho centralizado verticalmente no campo de senha
+- Tela de Login: ícone do botão "Entrar com biometria" substituído por biometria.png
+- Nginx: cache do index.html desativado (no-store); assets com hash cacheados por 1 ano (immutable)
+
 purg-develop-3 — 2026-04-19
 - Type safety: criado src/types.ts com interfaces para todos os responses da API (CarteiraResponse, RendimentosResponse, DadosCadastroResponse, PinUsuario, ObjetivoItem, etc.)
 - Type safety: removidos todos os `any` implícitos em home, account, profile e objetivos

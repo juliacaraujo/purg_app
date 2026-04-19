@@ -1,133 +1,64 @@
 import { StyleSheet } from "react-native";
-import { theme } from "../../global/themes";
+import type { ThemeColors } from "../../../context/ThemeContext";
 
-export const style = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  content: {
-    paddingBottom: 40,
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-  },
-
-  // Cabeçalho
+export const makeProfileStyle = (c: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.backgroundSecondary },
+  content: { paddingBottom: 40 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: c.backgroundSecondary },
   header: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: c.background,
     alignItems: "center",
     paddingTop: 60,
     paddingBottom: 24,
     paddingHorizontal: 24,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: c.border,
     marginBottom: 12,
   },
   avatar: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: c.primary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
   },
-  avatarLetra: {
-    color: "#fff",
-    fontSize: 32,
-    fontWeight: "bold",
-  },
-  nome: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: theme.colors.textPrimary,
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  badges: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 6,
-  },
-  badge: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  badgeTexto: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  badgeAssinatura: {
-    backgroundColor: "#1a1a2e",
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  badgeAssinaturaTexto: {
-    color: "#FFD700",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  idTexto: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-
-  // Seções
+  avatarLetra: { color: "#fff", fontSize: 32, fontWeight: "bold" },
+  nome: { fontSize: 20, fontWeight: "bold", color: c.textPrimary, marginBottom: 8, textAlign: "center" },
+  badges: { flexDirection: "row", gap: 8, marginBottom: 6 },
+  badge: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3 },
+  badgeTexto: { fontSize: 12, fontWeight: "600" },
+  badgeAssinatura: { backgroundColor: "#1a1a2e", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3 },
+  badgeAssinaturaTexto: { color: "#FFD700", fontSize: 12, fontWeight: "600" },
+  idTexto: { fontSize: 12, color: c.textSecondary, marginTop: 2 },
   secao: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: c.background,
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: c.border,
   },
   secaoTitulo: {
     fontSize: 13,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: c.primary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-
-  // Linhas de dado
   linha: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: c.borderLight,
   },
-  linhaLabel: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    flex: 1,
-  },
-  linhaValor: {
-    fontSize: 13,
-    color: theme.colors.textPrimary,
-    fontWeight: "500",
-    flex: 1,
-    textAlign: "right",
-  },
-
-  semDados: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-    paddingVertical: 8,
-  },
-
-  // Botão sair
+  linhaLabel: { fontSize: 13, color: c.textSecondary, flex: 1 },
+  linhaValor: { fontSize: 13, color: c.textPrimary, fontWeight: "500", flex: 1, textAlign: "right" },
+  semDados: { fontSize: 13, color: c.textSecondary, textAlign: "center", paddingVertical: 8 },
   botaoSair: {
     marginHorizontal: 16,
     marginTop: 8,
@@ -137,9 +68,51 @@ export const style = StyleSheet.create({
     borderColor: "#FF3B30",
     alignItems: "center",
   },
-  botaoSairTexto: {
-    color: "#FF3B30",
+  botaoSairTexto: { color: "#FF3B30", fontSize: 15, fontWeight: "600" },
+  // Theme toggle
+  toggleSecao: {
+    backgroundColor: c.background,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  toggleTitulo: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: c.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  toggleRow: { flexDirection: "row", gap: 10 },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: c.border,
+    backgroundColor: c.backgroundSecondary,
+  },
+  toggleBtnActive: {
+    backgroundColor: c.primary,
+    borderColor: c.primary,
+  },
+  toggleBtnText: { fontSize: 14, fontWeight: "600", color: c.textSecondary },
+  toggleBtnTextActive: { color: "#fff" },
+  // Modal styles
+  input: {
+    borderWidth: 1,
+    borderColor: c.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
-    fontWeight: "600",
+    color: c.textPrimary,
+    marginBottom: 14,
+    backgroundColor: c.background,
   },
 });

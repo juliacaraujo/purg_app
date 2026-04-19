@@ -7,10 +7,10 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
-  StyleSheet,
 } from "react-native";
-import { styles } from "./styles";
+import { makeAccountStyles } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
+import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import GraficoLinha from "../../components/GraficoLinha";
 import {
@@ -35,6 +35,8 @@ const moneyTrunc2 = (v: number | string | null | undefined) => {
 
 export default function Account({ navigation }: { navigation: { navigate: (route: string) => void } }) {
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeAccountStyles(colors), [colors]);
 
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,14 +48,11 @@ export default function Account({ navigation }: { navigation: { navigate: (route
   const [pins, setPins] = useState<PinUsuario[]>([]);
   const [pinsLoaded, setPinsLoaded] = useState(false);
 
-  // Gráficos
   const [historicoPatrimonio, setHistoricoPatrimonio] = useState<GraficoPoint[]>([]);
   const [historicoRendimentos, setHistoricoRendimentos] = useState<GraficoPoint[]>([]);
 
-  // Patrimônio = saldo + investido
   const patrimonio = useMemo(() => saldo + investido, [saldo, investido]);
 
-  // Pins ordenados por juros a.a. decrescente
   const pinsSorted = useMemo(
     () => [...pins].sort((a, b) => Number(b.juros_a_a || 0) - Number(a.juros_a_a || 0)),
     [pins]
@@ -61,10 +60,8 @@ export default function Account({ navigation }: { navigation: { navigate: (route
 
   const carregar = useCallback(async () => {
     if (!user?.id) return;
-
     try {
       setLoading(true);
-
       const [c, r, p, hp, hr] = await Promise.allSettled([
         getCarteira(user.id),
         getRendimentosUsuario(user.id),
@@ -72,7 +69,6 @@ export default function Account({ navigation }: { navigation: { navigate: (route
         getHistoricoPatrimonio(user.id),
         getHistoricoRendimentos(user.id),
       ]);
-
       if (c.status === "fulfilled") {
         setSaldo(Number(c.value?.saldo || 0));
         setInvestido(Number(c.value?.investido || 0));
@@ -96,7 +92,6 @@ export default function Account({ navigation }: { navigation: { navigate: (route
           hist.map((item) => ({ data: item.data, valor: Number(item.rendimento_dia) || 0 }))
         );
       }
-
       const falhas: string[] = [];
       if (c.status === "rejected") falhas.push("saldo");
       if (r.status === "rejected") falhas.push("rendimentos");
@@ -106,7 +101,6 @@ export default function Account({ navigation }: { navigation: { navigate: (route
       if (falhas.length > 0) {
         Alert.alert("Aviso", `Não foi possível carregar: ${falhas.join(", ")}.`);
       }
-
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         Alert.alert("Erro", err.message);
@@ -119,26 +113,17 @@ export default function Account({ navigation }: { navigation: { navigate: (route
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    carregar();
-  }, [carregar]);
+  useEffect(() => { carregar(); }, [carregar]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    carregar();
-  };
+  const onRefresh = () => { setRefreshing(true); carregar(); };
 
-  const go = (route: string) => {
-    navigation.navigate(route);
-  };
+  const go = (route: string) => navigation.navigate(route);
 
   if (!user?.id) {
     return (
       <View style={styles.container}>
-        <Text style={styles.pageTitle}>Carteira</Text>
-        <Text style={styles.pageSubtitle}>
-          Faça login para visualizar sua carteira.
-        </Text>
+        <Text style={styles.pageTitle}>Patrimônio</Text>
+        <Text style={styles.pageSubtitle}>Faça login para visualizar sua carteira.</Text>
       </View>
     );
   }
@@ -150,106 +135,100 @@ export default function Account({ navigation }: { navigation: { navigate: (route
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Título + botão Depositar */}
-        <View style={tituloRow.row}>
-          <Text style={styles.pageTitle}>Carteira</Text>
-          <TouchableOpacity style={tituloRow.depositarBtn} onPress={() => go("Deposit")}>
-            <Text style={tituloRow.depositarText}>Depositar</Text>
-          </TouchableOpacity>
+        {/* Título + botões */}
+        <View style={styles.tituloRow}>
+          <Text style={styles.pageTitle}>Patrimônio</Text>
+          <View style={styles.tituloBtns}>
+            <TouchableOpacity style={styles.depositarBtn} onPress={() => go("Deposit")}>
+              <Text style={styles.depositarText}>Depositar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.sacarBtn} onPress={() => go("Withdraw")}>
+              <Text style={styles.sacarBtnText}>Sacar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {loading && <ActivityIndicator style={{ marginBottom: 12 }} />}
 
-        <View style={styles.menu}>
-          <View style={styles.menuItem}>
-            <Text style={styles.menuText}>Patrimônio</Text>
-            <Text style={styles.menuValue}>{moneyTrunc2(patrimonio)}</Text>
+        {/* ── Carteira ── */}
+        <View style={styles.carteiraSecao}>
+          <Text style={styles.carteiraSecaoTitulo}>Carteira</Text>
+          <View style={styles.carteiraLinha}>
+            <Text style={styles.carteiraLabel}>Patrimônio</Text>
+            <Text style={styles.carteiraValor}>{moneyTrunc2(patrimonio)}</Text>
           </View>
-
-          <View style={styles.menuItem}>
-            <Text style={styles.menuText}>Investido</Text>
-            <Text style={styles.menuValue}>{moneyTrunc2(investido)}</Text>
+          <View style={styles.carteiraLinha}>
+            <Text style={styles.carteiraLabel}>Investido</Text>
+            <Text style={styles.carteiraValor}>{moneyTrunc2(investido)}</Text>
           </View>
-
-          <View style={styles.menuItem}>
-            <Text style={styles.menuText}>Saldo</Text>
-            <Text style={styles.menuValue}>{moneyTrunc8(saldo)}</Text>
+          <View style={styles.carteiraLinha}>
+            <Text style={styles.carteiraLabel}>Saldo</Text>
+            <Text style={styles.carteiraValor}>{moneyTrunc8(saldo)}</Text>
           </View>
-
-          <View style={styles.menuItem}>
-            <Text style={styles.menuText}>Rendimento diário</Text>
-            <Text style={styles.menuValue}>{moneyTrunc8(rendimentoDiario)}</Text>
+          <View style={[styles.carteiraLinha, { borderBottomWidth: 0 }]}>
+            <Text style={styles.carteiraLabel}>Rendimento diário</Text>
+            <Text style={styles.carteiraValor}>{moneyTrunc8(rendimentoDiario)}</Text>
           </View>
         </View>
 
-        {/* Gráfico de Crescimento do Patrimônio */}
-        {historicoPatrimonio.length >= 2 && (
-          <View style={graficoStyle.card}>
-            <GraficoLinha
-              pontos={historicoPatrimonio}
-              cor="#34C759"
-              titulo="Crescimento do Patrimônio"
-              altura={140}
-              formatarValor={moneyTrunc2}
-            />
-          </View>
+        {/* ── Gráficos ── */}
+        {(historicoPatrimonio.length >= 2 || historicoRendimentos.length >= 2) && (
+          <>
+            <Text style={styles.secaoTitulo}>Gráficos</Text>
+            <View style={styles.secaoCard}>
+              {historicoPatrimonio.length >= 2 && (
+                <GraficoLinha
+                  pontos={historicoPatrimonio}
+                  cor={colors.primary}
+                  titulo="Crescimento do Patrimônio"
+                  altura={140}
+                  formatarValor={moneyTrunc2}
+                />
+              )}
+              {historicoRendimentos.length >= 2 && (
+                <View style={historicoPatrimonio.length >= 2 ? { marginTop: 20 } : undefined}>
+                  <GraficoLinha
+                    pontos={historicoRendimentos}
+                    cor="#007AFF"
+                    titulo="Crescimento dos Rendimentos"
+                    altura={140}
+                    formatarValor={moneyTrunc8}
+                  />
+                </View>
+              )}
+            </View>
+          </>
         )}
 
-        {/* Gráfico de Crescimento dos Rendimentos */}
-        {historicoRendimentos.length >= 2 && (
-          <View style={graficoStyle.card}>
-            <GraficoLinha
-              pontos={historicoRendimentos}
-              cor="#007AFF"
-              titulo="Crescimento dos Rendimentos"
-              altura={140}
-              formatarValor={moneyTrunc8}
-            />
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={[styles.menuItem, styles.centeredButton, styles.sacar]}
-          onPress={() => go("Withdraw")}
-        >
-          <Text style={styles.sacarText}>Sacar</Text>
-        </TouchableOpacity>
-
-        {/* Pins */}
-        <View style={styles.pinsSection}>
-          <Text style={styles.pinsSectionTitle}>Meus Pins</Text>
-
+        {/* ── Pins ── */}
+        <Text style={styles.secaoTitulo}>Pins</Text>
+        <View style={styles.secaoCard}>
           {pinsSorted.length === 0 ? (
             <Text style={styles.pinsEmpty}>
               {pinsLoaded ? "Você ainda não possui pins." : "Carregando..."}
             </Text>
           ) : (
-            pinsSorted.map((item) => (
-              <View key={item.id_resultado} style={styles.pinCardSmall}>
-                <Text style={styles.pinTitleSmall} numberOfLines={2}>
-                  {item.razao_social}
-                </Text>
-
+            pinsSorted.map((item, index) => (
+              <View
+                key={item.id_resultado}
+                style={[styles.pinCardSmall, index === pinsSorted.length - 1 && { marginBottom: 0 }]}
+              >
+                <Text style={styles.pinTitleSmall} numberOfLines={2}>{item.razao_social}</Text>
                 <View style={styles.pinRow}>
                   <Text style={styles.pinLabel}>Pins investidos</Text>
                   <Text style={styles.pinValue}>
                     {Number(item.quantidade_tokens_total_usuario || 0).toLocaleString("pt-BR")}
                   </Text>
                 </View>
-
                 <View style={styles.pinRow}>
                   <Text style={styles.pinLabel}>Rendimento diário</Text>
-                  <Text style={styles.pinValue}>
-                    {moneyTrunc8(item.rendimento_token_total_usuario)}
-                  </Text>
+                  <Text style={styles.pinValue}>{moneyTrunc8(item.rendimento_token_total_usuario)}</Text>
                 </View>
-
                 <View style={styles.pinRow}>
                   <Text style={styles.pinLabel}>Juros a.a</Text>
                   <Text style={styles.pinValue}>{item.juros_a_a}%</Text>
                 </View>
-
-                <View style={styles.pinRow}>
+                <View style={[styles.pinRow, { borderBottomWidth: 0 }]}>
                   <Text style={styles.pinLabel}>Risco</Text>
                   <Text style={styles.pinValue}>{item.risco}</Text>
                 </View>
@@ -261,38 +240,3 @@ export default function Account({ navigation }: { navigation: { navigate: (route
     </SwipeTabsWrapper>
   );
 }
-
-const graficoStyle = StyleSheet.create({
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 0,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-});
-
-const tituloRow = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 20,
-    marginBottom: 16,
-  },
-  depositarBtn: {
-    backgroundColor: "#34C759",
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  depositarText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-});

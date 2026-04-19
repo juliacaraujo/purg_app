@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -12,53 +12,41 @@ import {
   StyleSheet,
 } from "react-native";
 import { useAuth } from "../../../context/AuthContext";
+import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
-import {
-  getObjetivos,
-  criarObjetivo,
-  cancelarObjetivo,
-} from "../../../services/api";
+import { getObjetivos, criarObjetivo, cancelarObjetivo } from "../../../services/api";
 import type { ObjetivoItem, PontosInfo } from "../../../types";
-
-const GREEN = "#34C759";
-const DARK = "#111";
-const GRAY = "#888";
-const BORDER = "#e8e8e8";
 
 function moeda(v: any) {
   const n = Math.trunc((Number(v) || 0) * 100) / 100;
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
 }
 
-// ─── Barra de progresso ───────────────────────────────
-function ProgressBar({ percent }: { percent: number }) {
+function ProgressBar({ percent, cor }: { percent: number; cor: string }) {
   const p = Math.min(100, Math.max(0, percent));
   return (
     <View style={s.barBg}>
-      <View style={[s.barFill, { width: `${p}%` as any }]} />
+      <View style={[s.barFill, { width: `${p}%` as any, backgroundColor: cor }]} />
     </View>
   );
 }
 
-// ─── Card de objetivo ─────────────────────────────────
-function CardObjetivo({
-  item,
-  onCancelar,
-}: {
+function CardObjetivo({ item, onCancelar, colors }: {
   item: ObjetivoItem;
   onCancelar: (id: number, desc: string) => void;
+  colors: ReturnType<typeof import("../../../context/ThemeContext").useTheme>["colors"];
 }) {
   const pct = Number(item.percentual_geral) || 0;
-  const cor = item.objetivo_completo ? GREEN : pct > 50 ? "#007AFF" : DARK;
+  const cor = item.objetivo_completo ? colors.primary : pct > 50 ? "#007AFF" : colors.textPrimary;
 
   return (
-    <View style={s.card}>
+    <View style={[s.card, { backgroundColor: colors.card }]}>
       <View style={s.cardHeader}>
-        <Text style={s.cardTitulo} numberOfLines={2}>
+        <Text style={[s.cardTitulo, { color: colors.textPrimary }]} numberOfLines={2}>
           {item.descricao}
         </Text>
         {item.objetivo_completo && (
-          <View style={s.badge}>
+          <View style={[s.badge, { backgroundColor: "#d4edda", borderColor: colors.primary }]}>
             <Text style={s.badgeText}>Concluído</Text>
           </View>
         )}
@@ -69,26 +57,26 @@ function CardObjetivo({
         )}
       </View>
 
-      <ProgressBar percent={pct} />
+      <ProgressBar percent={pct} cor={colors.primary} />
       <Text style={[s.pct, { color: cor }]}>{pct.toFixed(0)}%</Text>
 
       <View style={s.row}>
         <View style={s.col}>
-          <Text style={s.label}>Meta</Text>
-          <Text style={s.valor}>{moeda(item.valor_alvo)}</Text>
+          <Text style={[s.label, { color: colors.textTertiary }]}>Meta</Text>
+          <Text style={[s.valor, { color: colors.textPrimary }]}>{moeda(item.valor_alvo)}</Text>
         </View>
         <View style={s.col}>
-          <Text style={s.label}>Acumulado</Text>
-          <Text style={s.valor}>{moeda(item.saldo_alocado_total)}</Text>
+          <Text style={[s.label, { color: colors.textTertiary }]}>Acumulado</Text>
+          <Text style={[s.valor, { color: colors.textPrimary }]}>{moeda(item.saldo_alocado_total)}</Text>
         </View>
         <View style={s.col}>
-          <Text style={s.label}>Prazo</Text>
-          <Text style={s.valor}>{item.prazo_total} meses</Text>
+          <Text style={[s.label, { color: colors.textTertiary }]}>Prazo</Text>
+          <Text style={[s.valor, { color: colors.textPrimary }]}>{item.prazo_total} meses</Text>
         </View>
       </View>
 
       <View style={s.row}>
-        <Text style={s.metas}>
+        <Text style={[s.metas, { color: colors.textTertiary }]}>
           {item.metas_completas}/{item.metas_total} metas concluídas
         </Text>
         {!item.is_patrimonio && !item.objetivo_completo && (
@@ -109,130 +97,76 @@ function calcMeses(ano: number, mes: number): number {
   return Math.max(1, meses);
 }
 
-// ─── Modal novo objetivo ──────────────────────────────
-function ModalNovoObjetivo({
-  visible,
-  onClose,
-  onSalvar,
-  loading,
-}: {
-  visible: boolean;
-  onClose: () => void;
+function ModalNovoObjetivo({ visible, onClose, onSalvar, loading, colors }: {
+  visible: boolean; onClose: () => void;
   onSalvar: (dados: { descricao: string; valor_alvo: number; prazo: number; pontos_total: number }) => void;
   loading: boolean;
+  colors: ReturnType<typeof import("../../../context/ThemeContext").useTheme>["colors"];
 }) {
   const agora = new Date();
   const [descricao, setDescricao] = useState("");
   const [valorAlvo, setValorAlvo] = useState("");
-  const [mesSel, setMesSel] = useState(agora.getMonth() + 1); // 1–12
+  const [mesSel, setMesSel] = useState(agora.getMonth() + 1);
   const [anoSel, setAnoSel] = useState(agora.getFullYear() + 1);
 
   function limpar() {
-    setDescricao("");
-    setValorAlvo("");
+    setDescricao(""); setValorAlvo("");
     setMesSel(new Date().getMonth() + 1);
     setAnoSel(new Date().getFullYear() + 1);
   }
 
   function anteriorMes() {
-    if (mesSel === 1) { setMesSel(12); setAnoSel((y) => y - 1); }
-    else setMesSel((m) => m - 1);
+    if (mesSel === 1) { setMesSel(12); setAnoSel((y) => y - 1); } else setMesSel((m) => m - 1);
   }
-
   function proximoMes() {
-    if (mesSel === 12) { setMesSel(1); setAnoSel((y) => y + 1); }
-    else setMesSel((m) => m + 1);
+    if (mesSel === 12) { setMesSel(1); setAnoSel((y) => y + 1); } else setMesSel((m) => m + 1);
   }
 
   function handleSalvar() {
     const valor = Number(valorAlvo.replace(",", "."));
-    if (!descricao.trim()) {
-      Alert.alert("Atenção", "Informe uma descrição.");
-      return;
-    }
-    if (!valor || valor <= 0) {
-      Alert.alert("Atenção", "Informe um valor alvo válido.");
-      return;
-    }
+    if (!descricao.trim()) { Alert.alert("Atenção", "Informe uma descrição."); return; }
+    if (!valor || valor <= 0) { Alert.alert("Atenção", "Informe um valor alvo válido."); return; }
     const meses = calcMeses(anoSel, mesSel);
-    if (meses < 1) {
-      Alert.alert("Atenção", "A data alvo deve ser no futuro.");
-      return;
-    }
-
-    const pontos = meses * 40;
-    onSalvar({ descricao: descricao.trim(), valor_alvo: valor, prazo: meses, pontos_total: pontos });
+    if (meses < 1) { Alert.alert("Atenção", "A data alvo deve ser no futuro."); return; }
+    onSalvar({ descricao: descricao.trim(), valor_alvo: valor, prazo: meses, pontos_total: meses * 40 });
   }
 
-  function handleClose() {
-    limpar();
-    onClose();
-  }
+  function handleClose() { limpar(); onClose(); }
 
   const prazoLabel = `${calcMeses(anoSel, mesSel)} meses`;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={s.overlay}>
-        <View style={s.modal}>
-          <Text style={s.modalTitulo}>Novo Objetivo</Text>
+        <View style={[s.modal, { backgroundColor: colors.background }]}>
+          <Text style={[s.modalTitulo, { color: colors.textPrimary }]}>Novo Objetivo</Text>
 
-          <Text style={s.inputLabel}>Descrição</Text>
-          <TextInput
-            style={s.input}
-            placeholder="Ex: Comprar um carro"
-            placeholderTextColor="#bbb"
-            value={descricao}
-            onChangeText={setDescricao}
-          />
+          <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Descrição</Text>
+          <TextInput style={[s.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.backgroundSecondary }]} placeholder="Ex: Comprar um carro" placeholderTextColor="#bbb" value={descricao} onChangeText={setDescricao} />
 
-          <Text style={s.inputLabel}>Valor alvo (R$)</Text>
-          <TextInput
-            style={s.input}
-            placeholder="Ex: 15000"
-            placeholderTextColor="#bbb"
-            keyboardType="decimal-pad"
-            value={valorAlvo}
-            onChangeText={setValorAlvo}
-          />
+          <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Valor alvo (R$)</Text>
+          <TextInput style={[s.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.backgroundSecondary }]} placeholder="Ex: 15000" placeholderTextColor="#bbb" keyboardType="decimal-pad" value={valorAlvo} onChangeText={setValorAlvo} />
 
-          <Text style={s.inputLabel}>Prazo — {prazoLabel}</Text>
+          <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Prazo — {prazoLabel}</Text>
           <View style={dp.row}>
-            <View style={dp.seletor}>
-              <TouchableOpacity style={dp.arrow} onPress={anteriorMes}>
-                <Text style={dp.arrowText}>{"‹"}</Text>
-              </TouchableOpacity>
-              <Text style={dp.valor}>{MESES_NOMES[mesSel - 1]}</Text>
-              <TouchableOpacity style={dp.arrow} onPress={proximoMes}>
-                <Text style={dp.arrowText}>{"›"}</Text>
-              </TouchableOpacity>
+            <View style={[dp.seletor, { borderColor: colors.border }]}>
+              <TouchableOpacity style={dp.arrow} onPress={anteriorMes}><Text style={[dp.arrowText, { color: colors.primary }]}>{"‹"}</Text></TouchableOpacity>
+              <Text style={[dp.valor, { color: colors.textPrimary }]}>{MESES_NOMES[mesSel - 1]}</Text>
+              <TouchableOpacity style={dp.arrow} onPress={proximoMes}><Text style={[dp.arrowText, { color: colors.primary }]}>{"›"}</Text></TouchableOpacity>
             </View>
-
-            <View style={dp.seletor}>
-              <TouchableOpacity style={dp.arrow} onPress={() => setAnoSel((y) => y - 1)}>
-                <Text style={dp.arrowText}>{"‹"}</Text>
-              </TouchableOpacity>
-              <Text style={dp.valor}>{anoSel}</Text>
-              <TouchableOpacity style={dp.arrow} onPress={() => setAnoSel((y) => y + 1)}>
-                <Text style={dp.arrowText}>{"›"}</Text>
-              </TouchableOpacity>
+            <View style={[dp.seletor, { borderColor: colors.border }]}>
+              <TouchableOpacity style={dp.arrow} onPress={() => setAnoSel((y) => y - 1)}><Text style={[dp.arrowText, { color: colors.primary }]}>{"‹"}</Text></TouchableOpacity>
+              <Text style={[dp.valor, { color: colors.textPrimary }]}>{anoSel}</Text>
+              <TouchableOpacity style={dp.arrow} onPress={() => setAnoSel((y) => y + 1)}><Text style={[dp.arrowText, { color: colors.primary }]}>{"›"}</Text></TouchableOpacity>
             </View>
           </View>
 
           <View style={s.modalBtns}>
-            <TouchableOpacity style={s.btnCancelar} onPress={handleClose}>
-              <Text style={s.btnCancelarText}>Cancelar</Text>
+            <TouchableOpacity style={[s.btnCancelar, { borderColor: colors.border }]} onPress={handleClose}>
+              <Text style={[s.btnCancelarText, { color: colors.textSecondary }]}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.btnSalvar, loading && { opacity: 0.6 }]}
-              onPress={handleSalvar}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={s.btnSalvarText}>Criar</Text>
-              )}
+            <TouchableOpacity style={[s.btnSalvar, { backgroundColor: colors.primary }, loading && { opacity: 0.6 }]} onPress={handleSalvar} disabled={loading}>
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnSalvarText}>Criar</Text>}
             </TouchableOpacity>
           </View>
         </View>
@@ -241,44 +175,9 @@ function ModalNovoObjetivo({
   );
 }
 
-const dp = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 14,
-  },
-  seletor: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-  },
-  arrow: {
-    paddingHorizontal: 8,
-  },
-  arrowText: {
-    fontSize: 22,
-    color: GREEN,
-    fontWeight: "700",
-    lineHeight: 24,
-  },
-  valor: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: DARK,
-    minWidth: 36,
-    textAlign: "center",
-  },
-});
-
-// ─── Tela principal ───────────────────────────────────
 export default function Objetivos() {
   const { user } = useAuth();
+  const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -300,21 +199,11 @@ export default function Objetivos() {
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    carregar();
-  }, [carregar]);
+  useEffect(() => { carregar(); }, [carregar]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    carregar();
-  };
+  const onRefresh = () => { setRefreshing(true); carregar(); };
 
-  async function handleCriar(dados: {
-    descricao: string;
-    valor_alvo: number;
-    prazo: number;
-    pontos_total: number;
-  }) {
+  async function handleCriar(dados: { descricao: string; valor_alvo: number; prazo: number; pontos_total: number }) {
     if (!user?.id) return;
     try {
       setSalvando(true);
@@ -323,38 +212,26 @@ export default function Objetivos() {
       carregar();
     } catch (e: any) {
       Alert.alert("Erro", e?.message || "Não foi possível criar o objetivo.");
-    } finally {
-      setSalvando(false);
-    }
+    } finally { setSalvando(false); }
   }
 
   function handleCancelar(objetivoId: number, descricao: string) {
-    Alert.alert(
-      "Cancelar objetivo",
-      `Deseja cancelar "${descricao}"? O saldo alocado será zerado.`,
-      [
-        { text: "Não", style: "cancel" },
-        {
-          text: "Sim, cancelar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await cancelarObjetivo(user!.id, objetivoId);
-              carregar();
-            } catch (e: any) {
-              Alert.alert("Erro", e?.message || "Não foi possível cancelar.");
-            }
-          },
-        },
-      ]
-    );
+    Alert.alert("Cancelar objetivo", `Deseja cancelar "${descricao}"? O saldo alocado será zerado.`, [
+      { text: "Não", style: "cancel" },
+      { text: "Sim, cancelar", style: "destructive", onPress: async () => {
+        try { await cancelarObjetivo(user!.id, objetivoId); carregar(); }
+        catch (e: any) { Alert.alert("Erro", e?.message || "Não foi possível cancelar."); }
+      }},
+    ]);
   }
+
+  const containerStyle = useMemo(() => ({ flex: 1, backgroundColor: colors.backgroundSecondary }), [colors]);
 
   if (loading) {
     return (
       <SwipeTabsWrapper currentTab="Objetivos">
-        <View style={s.center}>
-          <ActivityIndicator size="large" color={GREEN} />
+        <View style={[s.center, containerStyle]}>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SwipeTabsWrapper>
     );
@@ -363,36 +240,32 @@ export default function Objetivos() {
   return (
     <SwipeTabsWrapper currentTab="Objetivos">
       <ScrollView
-        style={s.container}
+        style={containerStyle}
         contentContainerStyle={s.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Pontos */}
+        <Text style={[s.tituloPagina, { color: colors.textPrimary }]}>Objetivos</Text>
+
         {pontos && (
-          <View style={s.pontosCard}>
+          <View style={[s.pontosCard, { backgroundColor: colors.heroCard }]}>
             <Text style={s.pontosTitle}>Pontos</Text>
-            <Text style={s.pontoValor}>{pontos.total}</Text>
+            <Text style={[s.pontoValor, { color: colors.primary }]}>{pontos.total}</Text>
           </View>
         )}
 
-        {/* Objetivos */}
         <View style={s.secaoHeader}>
-          <Text style={s.secaoTitulo}>Meus Objetivos</Text>
-          <TouchableOpacity style={s.novoBtn} onPress={() => setModalVisible(true)}>
+          <Text style={[s.secaoTitulo, { color: colors.textPrimary }]}>Meus Objetivos</Text>
+          <TouchableOpacity style={[s.novoBtn, { backgroundColor: colors.primary }]} onPress={() => setModalVisible(true)}>
             <Text style={s.novoBtnText}>+ Novo</Text>
           </TouchableOpacity>
         </View>
 
         {objetivos.length === 0 ? (
-          <Text style={s.vazio}>Nenhum objetivo cadastrado ainda.</Text>
+          <Text style={[s.vazio, { color: colors.textTertiary }]}>Nenhum objetivo cadastrado ainda.</Text>
         ) : (
           objetivos.map((item) => (
-            <CardObjetivo
-              key={item.objetivo_id}
-              item={item}
-              onCancelar={handleCancelar}
-            />
+            <CardObjetivo key={item.objetivo_id} item={item} onCancelar={handleCancelar} colors={colors} />
           ))
         )}
       </ScrollView>
@@ -402,135 +275,54 @@ export default function Objetivos() {
         onClose={() => setModalVisible(false)}
         onSalvar={handleCriar}
         loading={salvando}
+        colors={colors}
       />
     </SwipeTabsWrapper>
   );
 }
 
+const dp = StyleSheet.create({
+  row: { flexDirection: "row", gap: 12, marginBottom: 14 },
+  seletor: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 10 },
+  arrow: { paddingHorizontal: 8 },
+  arrowText: { fontSize: 22, fontWeight: "700", lineHeight: 24 },
+  valor: { fontSize: 15, fontWeight: "700", minWidth: 36, textAlign: "center" },
+});
+
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
   content: { padding: 16, paddingBottom: 32 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-
-  // Pontos
-  pontosCard: {
-    backgroundColor: DARK,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-  },
+  tituloPagina: { fontSize: 22, fontWeight: "bold", marginTop: 20, marginBottom: 16 },
+  pontosCard: { borderRadius: 16, padding: 16, marginBottom: 20 },
   pontosTitle: { color: "#aaa", fontSize: 12, fontWeight: "600", marginBottom: 10, letterSpacing: 1 },
-  pontosRow: { flexDirection: "row", justifyContent: "space-around" },
-  pontoItem: { alignItems: "center" },
-  pontoValor: { color: GREEN, fontSize: 22, fontWeight: "700" },
-  pontoLabel: { color: "#aaa", fontSize: 12, marginTop: 2 },
-
-  // Seção
-  secaoHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  secaoTitulo: { fontSize: 16, fontWeight: "700", color: DARK },
-  novoBtn: {
-    backgroundColor: GREEN,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
+  pontoValor: { fontSize: 22, fontWeight: "700" },
+  secaoHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  secaoTitulo: { fontSize: 16, fontWeight: "700" },
+  novoBtn: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
   novoBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
-
-  // Card
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 10,
-    gap: 8,
-  },
-  cardTitulo: { flex: 1, fontSize: 14, fontWeight: "700", color: DARK },
-  badge: {
-    backgroundColor: "#d4edda",
-    borderColor: GREEN,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
+  card: { borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  cardHeader: { flexDirection: "row", alignItems: "flex-start", marginBottom: 10, gap: 8 },
+  cardTitulo: { flex: 1, fontSize: 14, fontWeight: "700" },
+  badge: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
   badgeText: { fontSize: 10, fontWeight: "700", color: "#155724" },
-
-  // Barra
-  barBg: { height: 8, backgroundColor: BORDER, borderRadius: 4, marginBottom: 4 },
-  barFill: { height: 8, backgroundColor: GREEN, borderRadius: 4 },
+  barBg: { height: 8, backgroundColor: "#e8e8e8", borderRadius: 4, marginBottom: 4 },
+  barFill: { height: 8, borderRadius: 4 },
   pct: { fontSize: 12, fontWeight: "700", marginBottom: 10, textAlign: "right" },
-
-  // Row
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 8,
-  },
+  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 },
   col: { flex: 1 },
-  label: { fontSize: 10, color: GRAY, fontWeight: "600", marginBottom: 2 },
-  valor: { fontSize: 13, fontWeight: "700", color: DARK },
-  metas: { fontSize: 12, color: GRAY },
+  label: { fontSize: 10, fontWeight: "600", marginBottom: 2 },
+  valor: { fontSize: 13, fontWeight: "700" },
+  metas: { fontSize: 12 },
   cancelar: { fontSize: 12, color: "#FF3B30", fontWeight: "600" },
-
-  // Vazio
-  vazio: { textAlign: "center", color: GRAY, marginTop: 40, fontSize: 14 },
-
-  // Modal
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  modal: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  modalTitulo: { fontSize: 18, fontWeight: "700", color: DARK, marginBottom: 20 },
-  inputLabel: { fontSize: 12, fontWeight: "600", color: GRAY, marginBottom: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: DARK,
-    marginBottom: 14,
-  },
+  vazio: { textAlign: "center", marginTop: 40, fontSize: 14 },
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modal: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  modalTitulo: { fontSize: 18, fontWeight: "700", marginBottom: 20 },
+  inputLabel: { fontSize: 12, fontWeight: "600", marginBottom: 4 },
+  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, marginBottom: 14 },
   modalBtns: { flexDirection: "row", gap: 12, marginTop: 4 },
-  btnCancelar: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  btnCancelarText: { color: GRAY, fontWeight: "600" },
-  btnSalvar: {
-    flex: 1,
-    backgroundColor: GREEN,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
+  btnCancelar: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
+  btnCancelarText: { fontWeight: "600" },
+  btnSalvar: { flex: 1, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   btnSalvarText: { color: "#fff", fontWeight: "700", fontSize: 15 },
 });

@@ -1,32 +1,18 @@
 import { StyleSheet } from "react-native";
-import { theme } from "../../global/themes";
+import type { ThemeColors } from "../../../context/ThemeContext";
 
-export const styles = StyleSheet.create({
+export const makeAccountStyles = (c: ThemeColors) => StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: c.backgroundSecondary,
     padding: 20,
     paddingBottom: 36,
   },
-
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: theme.colors.textPrimary,
-  },
-
-  pageSubtitle: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: 4,
-  },
-
-  menu: {
-    gap: 12,
-  },
-
+  pageTitle: { fontSize: 22, fontWeight: "bold", color: c.textPrimary },
+  pageSubtitle: { fontSize: 13, color: c.textSecondary, marginTop: 4 },
+  menu: { gap: 12 },
   menuItem: {
-    backgroundColor: "#fff",
+    backgroundColor: c.card,
     borderRadius: 12,
     paddingVertical: 18,
     paddingHorizontal: 16,
@@ -39,44 +25,15 @@ export const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-
-  menuText: {
-    color: theme.colors.textPrimary,
-    fontSize: 15,
-    fontWeight: "600",
-    flexShrink: 1,
-  },
-
-  menuValue: {
-    color: theme.colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "600",
-    textAlign: "right",
-    maxWidth: "55%",
-  },
-
-  centeredButton: {
-    justifyContent: "center",
-  },
-
-  sacar: {
-    backgroundColor: "#FF6B6B",
-    shadowColor: "transparent",
-    elevation: 0,
-  },
-
-  sacarText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-    width: "100%",
-  },
-
+  menuText: { color: c.textPrimary, fontSize: 15, fontWeight: "600", flexShrink: 1 },
+  menuValue: { color: c.textSecondary, fontSize: 13, fontWeight: "600", textAlign: "right", maxWidth: "55%" },
+  centeredButton: { justifyContent: "center" },
+  sacar: { backgroundColor: "#FF6B6B", shadowColor: "transparent", elevation: 0 },
+  sacarText: { color: "#fff", fontSize: 16, fontWeight: "600", textAlign: "center", width: "100%" },
   logout: {
-    backgroundColor: "#fff",
+    backgroundColor: c.card,
     borderWidth: 1.5,
-    borderColor: "#e0e0e0",
+    borderColor: c.border,
     marginTop: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -84,37 +41,19 @@ export const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-
-  logoutText: {
-    color: theme.colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-    width: "100%",
-  },
-
-  pinsSection: {
-    marginTop: 28,
-  },
-
+  logoutText: { color: c.textPrimary, fontSize: 16, fontWeight: "600", textAlign: "center", width: "100%" },
+  pinsSection: { marginTop: 28 },
   pinsSectionTitle: {
     fontSize: 14,
     fontWeight: "bold",
     marginBottom: 12,
-    color: theme.colors.textPrimary,
+    color: c.textPrimary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-
-  pinsEmpty: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-    paddingVertical: 20,
-  },
-
+  pinsEmpty: { fontSize: 13, color: c.textSecondary, textAlign: "center", paddingVertical: 20 },
   pinCardSmall: {
-    backgroundColor: "#fff",
+    backgroundColor: c.card,
     borderRadius: 12,
     padding: 16,
     marginBottom: 10,
@@ -124,31 +63,75 @@ export const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-
-  pinTitleSmall: {
-    fontSize: 14,
-    fontWeight: "bold",
-    marginBottom: 12,
-    color: theme.colors.textPrimary,
-  },
-
+  pinTitleSmall: { fontSize: 14, fontWeight: "bold", marginBottom: 12, color: c.textPrimary },
   pinRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 5,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: c.borderLight,
   },
-
-  pinLabel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
+  pinLabel: { fontSize: 12, color: c.textSecondary },
+  pinValue: { fontSize: 12, fontWeight: "bold", color: c.textPrimary },
+  // Section styles
+  secaoTitulo: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: c.textTertiary,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    marginTop: 20,
+    marginBottom: 8,
   },
-
-  pinValue: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: theme.colors.textPrimary,
+  secaoCard: {
+    backgroundColor: c.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
+  // Carteira (profile-like format)
+  carteiraSecao: {
+    backgroundColor: c.card,
+    marginBottom: 12,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  carteiraSecaoTitulo: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: c.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  carteiraLinha: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: c.borderLight,
+  },
+  carteiraLabel: { fontSize: 13, color: c.textSecondary, flex: 1 },
+  carteiraValor: { fontSize: 13, color: c.textPrimary, fontWeight: "500", flex: 1, textAlign: "right" },
+  // Header row
+  tituloRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  tituloBtns: { flexDirection: "row", gap: 8 },
+  depositarBtn: { backgroundColor: "#34C759", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
+  depositarText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  sacarBtn: { backgroundColor: "#FF6B6B", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
+  sacarBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
 });
