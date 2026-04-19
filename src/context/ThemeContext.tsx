@@ -52,6 +52,8 @@ const dark: ThemeColors = {
   eyeBtn: "#3a3a3c",
 };
 
+export const lightColors: ThemeColors = light;
+
 const STORAGE_KEY = "purg_dark_mode";
 
 function savePref(isDark: boolean) {

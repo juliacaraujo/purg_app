@@ -19,8 +19,8 @@ export const makeHomeStyle = (c: ThemeColors) => StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 20,
-    marginBottom: 24,
+    marginTop: 4,
+    marginBottom: 16,
     gap: 12,
   },
   avatar: {
@@ -155,6 +155,14 @@ export const makeHomeStyle = (c: ThemeColors) => StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  badgeLiga: {
+    alignSelf: "flex-start",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginTop: 4,
+  },
+  badgeLigaText: { fontSize: 11, fontWeight: "700" as const, color: "#fff" },
   badgePro: {
     alignSelf: "flex-start",
     borderRadius: 10,

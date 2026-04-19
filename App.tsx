@@ -29,8 +29,9 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 import { isWeb, MAX_WIDTH } from "./src/assets/global/responsive";
 
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
-import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
+import { ThemeProvider, useTheme, lightColors } from "./src/context/ThemeContext";
 import { makeLoginStyle } from "./src/assets/pages/login/styles";
+import { getTema } from "./src/services/api";
 
 // Telas — autenticação
 import Signup from "./src/assets/pages/signup";
@@ -68,27 +69,44 @@ function LoginScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
   const [loadingBio, setLoadingBio] = useState(false);
   const [showSenha, setShowSenha] = useState(false);
+  const [erro, setErro] = useState("");
   const { login } = useAuth();
-  const { colors } = useTheme();
-  const loginStyle = useMemo(() => makeLoginStyle(colors), [colors]);
+  const loginStyle = useMemo(() => makeLoginStyle(lightColors), []);
+  const shakeAnim = useRef(new Animated.Value(0)).current;
 
   const biometriaDisponivel = isPasskeySupported();
 
+  const shake = () => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 8, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 6, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -6, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 55, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const mostrarErro = (msg: string) => {
+    setErro(msg);
+    shake();
+  };
+
   const handleLogin = async () => {
     if (!email.trim() || !senha.trim()) {
-      Alert.alert("Atenção", "Preencha email e senha.");
+      mostrarErro("Preencha o e-mail e a senha.");
       return;
     }
     try {
       setLoading(true);
+      setErro("");
       const result = await loginUser(email, senha);
       if (!result.success || !result.userId) {
-        Alert.alert("Erro", result.message || "Falha no login.");
+        mostrarErro(result.message || "E-mail ou senha incorretos.");
         return;
       }
       login({ id: Number(result.userId), email });
     } catch (error: any) {
-      Alert.alert("Erro", error?.message || "Não foi possível conectar ao servidor. Tente novamente.");
+      mostrarErro(error?.message || "Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
     }
@@ -96,15 +114,16 @@ function LoginScreen({ navigation }: any) {
 
   const handleLoginBiometrico = async () => {
     if (!email.trim()) {
-      Alert.alert("Atenção", "Informe seu e-mail antes de usar a biometria.");
+      mostrarErro("Informe seu e-mail antes de usar a biometria.");
       return;
     }
     try {
       setLoadingBio(true);
+      setErro("");
       const resultado = await loginBiometrico(email.trim());
       login({ id: resultado.id, email: resultado.email });
     } catch (error: any) {
-      Alert.alert("Erro", error?.message || "Falha na autenticação biométrica.");
+      mostrarErro(error?.message || "Falha na autenticação biométrica.");
     } finally {
       setLoadingBio(false);
     }
@@ -116,14 +135,16 @@ function LoginScreen({ navigation }: any) {
       alignItems: "center",
       justifyContent: "center",
       borderWidth: 1.5,
-      borderColor: colors.border,
+      borderColor: lightColors.border,
       borderRadius: 12,
       paddingVertical: 13,
       marginTop: 10,
-      backgroundColor: colors.background,
+      backgroundColor: lightColors.background,
     },
-    btnText: { fontSize: 15, fontWeight: "600", color: colors.textPrimary },
-  }), [colors]);
+    btnText: { fontSize: 15, fontWeight: "600", color: lightColors.textPrimary },
+  }), []);
+
+  const temErro = erro.length > 0;
 
   return (
     <View style={loginStyle.container}>
@@ -132,39 +153,47 @@ function LoginScreen({ navigation }: any) {
       </View>
 
       <View style={loginStyle.boxMid}>
-        <TextInput
-          style={loginStyle.input}
-          placeholder="e-mail@dominio.com"
-          placeholderTextColor={colors.textTertiary}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-        />
-
-        <View style={{ position: "relative", marginBottom: 15 }}>
+        <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
           <TextInput
-            style={[loginStyle.input, { marginBottom: 0 }]}
-            placeholder="Senha"
-            placeholderTextColor={colors.textTertiary}
-            secureTextEntry={!showSenha}
-            value={senha}
-            onChangeText={setSenha}
+            style={[loginStyle.input, temErro && { borderColor: "#FF3B30" }]}
+            placeholder="e-mail@dominio.com"
+            placeholderTextColor={lightColors.textTertiary}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={(v) => { setEmail(v); setErro(""); }}
           />
-          <TouchableOpacity
-            onPress={() => setShowSenha((v) => !v)}
-            style={{ position: "absolute", right: 12, top: 0, bottom: 0, justifyContent: "center" }}
-          >
-            <Image
-              source={showSenha ? imgOlhoFechado : imgOlhoAberto}
-              style={{ width: 20, height: 20 }}
-              resizeMode="contain"
+
+          <View style={{ position: "relative", marginBottom: 0 }}>
+            <TextInput
+              style={[loginStyle.input, { marginBottom: 0 }, temErro && { borderColor: "#FF3B30" }]}
+              placeholder="Senha"
+              placeholderTextColor={lightColors.textTertiary}
+              secureTextEntry={!showSenha}
+              value={senha}
+              onChangeText={(v) => { setSenha(v); setErro(""); }}
             />
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              onPress={() => setShowSenha((v) => !v)}
+              style={{ position: "absolute", right: 12, top: 0, bottom: 0, justifyContent: "center" }}
+            >
+              <Image
+                source={showSenha ? imgOlhoFechado : imgOlhoAberto}
+                style={{ width: 20, height: 20 }}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {temErro && (
+            <Text style={{ color: "#FF3B30", fontSize: 13, marginTop: 8, marginBottom: 4, textAlign: "center", fontWeight: "500" }}>
+              {erro}
+            </Text>
+          )}
+        </Animated.View>
 
         <TouchableOpacity
-          style={[loginStyle.loginButton, loading && { opacity: 0.6 }]}
+          style={[loginStyle.loginButton, { marginTop: 12 }, loading && { opacity: 0.6 }]}
           onPress={handleLogin}
           disabled={loading}
         >
@@ -243,25 +272,26 @@ function ChatScreen() {
    Ícones do header (Perfil + Chat)
 ────────────────────────────────────────────── */
 function HeaderRight({ navigation }: { navigation: any }) {
+  const { colors } = useTheme();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginRight: 14, gap: 16 }}>
       <TouchableOpacity
         onPress={() => navigation.navigate("Chat")}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Image source={imgChat} style={{ width: 26, height: 26 }} resizeMode="contain" />
+        <Image source={imgChat} style={{ width: 26, height: 26, tintColor: colors.textTertiary }} resizeMode="contain" />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={() => navigation.navigate("Profile")}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Image source={imgPerfil} style={{ width: 28, height: 28 }} resizeMode="contain" />
+        <Image source={imgPerfil} style={{ width: 28, height: 28, tintColor: colors.textTertiary }} resizeMode="contain" />
       </TouchableOpacity>
     </View>
   );
 }
 
-function AnimatedTabIconImage({ source, size, focused }: { source: any; size: number; focused: boolean }) {
+function AnimatedTabIconImage({ source, size, focused, color }: { source: any; size: number; focused: boolean; color?: string }) {
   const scale = useRef(new Animated.Value(1)).current;
   const rotate = useRef(new Animated.Value(0)).current;
 
@@ -284,7 +314,7 @@ function AnimatedTabIconImage({ source, size, focused }: { source: any; size: nu
 
   return (
     <Animated.View style={{ transform: [{ scale }, { rotate: rotateInterp }] }}>
-      <Image source={source} style={{ width: size, height: size }} resizeMode="contain" />
+      <Image source={source} style={{ width: size, height: size, tintColor: color }} resizeMode="contain" />
     </Animated.View>
   );
 }
@@ -379,7 +409,7 @@ const tabBarStyles = StyleSheet.create({
    Tabs do app logado
 ────────────────────────────────────────────── */
 function AppTabs() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   return (
     <Tab.Navigator
@@ -389,22 +419,22 @@ function AppTabs() {
         headerStyle: { backgroundColor: colors.header, elevation: 0, shadowOpacity: 0 },
         headerTitleStyle: { display: "none" },
         headerLeft: () => (
-          <Image source={Logo} style={{ width: 80, height: 36, resizeMode: "contain", marginLeft: 14 }} />
+          <Image source={Logo} style={{ width: 80, height: 36, resizeMode: "contain", marginLeft: 14, tintColor: isDark ? "#ffffff" : undefined }} />
         ),
         headerRight: () => <HeaderRight navigation={navigation} />,
       })}
     >
       <Tab.Screen name="Home" component={Home} options={{
-        tabBarIcon: ({ size, focused }) => <AnimatedTabIconImage source={imgHome} size={size} focused={focused} />,
+        tabBarIcon: ({ size, focused, color }) => <AnimatedTabIconImage source={imgHome} size={size} focused={focused} color={color} />,
       }} />
       <Tab.Screen name="Patrimônio" component={Account} options={{
-        tabBarIcon: ({ size, focused }) => <AnimatedTabIconImage source={imgPatrimonio} size={size} focused={focused} />,
+        tabBarIcon: ({ size, focused, color }) => <AnimatedTabIconImage source={imgPatrimonio} size={size} focused={focused} color={color} />,
       }} />
       <Tab.Screen name="Objetivos" component={Objetivos} options={{
-        tabBarIcon: ({ size, focused }) => <AnimatedTabIconImage source={imgObjetivos} size={size} focused={focused} />,
+        tabBarIcon: ({ size, focused, color }) => <AnimatedTabIconImage source={imgObjetivos} size={size} focused={focused} color={color} />,
       }} />
       <Tab.Screen name="Ranking" component={Ranking} options={{
-        tabBarIcon: ({ size, focused }) => <AnimatedTabIconImage source={imgRanking} size={size} focused={focused} />,
+        tabBarIcon: ({ size, focused, color }) => <AnimatedTabIconImage source={imgRanking} size={size} focused={focused} color={color} />,
       }} />
       <Tab.Screen name="Profile" component={Profile} options={{ headerShown: false, tabBarButton: () => null }} />
       <Tab.Screen name="Chat" component={ChatScreen} options={{ headerShown: false, tabBarButton: () => null }} />
@@ -415,6 +445,16 @@ function AppTabs() {
 /* ──────────────────────────────────────────────
    RootNavigator
 ────────────────────────────────────────────── */
+function ThemeSync() {
+  const { user } = useAuth();
+  const { setDark } = useTheme();
+  useEffect(() => {
+    if (!user?.id) return;
+    getTema(user.id).then((data) => setDark(data.tema === "escuro")).catch(() => {});
+  }, [user?.id]);
+  return null;
+}
+
 function RootNavigator() {
   const { user, isLoading } = useAuth();
   const { colors } = useTheme();
@@ -428,7 +468,9 @@ function RootNavigator() {
   }
 
   return (
-    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+    <>
+      <ThemeSync />
+      <RootStack.Navigator screenOptions={{ headerShown: false }}>
       {user ? (
         <>
           <RootStack.Screen name="AppTabs" component={AppTabs} />
@@ -487,7 +529,8 @@ function RootNavigator() {
       ) : (
         <RootStack.Screen name="AuthStack" component={AuthStack} />
       )}
-    </RootStack.Navigator>
+      </RootStack.Navigator>
+    </>
   );
 }
 

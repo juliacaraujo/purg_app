@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import imgOlhoAberto from "../../../../assets/olho_aberto.png";
 import imgOlhoFechado from "../../../../assets/olho_fechado.png";
+import imgChat from "../../../../assets/chat.png";
+import imgPerfil from "../../../../assets/perfil.png";
 import { makeHomeStyle } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
@@ -25,6 +27,25 @@ import {
 import GraficoLinha from "../../components/GraficoLinha";
 import type { GraficoPoint } from "../../../types";
 
+const LIGA_CORES: Record<string, { bg: string; text: string }> = {
+  "Cobre":     { bg: "#B87333", text: "#fff" },
+  "Bronze":    { bg: "#CD7F32", text: "#fff" },
+  "Prata":     { bg: "#9E9E9E", text: "#fff" },
+  "Ouro":      { bg: "#F0C040", text: "#333" },
+  "Platina":   { bg: "#78909C", text: "#fff" },
+  "Ametista":  { bg: "#8E44AD", text: "#fff" },
+  "Safira":    { bg: "#1565C0", text: "#fff" },
+  "Esmeralda": { bg: "#2E7D32", text: "#fff" },
+  "Rubi":      { bg: "#C0392B", text: "#fff" },
+  "Diamante":  { bg: "#29B6F6", text: "#fff" },
+};
+
+function getLigaCores(liga: string | null): { bg: string; text: string } | null {
+  if (!liga) return null;
+  const metal = liga.split(" ")[0];
+  return LIGA_CORES[metal] ?? null;
+}
+
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return "Bom dia";
@@ -37,7 +58,7 @@ function moneyTrunc(value: number | string | null | undefined) {
   return `R$ ${v.toFixed(2).replace(".", ",")}`;
 }
 
-export default function Home({ navigation }: { navigation: { navigate: (route: string) => void } }) {
+export default function Home({ navigation }: { navigation: { navigate: (route: string) => void; setOptions: (opts: any) => void } }) {
   const { user, logout } = useAuth();
   const { colors } = useTheme();
   const style = useMemo(() => makeHomeStyle(colors), [colors]);
@@ -51,6 +72,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
 
   const [saldo, setSaldo] = useState(0);
   const [investido, setInvestido] = useState(0);
+  const [liga, setLiga] = useState<string | null>(null);
 
   const [rendimentoTotal, setRendimentoTotal] = useState(0);
   const [rendimentoDiario, setRendimentoDiario] = useState(0);
@@ -92,6 +114,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
       if (cart.status === "fulfilled") {
         setSaldo(Number(cart.value?.saldo || 0));
         setInvestido(Number(cart.value?.investido || 0));
+        setLiga(cart.value?.liga ?? null);
       }
       if (rend.status === "fulfilled") {
         setRendimentoTotal(rend.value?.rendimento_total ?? 0);
@@ -116,6 +139,28 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
   }, [user?.id]);
 
   useEffect(() => { carregar(); }, [carregar]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: "row", alignItems: "center", marginRight: 14, gap: 16 }}>
+          <TouchableOpacity onPress={() => setHidden((v) => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Image
+              source={hidden ? imgOlhoFechado : imgOlhoAberto}
+              style={{ width: 28, height: 28, tintColor: colors.textTertiary }}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("Chat")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Image source={imgChat} style={{ width: 26, height: 26, tintColor: colors.textTertiary }} resizeMode="contain" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("Profile")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Image source={imgPerfil} style={{ width: 28, height: 28, tintColor: colors.textTertiary }} resizeMode="contain" />
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [hidden, colors]);
 
   const onRefresh = () => { setRefreshing(true); carregar(); };
 
@@ -155,22 +200,24 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
           <View style={style.greetingBlock}>
             <Text style={style.greeting}>{getGreeting()},</Text>
             <Text style={style.welcomeName}>{primeiroNome || "…"}</Text>
-            {hasAssinatura && (
-              <View style={isPro ? style.badgePro : style.badgeBasic}>
-                <Text style={isPro ? style.badgeProText : style.badgeBasicText}>
-                  {assinaturaLabel}
-                </Text>
-              </View>
-            )}
           </View>
 
-          <TouchableOpacity style={style.eyeBtn} onPress={() => setHidden((v) => !v)}>
-            <Image
-              source={hidden ? imgOlhoFechado : imgOlhoAberto}
-              style={{ width: 20, height: 20 }}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
+          {(() => {
+            const ligaCores = getLigaCores(liga);
+            return ligaCores ? (
+              <View style={[style.badgeLiga, { backgroundColor: ligaCores.bg }]}>
+                <Text style={[style.badgeLigaText, { color: ligaCores.text }]}>{liga}</Text>
+              </View>
+            ) : null;
+          })()}
+
+          {hasAssinatura && (
+            <View style={isPro ? style.badgePro : style.badgeBasic}>
+              <Text style={isPro ? style.badgeProText : style.badgeBasicText}>
+                {assinaturaLabel}
+              </Text>
+            </View>
+          )}
         </View>
 
         {loading && <ActivityIndicator style={{ marginTop: 10 }} />}

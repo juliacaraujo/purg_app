@@ -1,3 +1,14 @@
+purg-develop-5 — 2026-04-19
+- Tela de Ranking: implementada com chamada GET /api/v1/ranking; exibe posição (1º, 2º...), apelido, liga e pontos
+- Tela de Ranking: usuário logado destacado com borda verde
+- Badge de liga: exibido na Home (ao lado da assinatura) e na tela de Objetivos (ao lado do título), com cor condizente ao metal (Cobre, Bronze, Prata, Ouro, Platina, Ametista, Safira, Esmeralda, Rubi, Diamante)
+- Tema: preferência de modo claro/escuro sincronizada com backend via GET/PUT /api/v1/tema/:id
+- Tema: ao logar, o app carrega e aplica automaticamente o tema salvo no servidor
+- Tema: botões Claro/Escuro no Perfil gravam a preferência no backend
+- Tela de Login: sempre exibida no modo claro, independente da preferência do usuário
+- Logo no header: aplica tintColor branco no modo escuro para contraste correto
+- Atualizado icon.png
+
 purg-develop-4 — 2026-04-19
 - Dark mode: ThemeContext com paletas claro/escuro; preferência salva no localStorage (web)
 - Dark mode: toggle "Claro / Escuro" na tela de Perfil, antes da seção Dados Pessoais

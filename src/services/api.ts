@@ -8,6 +8,7 @@ import type {
   HistoricoPatrimonioResponse,
   HistoricoRendimentosResponse,
   ObjetivosResponse,
+  RankingItem,
 } from "../types";
 
 const BASE_URL =
@@ -533,6 +534,33 @@ export async function getHistoricoRendimentos(usuarioId: number): Promise<Histor
     throw new ApiError("Erro ao buscar histórico de rendimentos", response.status);
   }
   return response.json() as Promise<HistoricoRendimentosResponse>;
+}
+
+/* ======================================================
+   TEMA
+   ====================================================== */
+export async function getTema(usuarioId: number): Promise<{ tema: string }> {
+  const response = await apiFetch(`/api/v1/tema/${usuarioId}`);
+  if (!response.ok) throw new ApiError("Erro ao buscar tema", response.status);
+  return response.json();
+}
+
+export async function putTema(usuarioId: number, tema: "claro" | "escuro"): Promise<void> {
+  await apiFetch(`/api/v1/tema/${usuarioId}`, {
+    method: "PUT",
+    body: JSON.stringify({ tema }),
+  });
+}
+
+/* ======================================================
+   RANKING
+   ====================================================== */
+export async function getRanking(): Promise<RankingItem[]> {
+  const response = await apiFetch("/api/v1/ranking");
+  if (!response.ok) {
+    throw new ApiError("Erro ao buscar ranking", response.status);
+  }
+  return response.json() as Promise<RankingItem[]>;
 }
 
 /* ======================================================

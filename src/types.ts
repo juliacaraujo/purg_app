@@ -1,6 +1,7 @@
 export interface CarteiraResponse {
   saldo: number;
   investido: number;
+  liga?: string;
 }
 
 export interface RendimentosResponse {
@@ -86,4 +87,12 @@ export interface ObjetivosResponse {
 export interface GraficoPoint {
   data: string;
   valor: number;
+}
+
+export interface RankingItem {
+  posicao: number;
+  usuario_id: number;
+  apelido: string;
+  pontos: number;
+  liga: string;
 }

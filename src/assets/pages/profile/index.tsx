@@ -15,7 +15,7 @@ import { makeProfileStyle } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
-import { getDadosCadastro, editarPerfil, trocarSenha } from "../../../services/api";
+import { getDadosCadastro, editarPerfil, trocarSenha, putTema } from "../../../services/api";
 import type { DadosCadastroResponse } from "../../../types";
 import { cadastrarBiometria, isPasskeySupported } from "../../../services/biometria";
 
@@ -210,13 +210,13 @@ export default function Profile() {
           <View style={style.toggleRow}>
             <TouchableOpacity
               style={[style.toggleBtn, !isDark && style.toggleBtnActive]}
-              onPress={() => setDark(false)}
+              onPress={() => { setDark(false); if (user?.id) putTema(user.id, "claro").catch(() => {}); }}
             >
               <Text style={[style.toggleBtnText, !isDark && style.toggleBtnTextActive]}>Claro</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[style.toggleBtn, isDark && style.toggleBtnActive]}
-              onPress={() => setDark(true)}
+              onPress={() => { setDark(true); if (user?.id) putTema(user.id, "escuro").catch(() => {}); }}
             >
               <Text style={[style.toggleBtnText, isDark && style.toggleBtnTextActive]}>Escuro</Text>
             </TouchableOpacity>

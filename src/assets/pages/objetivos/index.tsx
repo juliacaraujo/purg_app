@@ -14,8 +14,27 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
-import { getObjetivos, criarObjetivo, cancelarObjetivo } from "../../../services/api";
+import { getObjetivos, criarObjetivo, cancelarObjetivo, getCarteira } from "../../../services/api";
 import type { ObjetivoItem, PontosInfo } from "../../../types";
+
+const LIGA_CORES: Record<string, { bg: string; text: string }> = {
+  "Cobre":     { bg: "#B87333", text: "#fff" },
+  "Bronze":    { bg: "#CD7F32", text: "#fff" },
+  "Prata":     { bg: "#9E9E9E", text: "#fff" },
+  "Ouro":      { bg: "#F0C040", text: "#333" },
+  "Platina":   { bg: "#78909C", text: "#fff" },
+  "Ametista":  { bg: "#8E44AD", text: "#fff" },
+  "Safira":    { bg: "#1565C0", text: "#fff" },
+  "Esmeralda": { bg: "#2E7D32", text: "#fff" },
+  "Rubi":      { bg: "#C0392B", text: "#fff" },
+  "Diamante":  { bg: "#29B6F6", text: "#fff" },
+};
+
+function getLigaCores(liga: string | null): { bg: string; text: string } | null {
+  if (!liga) return null;
+  const metal = liga.split(" ")[0];
+  return LIGA_CORES[metal] ?? null;
+}
 
 function moeda(v: any) {
   const n = Math.trunc((Number(v) || 0) * 100) / 100;
@@ -184,13 +203,22 @@ export default function Objetivos() {
   const [objetivos, setObjetivos] = useState<ObjetivoItem[]>([]);
   const [pontos, setPontos] = useState<PontosInfo | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [liga, setLiga] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await getObjetivos(user.id);
-      setObjetivos(Array.isArray(res?.objetivos) ? res.objetivos : []);
-      setPontos(res?.pontos ?? null);
+      const [res, cart] = await Promise.allSettled([
+        getObjetivos(user.id),
+        getCarteira(user.id),
+      ]);
+      if (res.status === "fulfilled") {
+        setObjetivos(Array.isArray(res.value?.objetivos) ? res.value.objetivos : []);
+        setPontos(res.value?.pontos ?? null);
+      }
+      if (cart.status === "fulfilled") {
+        setLiga(cart.value?.liga ?? null);
+      }
     } catch {
       Alert.alert("Erro", "Não foi possível carregar os objetivos.");
     } finally {
@@ -198,6 +226,7 @@ export default function Objetivos() {
       setRefreshing(false);
     }
   }, [user?.id]);
+
 
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -245,7 +274,17 @@ export default function Objetivos() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[s.tituloPagina, { color: colors.textPrimary }]}>Objetivos</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 20, marginBottom: 16 }}>
+          <Text style={[s.tituloPagina, { marginTop: 0, marginBottom: 0, color: colors.textPrimary }]}>Objetivos</Text>
+          {(() => {
+            const ligaCores = getLigaCores(liga);
+            return ligaCores ? (
+              <View style={{ backgroundColor: ligaCores.bg, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 }}>
+                <Text style={{ fontSize: 11, fontWeight: "700", color: ligaCores.text }}>{liga}</Text>
+              </View>
+            ) : null;
+          })()}
+        </View>
 
         {pontos && (
           <View style={[s.pontosCard, { backgroundColor: colors.heroCard }]}>
