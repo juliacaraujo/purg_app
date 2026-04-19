@@ -1,0 +1,6 @@
+purg-develop-1 — 2026-04-18
+- Primeiro commit do projeto
+- App financeiro React Native + Expo (iOS, Android, Web)
+- Autenticação via email/senha e Passkeys (WebAuthn)
+- Telas: Home, Patrimônio, Objetivos, Ranking, Saque, Depósito, PIX, Perfil
+- Adicionado .gitignore e .gitattributes para padronização de line endings
