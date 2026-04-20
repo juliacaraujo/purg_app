@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { style } from "./styles";
-import { useAuth } from "../../../context/AuthContext";
 import { criarConta } from "../../../services/api";
 
 // -----------------------------------------------
@@ -195,7 +194,6 @@ const TODOS_TERMOS = TEXTO_USO + "\n\n──────────────
 // Componente principal
 // -----------------------------------------------
 export default function Terms({ navigation, route }: any) {
-  const { login } = useAuth();
   const dadosCadastro = route?.params ?? {};
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
 
@@ -254,8 +252,8 @@ export default function Terms({ navigation, route }: any) {
         return;
       }
 
-      setFeedback({ msg: "Conta criada com sucesso! Entrando...", tipo: "sucesso" });
-      setTimeout(() => login({ id: Number(result.userId), email: dadosCadastro.email ?? "" }), 1500);
+      setFeedback({ msg: "Conta criada com sucesso! Faça login para continuar.", tipo: "sucesso" });
+      setTimeout(() => navigation.navigate("Login"), 1500);
     } catch (e: any) {
       setFeedback({ msg: e?.message || "Não foi possível conectar ao servidor.", tipo: "erro" });
     } finally {
