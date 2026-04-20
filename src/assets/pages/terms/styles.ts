@@ -104,4 +104,26 @@ export const style = StyleSheet.create({
     flex: 1,
     marginBottom: 16,
   },
+
+  feedbackBox: {
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  feedbackSucesso: {
+    backgroundColor: "#f0fdf4",
+    borderColor: "#166534",
+  },
+  feedbackErro: {
+    backgroundColor: "#fef2f2",
+    borderColor: "#c0392b",
+  },
+  feedbackTexto: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    color: "#111",
+  },
 });

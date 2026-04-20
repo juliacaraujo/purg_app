@@ -54,7 +54,10 @@ export default function Account({ navigation }: { navigation: { navigate: (route
   const patrimonio = useMemo(() => saldo + investido, [saldo, investido]);
 
   const pinsSorted = useMemo(
-    () => [...pins].sort((a, b) => Number(b.juros_a_a || 0) - Number(a.juros_a_a || 0)),
+    () =>
+      [...pins]
+        .filter((p) => Number(p.quantidade_tokens_total_usuario || 0) > 0)
+        .sort((a, b) => Number(b.juros_a_a || 0) - Number(a.juros_a_a || 0)),
     [pins]
   );
 

@@ -5,7 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
-  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { style } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
@@ -208,6 +208,8 @@ export default function Terms({ navigation, route }: any) {
   const [modalVisivel, setModalVisivel] = useState(false);
 
   const allAccepted = acceptedUso && acceptedPrivacidade && acceptedRiscos;
+  const [enviando, setEnviando] = useState(false);
+  const [feedback, setFeedback] = useState<{ msg: string; tipo: "sucesso" | "erro" } | null>(null);
 
   const handleScroll = (event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
@@ -223,26 +225,41 @@ export default function Terms({ navigation, route }: any) {
   };
 
   const handleConfirmar = async () => {
+    const { nome, cpf, celular, email, senha, data_nascimento, genero } = dadosCadastro;
+
+    if (!nome || !cpf || !celular || !email || !senha) {
+      setFeedback({ msg: "Dados incompletos. Volte e preencha todos os campos.", tipo: "erro" });
+      return;
+    }
+
     try {
-      const { nome, cpf, celular, email, senha } = dadosCadastro;
+      setEnviando(true);
+      setFeedback(null);
 
-      if (!nome || !cpf || !celular || !email || !senha) {
-        Alert.alert("Erro", "Dados do cadastro incompletos. Volte e preencha novamente.");
-        return;
-      }
-
-      const result = await criarConta({ nome_completo: nome, cpf, celular, email, senha });
+      const result = await criarConta({
+        nome_completo: nome,
+        cpf,
+        celular,
+        email,
+        senha,
+        data_nascimento,
+        genero,
+        termos_de_uso: "1",
+        termos_de_privacidade: "1",
+        termos_de_riscos_da_plataforma: "1",
+      });
 
       if (!result.success || !result.userId) {
-        Alert.alert("Erro", result.message || "Não foi possível criar a conta.");
+        setFeedback({ msg: result.message || "Não foi possível criar a conta.", tipo: "erro" });
         return;
       }
 
-      Alert.alert("Conta criada", "Sua conta foi criada com sucesso!", [
-        { text: "OK", onPress: () => login({ id: Number(result.userId), email: dadosCadastro.email ?? "" }) },
-      ]);
-    } catch {
-      Alert.alert("Erro", "Não foi possível conectar ao servidor.");
+      setFeedback({ msg: "Conta criada com sucesso! Entrando...", tipo: "sucesso" });
+      setTimeout(() => login({ id: Number(result.userId), email: dadosCadastro.email ?? "" }), 1500);
+    } catch (e: any) {
+      setFeedback({ msg: e?.message || "Não foi possível conectar ao servidor.", tipo: "erro" });
+    } finally {
+      setEnviando(false);
     }
   };
 
@@ -321,12 +338,21 @@ export default function Terms({ navigation, route }: any) {
             </TouchableOpacity>
           </TouchableOpacity>
 
+          {feedback && (
+            <View style={[style.feedbackBox, feedback.tipo === "sucesso" ? style.feedbackSucesso : style.feedbackErro]}>
+              <Text style={style.feedbackTexto}>{feedback.msg}</Text>
+            </View>
+          )}
+
           <TouchableOpacity
-            style={[style.button, !allAccepted && { opacity: 0.5 }]}
+            style={[style.button, (!allAccepted || enviando) && { opacity: 0.5 }]}
             onPress={handleConfirmar}
-            disabled={!allAccepted}
+            disabled={!allAccepted || enviando}
           >
-            <Text style={style.buttonText}>Confirmar cadastro</Text>
+            {enviando
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={style.buttonText}>Confirmar cadastro</Text>
+            }
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.goBack()}>

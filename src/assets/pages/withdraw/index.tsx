@@ -17,6 +17,7 @@ import {
   getHistoricoSaques,
   solicitarSaque,
   cancelarSaque,
+  atualizarAssinatura,
 } from "../../../services/api";
 
 // Trunca para 2 casas decimais SEM arredondar (vírgula)
@@ -139,6 +140,8 @@ export default function Withdraw() {
       setLoading(true);
 
       await solicitarSaque(user.id, valorNum, pixSelecionado);
+
+      atualizarAssinatura(user.id, "Poppy Pro").catch(() => {});
 
       Alert.alert("Sucesso", "Saque solicitado com sucesso.");
       setValor("");

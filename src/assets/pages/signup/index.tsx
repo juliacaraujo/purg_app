@@ -16,6 +16,7 @@
 import React, { useState } from "react";
 import {
   Text,
+  View,
   TextInput,
   TouchableOpacity,
   Alert,
@@ -30,7 +31,14 @@ export default function Signup({ navigation }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmSenha, setConfirmSenha] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+
+  const [dataNasc, setDataNasc] = useState("");
+  const [genero, setGenero] = useState("");
+  const [erroNome, setErroNome] = useState("");
+  const [erroCpf, setErroCpf] = useState("");
+  const [erroCelular, setErroCelular] = useState("");
+  const [erroEmail, setErroEmail] = useState("");
+  const [erroDataNasc, setErroDataNasc] = useState("");
 
   // -----------------------------
   // Helpers de formatação (SAFE)
@@ -65,6 +73,55 @@ export default function Signup({ navigation }) {
   const normalizeSpaces = (value: string) =>
     value.replace(/\s+/g, " ").trimStart();
 
+  const formatDataNasc = (value: string) => {
+    const d = onlyDigits(value).slice(0, 8);
+    let out = d.slice(0, 2);
+    if (d.length >= 3) out += "/" + d.slice(2, 4);
+    if (d.length >= 5) out += "/" + d.slice(4, 8);
+    return out;
+  };
+
+  const dataNascParaISO = (value: string): string => {
+    const d = onlyDigits(value);
+    if (d.length !== 8) return "";
+    return `${d.slice(4, 8)}-${d.slice(2, 4)}-${d.slice(0, 2)}`;
+  };
+
+  const validarNome = (value: string) => {
+    const partes = titleCaseName(value).trim().split(" ").filter(Boolean);
+    if (partes.length < 2) setErroNome("Informe o nome completo (nome e sobrenome).");
+    else setErroNome("");
+  };
+
+  const validarCelular = (value: string) => {
+    if (onlyDigits(value).length < 11) setErroCelular("Informe um celular válido no formato (xx) xxxxx-xxxx.");
+    else setErroCelular("");
+  };
+
+  const validarEmail = (value: string) => {
+    if (!/@.+\..+/.test(value)) setErroEmail("Informe um e-mail válido (ex: nome@email.com).");
+    else setErroEmail("");
+  };
+
+  const validarCpfBlur = (value: string) => {
+    if (!validarCPF(onlyDigits(value))) setErroCpf("CPF inválido. Verifique e tente novamente.");
+    else setErroCpf("");
+  };
+
+  const validarDataNasc = (value: string) => {
+    const d = onlyDigits(value);
+    if (d.length !== 8) { setErroDataNasc("Informe a data no formato dd/mm/aaaa."); return; }
+    const dia = Number(d.slice(0, 2));
+    const mes = Number(d.slice(2, 4));
+    const ano = Number(d.slice(4, 8));
+    const dt = new Date(ano, mes - 1, dia);
+    if (dt.getFullYear() !== ano || dt.getMonth() !== mes - 1 || dt.getDate() !== dia || dt > new Date()) {
+      setErroDataNasc("Data de nascimento inválida.");
+    } else {
+      setErroDataNasc("");
+    }
+  };
+
   const titleCaseName = (value: string) => {
     const clean = value.replace(/\s+/g, " ").trim();
     if (!clean) return "";
@@ -83,10 +140,25 @@ export default function Signup({ navigation }) {
   // -----------------------------
   // Validações
   // -----------------------------
-  const senhaValida = (value: string) =>
-    value.length >= 8 &&
-    /[A-Z]/.test(value) &&
-    /[!@#$%*]/.test(value);
+  const criterios = {
+    tamanho: senha.length >= 8,
+    maiuscula: /[A-Z]/.test(senha),
+    especial: /[!@#$%*]/.test(senha),
+  };
+  const senhaValida = criterios.tamanho && criterios.maiuscula && criterios.especial;
+
+  const todosCamposPreenchidos =
+    nome.trim() !== "" &&
+    onlyDigits(cpf).length === 11 &&
+    onlyDigits(celular).length >= 10 &&
+    email.trim() !== "" &&
+    onlyDigits(dataNasc).length === 8 &&
+    genero !== "" &&
+    senha !== "" &&
+    confirmSenha !== "" &&
+    confirmSenha === senha;
+
+  const podeSubmeter = todosCamposPreenchidos && senhaValida;
 
   const validarCPF = (cpfDigits: string) => {
     if (cpfDigits.length !== 11 || /^(\d)\1+$/.test(cpfDigits)) return false;
@@ -135,7 +207,7 @@ export default function Signup({ navigation }) {
       return;
     }
 
-    if (!senhaValida(senha)) {
+    if (!senhaValida) {
       Alert.alert(
         "Senha inválida",
         "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula e um caractere especial."
@@ -145,10 +217,12 @@ export default function Signup({ navigation }) {
 
     navigation.navigate("Terms", {
       nome: nomeFinal,
-      cpf: cpfDigits,
+      cpf: cpf,
       celular: celularDigits,
       email,
       senha,
+      data_nascimento: dataNascParaISO(dataNasc),
+      genero,
     });
   };
 
@@ -157,42 +231,73 @@ export default function Signup({ navigation }) {
       <Text style={style.title}>Criar Conta</Text>
 
       <TextInput
-        style={style.input}
+        style={[style.input, erroNome ? style.inputErro : null]}
         placeholder="Nome completo"
         value={nome}
-        onChangeText={(t) => setNome(normalizeSpaces(t))}
-        onBlur={() => setNome(titleCaseName(nome))}
+        onChangeText={(t) => { setNome(normalizeSpaces(t)); setErroNome(""); }}
+        onBlur={() => { const n = titleCaseName(nome); setNome(n); validarNome(n); }}
       />
+      {erroNome ? <Text style={style.erroTexto}>{erroNome}</Text> : null}
 
       <TextInput
-        style={style.input}
+        style={[style.input, erroDataNasc ? style.inputErro : null]}
+        placeholder="Data de nascimento (dd/mm/aaaa)"
+        keyboardType="number-pad"
+        value={dataNasc}
+        onChangeText={(t) => { setDataNasc(formatDataNasc(t)); setErroDataNasc(""); }}
+        onBlur={() => validarDataNasc(dataNasc)}
+      />
+      {erroDataNasc ? <Text style={style.erroTexto}>{erroDataNasc}</Text> : null}
+
+      <View style={style.generoSecao}>
+        <Text style={style.generoTitulo}>Gênero</Text>
+        <View style={style.generoRow}>
+          {(["Masculino", "Feminino", "Outros"] as const).map((op) => (
+            <TouchableOpacity
+              key={op}
+              style={[style.generoBtn, genero === op && style.generoBtnAtivo]}
+              onPress={() => setGenero(op)}
+            >
+              <Text style={[style.generoBtnTexto, genero === op && style.generoBtnTextoAtivo]}>{op}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <TextInput
+        style={[style.input, erroCpf ? style.inputErro : null]}
         placeholder="CPF"
         keyboardType="number-pad"
         value={cpf}
-        onChangeText={(t) => setCpf(formatCPF(t))}
+        onChangeText={(t) => { setCpf(formatCPF(t)); setErroCpf(""); }}
+        onBlur={() => validarCpfBlur(cpf)}
       />
+      {erroCpf ? <Text style={style.erroTexto}>{erroCpf}</Text> : null}
 
       <TextInput
-        style={style.input}
+        style={[style.input, erroCelular ? style.inputErro : null]}
         placeholder="Celular"
         keyboardType="phone-pad"
         value={celular}
-        onChangeText={(t) => setCelular(formatPhoneBR(t))}
+        onChangeText={(t) => { setCelular(formatPhoneBR(t)); setErroCelular(""); }}
+        onBlur={() => validarCelular(celular)}
       />
+      {erroCelular ? <Text style={style.erroTexto}>{erroCelular}</Text> : null}
 
       <TextInput
-        style={style.input}
+        style={[style.input, erroEmail ? style.inputErro : null]}
         placeholder="Email"
         keyboardType="email-address"
         autoCapitalize="none"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(t) => { setEmail(t); setErroEmail(""); }}
+        onBlur={() => validarEmail(email)}
       />
+      {erroEmail ? <Text style={style.erroTexto}>{erroEmail}</Text> : null}
 
       <TextInput
         style={style.input}
         placeholder="Senha"
-        secureTextEntry={!showPassword}
         value={senha}
         onChangeText={setSenha}
       />
@@ -200,30 +305,35 @@ export default function Signup({ navigation }) {
       <TextInput
         style={style.input}
         placeholder="Confirmar senha"
-        secureTextEntry={!showPassword}
         value={confirmSenha}
         onChangeText={setConfirmSenha}
       />
 
+      <View style={style.criteriosContainer}>
+        <Text style={style.criteriosTitulo}>A senha deve conter:</Text>
+        <View style={style.criterioRow}>
+          <Text style={[style.criterioIcon, criterios.tamanho && style.criterioOk]}>●</Text>
+          <Text style={[style.criterioTexto, criterios.tamanho && style.criterioOk]}>No mínimo 8 caracteres</Text>
+        </View>
+        <View style={style.criterioRow}>
+          <Text style={[style.criterioIcon, criterios.maiuscula && style.criterioOk]}>●</Text>
+          <Text style={[style.criterioTexto, criterios.maiuscula && style.criterioOk]}>No mínimo 1 letra maiúscula</Text>
+        </View>
+        <View style={style.criterioRow}>
+          <Text style={[style.criterioIcon, criterios.especial && style.criterioOk]}>●</Text>
+          <Text style={[style.criterioTexto, criterios.especial && style.criterioOk]}>No mínimo 1 caractere especial (! @ # $ % *)</Text>
+        </View>
+      </View>
+
       <TouchableOpacity
-        onPress={() => setShowPassword((v) => !v)}
-        style={{ marginBottom: 8 }}
+        style={[style.button, !podeSubmeter && style.buttonDisabled]}
+        onPress={handleSignup}
+        disabled={!podeSubmeter}
       >
-        <Text style={style.linkText}>
-          {showPassword ? "Ocultar senha" : "Mostrar senha"}
-        </Text>
-      </TouchableOpacity>
-
-      <Text style={style.subtitle}>
-        A senha deve conter no mínimo 8 caracteres, uma letra maiúscula e um
-        caractere especial (! @ # $ % *).
-      </Text>
-
-      <TouchableOpacity style={style.button} onPress={handleSignup}>
         <Text style={style.buttonText}>Cadastrar</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+      <TouchableOpacity onPress={() => navigation.navigate("Login")} style={{ marginTop: 16 }}>
         <Text style={style.linkText}>Já tem conta? Entrar</Text>
       </TouchableOpacity>
     </ScrollView>

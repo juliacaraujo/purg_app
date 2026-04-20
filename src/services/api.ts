@@ -153,8 +153,12 @@ export async function criarConta(dados: {
   celular: string;
   email: string;
   senha: string;
+  data_nascimento?: string;
+  genero?: string;
+  termos_de_uso: "1";
+  termos_de_privacidade: "1";
+  termos_de_riscos_da_plataforma: "1";
 }) {
-  // A API espera o campo "password", não "senha"
   const { senha, ...rest } = dados;
   const response = await apiFetch("/api/v1/cadastro", {
     method: "POST",
@@ -470,8 +474,15 @@ export async function editarPerfil(
   usuarioId: number,
   dados: {
     nome_completo?: string;
+    apelido?: string;
     celular?: string;
-    endereco?: string;
+    logradouro?: string;
+    numero_da_rua?: string;
+    complemento?: string;
+    bairro?: string;
+    cidade?: string;
+    estado?: string;
+    cep?: string;
     pix_cpf?: string;
     pix_celular?: string;
     pix_email?: string;
@@ -485,7 +496,7 @@ export async function editarPerfil(
 
   const data = await response.json();
 
-  if (!response.ok) {
+  if (!response.ok || data?.success === false) {
     throw new ApiError(data?.message || data?.error || "Erro ao editar perfil", response.status);
   }
 
@@ -561,6 +572,24 @@ export async function getRanking(): Promise<RankingItem[]> {
     throw new ApiError("Erro ao buscar ranking", response.status);
   }
   return response.json() as Promise<RankingItem[]>;
+}
+
+/* ======================================================
+   ASSINATURA
+   ====================================================== */
+export async function atualizarAssinatura(usuarioId: number, novaAssinatura: string) {
+  const response = await apiFetch(`/api/v1/atualizar-assinatura/${usuarioId}`, {
+    method: "PUT",
+    body: JSON.stringify({ novaAssinatura }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new ApiError(data?.message || "Erro ao atualizar assinatura", response.status);
+  }
+
+  return data;
 }
 
 /* ======================================================

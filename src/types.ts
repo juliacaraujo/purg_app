@@ -16,7 +16,13 @@ export interface DadosCadastroResponse {
   email?: string;
   cpf?: string;
   celular?: string;
-  endereco?: string;
+  logradouro?: string;
+  numero_da_rua?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  cep?: string;
   data_nascimento?: string;
   created_at?: string;
   status_ativo: number;

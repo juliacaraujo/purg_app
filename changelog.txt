@@ -1,3 +1,24 @@
+purg-develop-6 — 2026-04-20
+- Cadastro: campo de data de nascimento com máscara dd/mm/aaaa
+- Cadastro: seleção de gênero (Masculino / Feminino / Outros) com botões destacados
+- Cadastro: validações em tempo real com borda vermelha nos campos nome, CPF, celular, e-mail e data de nascimento
+- Cadastro: checklist visual de critérios de senha (mín. 8 chars, maiúscula, caractere especial)
+- Cadastro: botão "Cadastrar" desabilitado até todos os campos válidos e senhas iguais
+- Cadastro: senhas exibidas sem opção de ocultar; CPF enviado no formato xxx.xxx.xxx-xx
+- Cadastro: termos movidos para tela separada (Terms); Signup navega para Terms após validação
+- Cadastro: feedback inline (sucesso/erro) na tela Terms após "Confirmar cadastro"
+- Cadastro: POST inclui data_nascimento, genero e os três campos de termos aceitos
+- Perfil: campo Apelido adicionado na seção Dados Pessoais (editável)
+- Perfil: endereço dividido em campos separados (logradouro, número, complemento, bairro, cidade, estado, CEP)
+- Perfil: modal de edição com scroll para alcançar o botão Salvar
+- Perfil: toast de sucesso e banner de erro inline no modal
+- Perfil: erro 409 (apelido duplicado) exibido corretamente no modal
+- Perfil: celular e CEP enviados apenas com dígitos ao backend
+- Patrimônio: cards de Pins com quantidade zero não são mais exibidos
+- Saque: ao solicitar saque com sucesso, atualiza automaticamente a assinatura para "Poppy Pro"
+- API: nova função atualizarAssinatura (PUT /api/v1/atualizar-assinatura/:id)
+- API: editarPerfil e criarConta atualizados com novos campos
+
 purg-develop-5 — 2026-04-19
 - Tela de Ranking: implementada com chamada GET /api/v1/ranking; exibe posição (1º, 2º...), apelido, liga e pontos
 - Tela de Ranking: usuário logado destacado com borda verde
