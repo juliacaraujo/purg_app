@@ -11,7 +11,6 @@ import {
   Image,
   TextInput,
   TouchableOpacity,
-  Alert,
   StyleSheet,
   Animated,
 } from "react-native";
@@ -22,9 +21,6 @@ import imgObjetivos from "./assets/objetivos.png";
 import imgRanking from "./assets/ranking.png";
 import imgChat from "./assets/chat.png";
 import imgPerfil from "./assets/perfil.png";
-import imgOlhoAberto from "./assets/olho_aberto.png";
-import imgOlhoFechado from "./assets/olho_fechado.png";
-import imgBiometria from "./assets/biometria.png";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { isWeb, MAX_WIDTH } from "./src/assets/global/responsive";
 
@@ -39,6 +35,8 @@ import RecoverAccount from "./src/assets/pages/recoverAccount";
 import Terms from "./src/assets/pages/terms";
 import CodeValidation from "./src/assets/pages/codeValidation";
 import NewPassword from "./src/assets/pages/newPassword";
+import LoginPassword from "./src/assets/pages/loginPassword";
+import LoginBiometria from "./src/assets/pages/loginBiometria";
 
 // Telas — app logado (tabs)
 import Home from "./src/assets/pages/home";
@@ -53,8 +51,9 @@ import PixInfo from "./src/assets/pages/pixInfo";
 import Profile from "./src/assets/pages/profile";
 
 import Logo from "./src/assets/logo.png";
-import { loginUser } from "./src/services/api";
-import { loginBiometrico, isPasskeySupported } from "./src/services/biometria";
+import { tipoAcesso, getDadosCadastro } from "./src/services/api";
+import SetupApelido from "./src/assets/pages/setupApelido";
+
 
 const RootStack = createNativeStackNavigator();
 const AuthStackNav = createNativeStackNavigator();
@@ -65,16 +64,10 @@ const Tab = createBottomTabNavigator();
 ────────────────────────────────────────────── */
 function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loadingBio, setLoadingBio] = useState(false);
-  const [showSenha, setShowSenha] = useState(false);
   const [erro, setErro] = useState("");
-  const { login } = useAuth();
   const loginStyle = useMemo(() => makeLoginStyle(lightColors), []);
   const shakeAnim = useRef(new Animated.Value(0)).current;
-
-  const biometriaDisponivel = isPasskeySupported();
 
   const shake = () => {
     Animated.sequence([
@@ -86,63 +79,25 @@ function LoginScreen({ navigation }: any) {
     ]).start();
   };
 
-  const mostrarErro = (msg: string) => {
-    setErro(msg);
-    shake();
-  };
+  const mostrarErro = (msg: string) => { setErro(msg); shake(); };
 
-  const handleLogin = async () => {
-    if (!email.trim() || !senha.trim()) {
-      mostrarErro("Preencha o e-mail e a senha.");
-      return;
-    }
+  const handleVerificarEmail = async () => {
+    if (!email.trim()) { mostrarErro("Informe seu e-mail."); return; }
     try {
       setLoading(true);
       setErro("");
-      const result = await loginUser(email, senha);
-      if (!result.success || !result.userId) {
-        mostrarErro(result.message || "E-mail ou senha incorretos.");
-        return;
+      const { tipo } = await tipoAcesso(email.trim());
+      if (tipo === "biometria") {
+        navigation.navigate("LoginBiometria", { email: email.trim() });
+      } else {
+        navigation.navigate("LoginPassword", { email: email.trim(), primeiroAcesso: tipo === null });
       }
-      login({ id: Number(result.userId), email });
-    } catch (error: any) {
-      mostrarErro(error?.message || "Não foi possível conectar ao servidor.");
+    } catch (e: any) {
+      mostrarErro(e?.message || "Não foi possível verificar o e-mail.");
     } finally {
       setLoading(false);
     }
   };
-
-  const handleLoginBiometrico = async () => {
-    if (!email.trim()) {
-      mostrarErro("Informe seu e-mail antes de usar a biometria.");
-      return;
-    }
-    try {
-      setLoadingBio(true);
-      setErro("");
-      const resultado = await loginBiometrico(email.trim());
-      login({ id: resultado.id, email: resultado.email });
-    } catch (error: any) {
-      mostrarErro(error?.message || "Falha na autenticação biométrica.");
-    } finally {
-      setLoadingBio(false);
-    }
-  };
-
-  const bioStyle = useMemo(() => StyleSheet.create({
-    btn: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      borderWidth: 1.5,
-      borderColor: lightColors.border,
-      borderRadius: 12,
-      paddingVertical: 13,
-      marginTop: 10,
-      backgroundColor: lightColors.background,
-    },
-    btnText: { fontSize: 15, fontWeight: "600", color: lightColors.textPrimary },
-  }), []);
 
   const temErro = erro.length > 0;
 
@@ -153,6 +108,8 @@ function LoginScreen({ navigation }: any) {
       </View>
 
       <View style={loginStyle.boxMid}>
+        <Text style={{ fontSize: 12, fontWeight: "500", color: lightColors.textTertiary, marginBottom: 6 }}>Login:</Text>
+
         <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
           <TextInput
             style={[loginStyle.input, temErro && { borderColor: "#FF3B30" }]}
@@ -164,67 +121,20 @@ function LoginScreen({ navigation }: any) {
             onChangeText={(v) => { setEmail(v); setErro(""); }}
           />
 
-          <View style={{ position: "relative", marginBottom: 0 }}>
-            <TextInput
-              style={[loginStyle.input, { marginBottom: 0 }, temErro && { borderColor: "#FF3B30" }]}
-              placeholder="Senha"
-              placeholderTextColor={lightColors.textTertiary}
-              secureTextEntry={!showSenha}
-              value={senha}
-              onChangeText={(v) => { setSenha(v); setErro(""); }}
-            />
-            <TouchableOpacity
-              onPress={() => setShowSenha((v) => !v)}
-              style={{ position: "absolute", right: 12, top: 0, bottom: 0, justifyContent: "center" }}
-            >
-              <Image
-                source={showSenha ? imgOlhoFechado : imgOlhoAberto}
-                style={{ width: 20, height: 20 }}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          </View>
-
           {temErro && (
-            <Text style={{ color: "#FF3B30", fontSize: 13, marginTop: 8, marginBottom: 4, textAlign: "center", fontWeight: "500" }}>
+            <Text style={{ color: "#FF3B30", fontSize: 13, marginTop: 4, marginBottom: 4, textAlign: "center", fontWeight: "500" }}>
               {erro}
             </Text>
           )}
         </Animated.View>
 
         <TouchableOpacity
-          style={[loginStyle.loginButton, { marginTop: 12 }, loading && { opacity: 0.6 }]}
-          onPress={handleLogin}
+          style={[loginStyle.loginButton, { marginTop: 4 }, loading && { opacity: 0.6 }]}
+          onPress={handleVerificarEmail}
           disabled={loading}
         >
-          <Text style={loginStyle.loginButtonText}>
-            {loading ? "Entrando..." : "Login"}
-          </Text>
+          <Text style={loginStyle.loginButtonText}>{loading ? "Verificando..." : "Continuar"}</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={loginStyle.forgotPasswordButton}
-          onPress={() => navigation.navigate("RecoverAccount")}
-        >
-          <Text style={loginStyle.forgotPasswordText}>Esqueci minha senha</Text>
-        </TouchableOpacity>
-
-        {biometriaDisponivel && (
-          <TouchableOpacity
-            style={[bioStyle.btn, loadingBio && { opacity: 0.6 }]}
-            onPress={handleLoginBiometrico}
-            disabled={loadingBio}
-          >
-            <Image
-              source={imgBiometria}
-              style={{ width: 20, height: 20, marginRight: 8 }}
-              resizeMode="contain"
-            />
-            <Text style={bioStyle.btnText}>
-              {loadingBio ? "Verificando..." : "Entrar com biometria"}
-            </Text>
-          </TouchableOpacity>
-        )}
 
         <View style={loginStyle.separatorBox}>
           <View style={loginStyle.line} />
@@ -232,10 +142,7 @@ function LoginScreen({ navigation }: any) {
           <View style={loginStyle.line} />
         </View>
 
-        <TouchableOpacity
-          style={loginStyle.signupButton}
-          onPress={() => navigation.navigate("Signup")}
-        >
+        <TouchableOpacity style={loginStyle.signupButton} onPress={() => navigation.navigate("Signup")}>
           <Text style={loginStyle.signupButtonText}>Criar uma conta</Text>
         </TouchableOpacity>
 
@@ -329,6 +236,8 @@ function AuthStack() {
       screenOptions={{ headerShown: false, animation: "fade" }}
     >
       <AuthStackNav.Screen name="Login" component={LoginScreen} />
+      <AuthStackNav.Screen name="LoginPassword" component={LoginPassword} />
+      <AuthStackNav.Screen name="LoginBiometria" component={LoginBiometria} />
       <AuthStackNav.Screen name="Signup" component={Signup} />
       <AuthStackNav.Screen name="RecoverAccount" component={RecoverAccount} />
       <AuthStackNav.Screen name="CodeValidation" component={CodeValidation} />
@@ -458,13 +367,28 @@ function ThemeSync() {
 function RootNavigator() {
   const { user, isLoading } = useAuth();
   const { colors } = useTheme();
+  const [verificandoApelido, setVerificandoApelido] = useState(true);
+  const [precisaApelido, setPrecisaApelido] = useState(false);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!user?.id) { setVerificandoApelido(false); return; }
+    setVerificandoApelido(true);
+    getDadosCadastro(user.id)
+      .then((d) => setPrecisaApelido(!d?.apelido))
+      .catch(() => setPrecisaApelido(false))
+      .finally(() => setVerificandoApelido(false));
+  }, [user?.id]);
+
+  if (isLoading || (user && verificandoApelido)) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
         <Image source={Logo} style={{ width: 120, height: 120, resizeMode: "contain" }} />
       </View>
     );
+  }
+
+  if (user && precisaApelido) {
+    return <SetupApelido onConcluido={() => setPrecisaApelido(false)} />;
   }
 
   return (
@@ -546,8 +470,9 @@ const linking: LinkingOptions<any> = {
     screens: {
       AuthStack: {
         screens: {
-          Login: "login", Signup: "cadastro", RecoverAccount: "recuperar-conta",
-          CodeValidation: "validar-codigo", NewPassword: "nova-senha", Terms: "termos",
+          Login: "login", LoginPassword: "login/password", LoginBiometria: "login/biometria", Signup: "cadastro",
+          RecoverAccount: "recuperar-conta", CodeValidation: "validar-codigo",
+          NewPassword: "nova-senha", Terms: "termos",
         },
       },
       AppTabs: {

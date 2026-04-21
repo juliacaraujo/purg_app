@@ -1,3 +1,20 @@
+purg-develop-7 — 2026-04-20
+- Login: fluxo em duas etapas — primeira tela só com e-mail; segunda tela com senha (LoginPassword) ou biometria (LoginBiometria) conforme resposta do endpoint POST /api/v1/tipo-acesso
+- Login: quando tipo é null (primeiro acesso), modal pergunta se deseja cadastrar biometria após login com senha
+- Login: botão "Esqueci minha senha" e "Usar outro e-mail" na tela LoginPassword
+- Login: tela LoginBiometria com retry automático, opção de usar senha ou trocar e-mail
+- Login: integração com PUT /api/v1/preferencia-login/:id — grava "biometria" ou "senha" conforme escolha do usuário
+- Login: corrigido erro atob no cadastro de WebAuthn (user.id convertido para base64url antes de passar ao startRegistration)
+- Cadastro: após sucesso na tela Terms, redireciona para Login em vez de logar diretamente
+- SetupApelido: tela de bloqueio exibida após login quando o apelido do usuário é null; só libera o app após configurar um apelido
+- Perfil: botão "Cadastrar biometria" com ícone biometria.png e cor verde no modo claro
+- Perfil: botão "Cadastrar biometria" chama PUT /api/v1/preferencia-login/:id com "biometria" após sucesso
+- Perfil: exibição dos campos Gênero e Nome da Mãe na seção Dados Pessoais
+- Perfil: edição de Gênero com três botões (Masculino / Feminino / Outros) no modal de edição
+- Patrimônio: tabela de resumo de Pins com Quantidade de Pins diferentes investidos e Média dos juros a.a
+- Patrimônio: gráfico de pizza "DIVERSIFICAÇÃO DOS RISCOS" com fatias por categoria de risco, percentuais dentro das fatias e legenda em formato de tabela à direita
+- Componente GraficoPizza criado com react-native-svg; suporte a cores por risco (Baixo, Médio, Alto) e fallback com paleta variada
+
 purg-develop-6 — 2026-04-20
 - Cadastro: campo de data de nascimento com máscara dd/mm/aaaa
 - Cadastro: seleção de gênero (Masculino / Feminino / Outros) com botões destacados

@@ -31,12 +31,24 @@ export function isPasskeySupported(): boolean {
   );
 }
 
+/** Converte string arbitrária para base64url (necessário para user.id que o backend retorna como número puro). */
+function toBase64url(value: string): string {
+  return btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+}
+
 /** Registra a biometria do usuário logado. */
 export async function cadastrarBiometria(): Promise<void> {
   const options = await biometriaCadastroIniciar();
   try {
-    const credential = await startRegistration({ optionsJSON: options });
-    await biometriaCadastroConcluir(credential);
+    const patchedOptions = {
+      ...options,
+      user: {
+        ...options.user,
+        id: toBase64url(String(options.user.id)),
+      },
+    };
+    const credential = await startRegistration({ optionsJSON: patchedOptions });
+    await biometriaCadastroConcluir(credential as unknown as Record<string, unknown>);
   } catch (e: any) {
     throw traduzirErro(e);
   }
@@ -48,7 +60,7 @@ export async function loginBiometrico(email: string): Promise<LoginBiometricoRes
   const options = await biometriaLoginIniciar(email);
   try {
     const assertion = await startAuthentication({ optionsJSON: options });
-    const resultado = await biometriaLoginConcluir(assertion);
+    const resultado = await biometriaLoginConcluir(assertion as unknown as Record<string, unknown>);
     return {
       id: Number(resultado.usuario_id),
       email: resultado.email,

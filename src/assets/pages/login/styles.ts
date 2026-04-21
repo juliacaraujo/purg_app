@@ -27,7 +27,7 @@ export const makeLoginStyle = (c: ThemeColors) => StyleSheet.create({
     justifyContent: "center",
     paddingBottom: 24,
   },
-  logo: { width: 400, height: 200, resizeMode: "contain" },
+  logo: { width: 480, height: 240, resizeMode: "contain" },
   text: { fontWeight: "bold", marginTop: 20, fontSize: 28, color: c.textPrimary },
   input: {
     borderWidth: 1,

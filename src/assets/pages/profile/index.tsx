@@ -10,12 +10,14 @@ import {
   TextInput,
   StyleSheet,
   Animated,
+  Image,
 } from "react-native";
+import imgBiometria from "../../../../assets/biometria.png";
 import { makeProfileStyle } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
-import { getDadosCadastro, editarPerfil, trocarSenha, putTema } from "../../../services/api";
+import { getDadosCadastro, editarPerfil, trocarSenha, putTema, atualizarPreferenciaLogin } from "../../../services/api";
 import type { DadosCadastroResponse } from "../../../types";
 import { cadastrarBiometria, isPasskeySupported } from "../../../services/biometria";
 
@@ -63,6 +65,7 @@ export default function Profile() {
 
   const [nomeEdit, setNomeEdit] = useState("");
   const [apelidoEdit, setApelidoEdit] = useState("");
+  const [generoEdit, setGeneroEdit] = useState("");
   const [celularEdit, setCelularEdit] = useState("");
   const [logradouroEdit, setLogradouroEdit] = useState("");
   const [numeroEdit, setNumeroEdit] = useState("");
@@ -120,6 +123,7 @@ export default function Profile() {
     setErroDados(null);
     setNomeEdit(dados?.nome_completo ?? "");
     setApelidoEdit(dados?.apelido ?? "");
+    setGeneroEdit(dados?.genero ?? "");
     setCelularEdit(dados?.celular ?? "");
     setLogradouroEdit(dados?.logradouro ?? "");
     setNumeroEdit(dados?.numero_da_rua != null ? String(dados.numero_da_rua) : "");
@@ -153,6 +157,7 @@ export default function Profile() {
       await editarPerfil(user!.id, {
         nome_completo: nomeEdit.trim(),
         apelido: apelidoEdit.trim(),
+        genero: generoEdit || undefined,
         celular: celularEdit.replace(/\D/g, ""),
         logradouro: logradouroEdit.trim(),
         numero_da_rua: numeroEdit.trim() || undefined,
@@ -200,6 +205,7 @@ export default function Profile() {
     try {
       setCadastrandoBio(true);
       await cadastrarBiometria();
+      await atualizarPreferenciaLogin(user!.id, "biometria").catch(() => {});
       mostrarToast("Biometria cadastrada! Agora você pode entrar com digital ou Face ID.", "sucesso");
     } catch (e: any) {
       mostrarToast(e?.message || "Não foi possível cadastrar a biometria.", "erro");
@@ -280,6 +286,8 @@ export default function Profile() {
           <View style={style.linha}><Text style={style.linhaLabel}>Nome completo</Text><Text style={style.linhaValor}>{dados?.nome_completo ?? "—"}</Text></View>
           <View style={style.linha}><Text style={style.linhaLabel}>Apelido</Text><Text style={style.linhaValor}>{dados?.apelido ?? "—"}</Text></View>
           <View style={style.linha}><Text style={style.linhaLabel}>Data de nascimento</Text><Text style={style.linhaValor}>{formatDate(dados?.data_nascimento)}</Text></View>
+          <View style={style.linha}><Text style={style.linhaLabel}>Gênero</Text><Text style={style.linhaValor}>{dados?.genero ?? "—"}</Text></View>
+          <View style={style.linha}><Text style={style.linhaLabel}>Nome da mãe</Text><Text style={style.linhaValor}>{dados?.nome_da_mae ?? "—"}</Text></View>
           <View style={style.linha}><Text style={style.linhaLabel}>Celular</Text><Text style={style.linhaValor}>{dados?.celular ?? "—"}</Text></View>
           <View style={style.linha}><Text style={style.linhaLabel}>Endereço</Text><Text style={style.linhaValor}>{[dados?.logradouro, dados?.numero_da_rua, dados?.complemento, dados?.bairro, dados?.cidade, dados?.estado, dados?.cep].filter(Boolean).join(", ") || "—"}</Text></View>
           <View style={[style.linha, { borderBottomWidth: 0 }]}><Text style={style.linhaLabel}>Membro desde</Text><Text style={style.linhaValor}>{formatDate(dados?.created_at)}</Text></View>
@@ -316,8 +324,8 @@ export default function Profile() {
         {/* Segurança */}
         <View style={style.secao}>
           <Text style={[style.secaoTitulo, { marginBottom: 12 }]}>Segurança</Text>
-          <TouchableOpacity style={[ms.secaoBtn, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]} onPress={abrirModalSenha}>
-            <Text style={[ms.secaoBtnText, { color: colors.textPrimary }]}>Trocar senha</Text>
+          <TouchableOpacity style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }]} onPress={abrirModalSenha}>
+            <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Trocar senha</Text>
           </TouchableOpacity>
         </View>
 
@@ -330,14 +338,21 @@ export default function Profile() {
                 Cadastre sua digital ou Face ID para entrar sem digitar senha.
               </Text>
               <TouchableOpacity
-                style={[ms.secaoBtn, ms.bioBtn, cadastrandoBio && { opacity: 0.6 }]}
+                style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }, cadastrandoBio && { opacity: 0.6 }]}
                 onPress={handleCadastrarBiometria}
                 disabled={cadastrandoBio}
               >
                 {cadastrandoBio ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={isDark ? colors.textPrimary : "#fff"} />
                 ) : (
-                  <Text style={ms.bioBtnText}>Cadastrar biometria</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Image
+                      source={imgBiometria}
+                      style={{ width: 18, height: 18, tintColor: isDark ? colors.textPrimary : "#fff" }}
+                      resizeMode="contain"
+                    />
+                    <Text style={[ms.bioBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Cadastrar biometria</Text>
+                  </View>
                 )}
               </TouchableOpacity>
             </>
@@ -355,6 +370,18 @@ export default function Profile() {
       <ModalEdicao visible={modalDados} titulo="Editar Dados" onClose={() => setModalDados(false)} onSalvar={salvarDados} loading={salvando} erro={erroDados} ms={ms}>
         <Campo ms={ms} label="Nome completo" value={nomeEdit} onChangeText={setNomeEdit} placeholder="Seu nome" />
         <Campo ms={ms} label="Apelido" value={apelidoEdit} onChangeText={setApelidoEdit} placeholder="Seu apelido" />
+        <Text style={ms.inputLabel}>Gênero</Text>
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+          {(["Masculino", "Feminino", "Outros"] as const).map((op) => (
+            <TouchableOpacity
+              key={op}
+              style={[ms.generoBtn, generoEdit === op && ms.generoBtnAtivo]}
+              onPress={() => setGeneroEdit(op)}
+            >
+              <Text style={[ms.generoBtnTexto, generoEdit === op && ms.generoBtnTextoAtivo]}>{op}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <Campo ms={ms} label="Celular" value={celularEdit} onChangeText={setCelularEdit} placeholder="(11) 99999-9999" keyboardType="phone-pad" />
         <Campo ms={ms} label="CEP" value={cepEdit} onChangeText={setCepEdit} placeholder="00000-000" keyboardType="number-pad" />
         <Campo ms={ms} label="Logradouro" value={logradouroEdit} onChangeText={setLogradouroEdit} placeholder="Rua, Av..." />
@@ -462,4 +489,8 @@ const makeModalStyle = (c: { textPrimary: string; textSecondary: string; border:
     btnSalvarText: { color: "#fff", fontWeight: "700", fontSize: 15 },
     toast: { position: "absolute", bottom: 32, left: 24, right: 24, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 18, alignItems: "center", shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
     toastTexto: { color: "#fff", fontWeight: "600", fontSize: 14, textAlign: "center" },
+    generoBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: "center", backgroundColor: c.backgroundSecondary, borderWidth: 1, borderColor: c.border },
+    generoBtnAtivo: { backgroundColor: c.primary, borderColor: c.primary },
+    generoBtnTexto: { fontSize: 12, fontWeight: "600", color: c.textSecondary },
+    generoBtnTextoAtivo: { color: "#fff" },
   });

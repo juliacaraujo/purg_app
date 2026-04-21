@@ -24,6 +24,8 @@ export interface DadosCadastroResponse {
   estado?: string;
   cep?: string;
   data_nascimento?: string;
+  genero?: string;
+  nome_da_mae?: string;
   created_at?: string;
   status_ativo: number;
   assinatura?: string;

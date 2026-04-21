@@ -13,6 +13,8 @@ import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import GraficoLinha from "../../components/GraficoLinha";
+import GraficoPizza from "../../components/GraficoPizza";
+import type { FatiaPizza } from "../../components/GraficoPizza";
 import {
   ApiError,
   getCarteira,
@@ -60,6 +62,34 @@ export default function Account({ navigation }: { navigation: { navigate: (route
         .sort((a, b) => Number(b.juros_a_a || 0) - Number(a.juros_a_a || 0)),
     [pins]
   );
+
+  const RISCO_CORES: Record<string, string> = {
+    Baixo: "#00C48C",
+    Médio: "#FFB300",
+    Alto: "#FF3D71",
+    Outro: "#845EC2",
+  };
+
+  const resumoPins = useMemo(() => {
+    if (pinsSorted.length === 0) return null;
+    const mediaJuros =
+      pinsSorted.reduce((acc, p) => acc + Number(p.juros_a_a || 0), 0) / pinsSorted.length;
+    const FALLBACK_CORES = ["#845EC2", "#0096FF", "#FF6F91", "#F9A03F", "#00B4D8"];
+    let fallbackIdx = 0;
+    const riscoMap: Record<string, { quantidade: number; cor: string }> = {};
+    for (const p of pinsSorted) {
+      const risco = p.risco || "Outro";
+      const cor = RISCO_CORES[risco] ?? FALLBACK_CORES[fallbackIdx++ % FALLBACK_CORES.length];
+      if (!riscoMap[risco]) riscoMap[risco] = { quantidade: 0, cor };
+      riscoMap[risco].quantidade += Number(p.quantidade_tokens_total_usuario || 0);
+    }
+    const riscoPizza: FatiaPizza[] = Object.entries(riscoMap).map(([label, { quantidade, cor }]) => ({
+      label,
+      valor: quantidade,
+      cor,
+    }));
+    return { quantidade: pinsSorted.length, mediaJuros, riscoPizza };
+  }, [pinsSorted]);
 
   const carregar = useCallback(async () => {
     if (!user?.id) return;
@@ -205,6 +235,23 @@ export default function Account({ navigation }: { navigation: { navigate: (route
 
         {/* ── Pins ── */}
         <Text style={styles.secaoTitulo}>Pins</Text>
+        {resumoPins && (
+          <>
+            <View style={styles.carteiraSecao}>
+              <View style={styles.carteiraLinha}>
+                <Text style={styles.carteiraLabel}>Pins diferentes investidos</Text>
+                <Text style={styles.carteiraValor}>{resumoPins.quantidade}</Text>
+              </View>
+              <View style={[styles.carteiraLinha, { borderBottomWidth: 0 }]}>
+                <Text style={styles.carteiraLabel}>Média dos juros a.a</Text>
+                <Text style={styles.carteiraValor}>{resumoPins.mediaJuros.toFixed(2).replace(".", ",")}%</Text>
+              </View>
+            </View>
+            <View style={styles.carteiraSecao}>
+              <GraficoPizza fatias={resumoPins.riscoPizza} />
+            </View>
+          </>
+        )}
         <View style={styles.secaoCard}>
           {pinsSorted.length === 0 ? (
             <Text style={styles.pinsEmpty}>

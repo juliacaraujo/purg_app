@@ -1,40 +1,228 @@
+/**
+ * Purg — Page Meta
+ * @page Login
+ * @version 2.0.0
+ * @status active
+ * @lastUpdate 2026-04-20
+ * @changes
+ * - 2.0.0: Fluxo em dois passos — email → tipo-acesso → senha ou biometria
+ * - 1.x.x: Login direto com email + senha / biometria
+ */
 
-import { loginUser } from "../../../services/api";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  Alert,
+  ActivityIndicator,
+  Platform,
+} from "react-native";
+import { makeLoginStyle } from "./styles";
+import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
+import { tipoAcesso, loginUser, biometriaLoginIniciar, biometriaLoginConcluir } from "../../../services/api";
 
-const handleLogin = async () => {
-  if (!email.trim() || !senha.trim()) {
-    Alert.alert("Atenção", "Preencha email e senha.");
-    return;
-  }
+type Etapa = "email" | "senha" | "biometria";
 
-  try {
-    setLoading(true); // 🔹 Inicia o loading
+export default function Login({ navigation }: any) {
+  const { colors } = useTheme();
+  const style = makeLoginStyle(colors);
+  const { login } = useAuth();
 
-    // 🔹 Chamada usando API centralizada
-    const result = await loginUser(email, senha);
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [etapa, setEtapa] = useState<Etapa>("email");
+  const [loading, setLoading] = useState(false);
 
-    console.log("Resposta do backend:", result);
-
-    if (!result.success || !result.userId) {
-      Alert.alert("Erro", result.message || "Falha no login.");
+  const handleVerificarEmail = async () => {
+    if (!email.trim()) {
+      Alert.alert("Atenção", "Informe seu e-mail.");
       return;
     }
+    try {
+      setLoading(true);
+      const { tipo } = await tipoAcesso(email.trim());
+      setEtapa(tipo);
+    } catch (e: any) {
+      Alert.alert("Erro", e?.message || "Não foi possível verificar o e-mail.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // 🔹 Salva no contexto global AuthProvider
-    login({ id: Number(result.userId), email });
+  const handleLoginSenha = async () => {
+    if (!senha.trim()) {
+      Alert.alert("Atenção", "Informe sua senha.");
+      return;
+    }
+    try {
+      setLoading(true);
+      const result = await loginUser(email.trim(), senha);
+      if (!result.success || !result.userId) {
+        Alert.alert("Erro", result.message || "Falha no login.");
+        return;
+      }
+      login({ id: Number(result.userId), email: email.trim() });
+    } catch (error: any) {
+      Alert.alert("Erro", error?.message || "Não foi possível conectar ao servidor.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleLoginBiometria = async () => {
+    try {
+      setLoading(true);
+      const options = await biometriaLoginIniciar(email.trim());
 
-    // ❌ NÃO navega manualmente pra Home.
-    // O RootNavigator vai trocar pro AppTabs automaticamente.
-    // navigation.navigate("Home");
-  } catch (error: any) {
-    console.error(error);
-    Alert.alert(
-      "Erro",
-      error?.message || "Não foi possível conectar ao servidor. Tente novamente."
-    );
-  } finally {
-    setLoading(false); // 🔹 Finaliza o loading SEMPRE
-  }
-};
+      const { startAuthentication } = await import(
+        "@simplewebauthn/browser" as any
+      );
+      const assertion = await startAuthentication(options);
+      const result = await biometriaLoginConcluir(assertion);
+
+      if (!result.success || !result.usuario_id) {
+        Alert.alert("Erro", result.message || "Falha na autenticação biométrica.");
+        return;
+      }
+      login({ id: Number(result.usuario_id), email: email.trim() });
+    } catch (e: any) {
+      Alert.alert("Erro", e?.message || "Falha na autenticação biométrica.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const voltarParaEmail = () => {
+    setEtapa("email");
+    setSenha("");
+  };
+
+  return (
+    <View style={style.container}>
+      <View style={style.boxTop}>
+        <Image
+          source={require("../../../assets/logo.png")}
+          style={style.logo}
+        />
+      </View>
+
+      <View style={style.boxMid}>
+        {/* Etapa 1 — E-mail */}
+        {etapa === "email" && (
+          <>
+            <TextInput
+              style={style.input}
+              placeholder="e-mail@dominio.com"
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+
+            {loading ? (
+              <ActivityIndicator color={colors.primary} style={{ marginBottom: 20 }} />
+            ) : (
+              <TouchableOpacity style={style.loginButton} onPress={handleVerificarEmail}>
+                <Text style={style.loginButtonText}>Continuar</Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+
+        {/* Etapa 2a — Senha */}
+        {etapa === "senha" && (
+          <>
+            <Text style={[style.text, { fontSize: 14, marginBottom: 12 }]}>{email}</Text>
+
+            <TextInput
+              style={style.input}
+              placeholder="Senha"
+              placeholderTextColor={colors.textSecondary}
+              secureTextEntry
+              value={senha}
+              onChangeText={setSenha}
+            />
+
+            {loading ? (
+              <ActivityIndicator color={colors.primary} style={{ marginBottom: 20 }} />
+            ) : (
+              <TouchableOpacity style={style.loginButton} onPress={handleLoginSenha}>
+                <Text style={style.loginButtonText}>Entrar</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={style.forgotPasswordButton}
+              onPress={() => navigation.navigate("RecoverAccount")}
+            >
+              <Text style={style.forgotPasswordText}>Esqueci minha senha</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={voltarParaEmail}>
+              <Text style={[style.forgotPasswordText, { textAlign: "center", marginTop: 8 }]}>
+                Usar outro e-mail
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* Etapa 2b — Biometria */}
+        {etapa === "biometria" && (
+          <>
+            <Text style={[style.text, { fontSize: 14, marginBottom: 16 }]}>{email}</Text>
+
+            {loading ? (
+              <ActivityIndicator color={colors.primary} style={{ marginBottom: 20 }} />
+            ) : (
+              <>
+                {Platform.OS === "web" && (
+                  <TouchableOpacity style={style.loginButton} onPress={handleLoginBiometria}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Image
+                        source={require("../../../assets/biometria.png")}
+                        style={{ width: 22, height: 22, resizeMode: "contain" }}
+                      />
+                      <Text style={style.loginButtonText}>Entrar com biometria</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={[style.signupButton, { marginTop: Platform.OS === "web" ? 12 : 0 }]}
+                  onPress={() => setEtapa("senha")}
+                >
+                  <Text style={style.signupButtonText}>Usar senha</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <TouchableOpacity onPress={voltarParaEmail}>
+              <Text style={[style.forgotPasswordText, { textAlign: "center", marginTop: 12 }]}>
+                Usar outro e-mail
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* Separador + Criar conta — sempre visível */}
+        <View style={style.separatorBox}>
+          <View style={style.line} />
+          <Text style={style.separatorText}>ou</Text>
+          <View style={style.line} />
+        </View>
+
+        <TouchableOpacity
+          style={style.signupButton}
+          onPress={() => navigation.navigate("Signup")}
+        >
+          <Text style={style.signupButtonText}>Criar conta</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}

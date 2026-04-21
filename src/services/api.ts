@@ -34,6 +34,24 @@ async function apiFetch(path: string, init: RequestInit = {}) {
 }
 
 /* ======================================================
+   TIPO DE ACESSO
+   ====================================================== */
+export async function tipoAcesso(email: string): Promise<{ tipo: "biometria" | "senha" | null }> {
+  const response = await apiFetch("/api/v1/tipo-acesso", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (response.status === 404) throw new ApiError(data?.message || "Usuário não encontrado.", 404);
+  if (response.status === 400) throw new ApiError(data?.errors?.[0]?.msg || "E-mail inválido.", 400);
+  if (!response.ok) throw new ApiError(data?.message || "Erro ao verificar acesso.", response.status);
+
+  return data;
+}
+
+/* ======================================================
    LOGIN
    ====================================================== */
 export async function loginUser(email: string, senha: string) {
@@ -483,6 +501,7 @@ export async function editarPerfil(
     cidade?: string;
     estado?: string;
     cep?: string;
+    genero?: string;
     pix_cpf?: string;
     pix_celular?: string;
     pix_email?: string;
@@ -572,6 +591,27 @@ export async function getRanking(): Promise<RankingItem[]> {
     throw new ApiError("Erro ao buscar ranking", response.status);
   }
   return response.json() as Promise<RankingItem[]>;
+}
+
+/* ======================================================
+   PREFERÊNCIA DE LOGIN
+   ====================================================== */
+export async function atualizarPreferenciaLogin(
+  usuarioId: number,
+  preferencia: "senha" | "biometria"
+) {
+  const response = await apiFetch(`/api/v1/preferencia-login/${usuarioId}`, {
+    method: "PUT",
+    body: JSON.stringify({ preferencia_login: preferencia }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new ApiError(data?.message || "Erro ao atualizar preferência de login.", response.status);
+  }
+
+  return data;
 }
 
 /* ======================================================
