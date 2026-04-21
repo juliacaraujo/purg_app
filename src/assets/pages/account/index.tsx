@@ -76,17 +76,19 @@ export default function Account({ navigation }: { navigation: { navigate: (route
       pinsSorted.reduce((acc, p) => acc + Number(p.juros_a_a || 0), 0) / pinsSorted.length;
     const FALLBACK_CORES = ["#845EC2", "#0096FF", "#FF6F91", "#F9A03F", "#00B4D8"];
     let fallbackIdx = 0;
-    const riscoMap: Record<string, { quantidade: number; cor: string }> = {};
+    const riscoMap: Record<string, { quantidade: number; cor: string; rendDiario: number }> = {};
     for (const p of pinsSorted) {
       const risco = p.risco || "Outro";
       const cor = RISCO_CORES[risco] ?? FALLBACK_CORES[fallbackIdx++ % FALLBACK_CORES.length];
-      if (!riscoMap[risco]) riscoMap[risco] = { quantidade: 0, cor };
+      if (!riscoMap[risco]) riscoMap[risco] = { quantidade: 0, cor, rendDiario: 0 };
       riscoMap[risco].quantidade += Number(p.quantidade_tokens_total_usuario || 0);
+      riscoMap[risco].rendDiario += Number(p.rendimento_token_total_usuario || 0);
     }
-    const riscoPizza: FatiaPizza[] = Object.entries(riscoMap).map(([label, { quantidade, cor }]) => ({
+    const riscoPizza: FatiaPizza[] = Object.entries(riscoMap).map(([label, { quantidade, cor, rendDiario }]) => ({
       label,
       valor: quantidade,
       cor,
+      rendDiario,
     }));
     return { quantidade: pinsSorted.length, mediaJuros, riscoPizza };
   }, [pinsSorted]);
@@ -252,40 +254,39 @@ export default function Account({ navigation }: { navigation: { navigate: (route
             </View>
           </>
         )}
-        <View style={styles.secaoCard}>
-          {pinsSorted.length === 0 ? (
+        {pinsSorted.length === 0 ? (
+          <View style={styles.secaoCard}>
             <Text style={styles.pinsEmpty}>
               {pinsLoaded ? "Você ainda não possui pins." : "Carregando..."}
             </Text>
-          ) : (
-            pinsSorted.map((item, index) => (
+          </View>
+        ) : (
+          <View style={styles.pinTableContainer}>
+            <View style={styles.pinTableHeaderRow}>
+              <Text style={[styles.pinTableHeaderCell, { flex: 2, textAlign: "left" }]}>EMPRESA</Text>
+              <Text style={[styles.pinTableHeaderCell, { flex: 1 }]}>PINS</Text>
+              <Text style={[styles.pinTableHeaderCell, { flex: 1 }]}>REND.</Text>
+              <Text style={[styles.pinTableHeaderCell, { flex: 1 }]}>JUROS A.A</Text>
+              <Text style={[styles.pinTableHeaderCell, { flex: 1 }]}>RISCO</Text>
+            </View>
+            {pinsSorted.map((item, index) => (
               <View
                 key={item.id_resultado}
-                style={[styles.pinCardSmall, index === pinsSorted.length - 1 && { marginBottom: 0 }]}
+                style={[styles.pinTableRow, index === pinsSorted.length - 1 && { borderBottomWidth: 0 }]}
               >
-                <Text style={styles.pinTitleSmall} numberOfLines={2}>{item.razao_social}</Text>
-                <View style={styles.pinRow}>
-                  <Text style={styles.pinLabel}>Pins investidos</Text>
-                  <Text style={styles.pinValue}>
-                    {Number(item.quantidade_tokens_total_usuario || 0).toLocaleString("pt-BR")}
-                  </Text>
-                </View>
-                <View style={styles.pinRow}>
-                  <Text style={styles.pinLabel}>Rendimento diário</Text>
-                  <Text style={styles.pinValue}>{moneyTrunc8(item.rendimento_token_total_usuario)}</Text>
-                </View>
-                <View style={styles.pinRow}>
-                  <Text style={styles.pinLabel}>Juros a.a</Text>
-                  <Text style={styles.pinValue}>{item.juros_a_a}%</Text>
-                </View>
-                <View style={[styles.pinRow, { borderBottomWidth: 0 }]}>
-                  <Text style={styles.pinLabel}>Risco</Text>
-                  <Text style={styles.pinValue}>{item.risco}</Text>
-                </View>
+                <Text style={[styles.pinTableCellName, { flex: 2 }]} numberOfLines={2}>{item.razao_social}</Text>
+                <Text style={[styles.pinTableCell, { flex: 1 }]}>
+                  {Number(item.quantidade_tokens_total_usuario || 0).toLocaleString("pt-BR")}
+                </Text>
+                <Text style={[styles.pinTableCell, { flex: 1 }]}>
+                  {moneyTrunc2(item.rendimento_token_total_usuario)}
+                </Text>
+                <Text style={[styles.pinTableCell, { flex: 1 }]}>{item.juros_a_a}%</Text>
+                <Text style={[styles.pinTableCell, { flex: 1 }]}>{item.risco}</Text>
               </View>
-            ))
-          )}
-        </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SwipeTabsWrapper>
   );

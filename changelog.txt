@@ -1,3 +1,13 @@
+purg-develop-8 — 2026-04-21
+- Patrimônio: gráfico de pizza exibe percentual com duas casas decimais dentro de cada fatia
+- Patrimônio: legenda do gráfico de pizza ordenada do maior para o menor percentual
+- Patrimônio: cabeçalho da coluna de participação renomeado de "%" para "Part. (%)"
+- Patrimônio: nova coluna "Rend. Diário" na legenda do gráfico, com soma dos rendimentos por categoria de risco
+- Patrimônio: layout do gráfico de pizza redesenhado — pizza centralizada (tamanho 220) e tabela abaixo com largura total
+- Patrimônio: colunas "Part. (%)" e "Rend. Diário" com largura padronizada (110px cada)
+- Patrimônio: tabela de Pins convertida de cards individuais para tabela com colunas de flex igual (Empresa ×2, Pins, Rend., Juros a.a, Risco ×1 cada)
+- Patrimônio: Rend. Diário na tabela de Pins formatado com 2 casas decimais
+
 purg-develop-7 — 2026-04-20
 - Login: fluxo em duas etapas — primeira tela só com e-mail; segunda tela com senha (LoginPassword) ou biometria (LoginBiometria) conforme resposta do endpoint POST /api/v1/tipo-acesso
 - Login: quando tipo é null (primeiro acesso), modal pergunta se deseja cadastrar biometria após login com senha
