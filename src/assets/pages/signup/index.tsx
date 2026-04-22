@@ -26,6 +26,7 @@ import { style } from "./styles";
 
 export default function Signup({ navigation }) {
   const [nome, setNome] = useState("");
+  const [nomeMae, setNomeMae] = useState("");
   const [cpf, setCpf] = useState("");
   const [celular, setCelular] = useState("");
   const [email, setEmail] = useState("");
@@ -149,6 +150,7 @@ export default function Signup({ navigation }) {
 
   const todosCamposPreenchidos =
     nome.trim() !== "" &&
+    nomeMae.trim() !== "" &&
     onlyDigits(cpf).length === 11 &&
     onlyDigits(celular).length >= 10 &&
     email.trim() !== "" &&
@@ -217,6 +219,7 @@ export default function Signup({ navigation }) {
 
     navigation.navigate("Terms", {
       nome: nomeFinal,
+      nome_da_mae: titleCaseName(nomeMae),
       cpf: cpf,
       celular: celularDigits,
       email,
@@ -238,6 +241,14 @@ export default function Signup({ navigation }) {
         onBlur={() => { const n = titleCaseName(nome); setNome(n); validarNome(n); }}
       />
       {erroNome ? <Text style={style.erroTexto}>{erroNome}</Text> : null}
+
+      <TextInput
+        style={style.input}
+        placeholder="Nome da mãe"
+        value={nomeMae}
+        onChangeText={(t) => setNomeMae(normalizeSpaces(t))}
+        onBlur={() => setNomeMae(titleCaseName(nomeMae))}
+      />
 
       <TextInput
         style={[style.input, erroDataNasc ? style.inputErro : null]}
@@ -289,6 +300,7 @@ export default function Signup({ navigation }) {
         placeholder="Email"
         keyboardType="email-address"
         autoCapitalize="none"
+        autoCorrect={false}
         value={email}
         onChangeText={(t) => { setEmail(t); setErroEmail(""); }}
         onBlur={() => validarEmail(email)}

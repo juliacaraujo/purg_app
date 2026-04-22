@@ -120,6 +120,7 @@ export default function Login({ navigation }: any) {
               placeholderTextColor={colors.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               value={email}
               onChangeText={setEmail}
             />

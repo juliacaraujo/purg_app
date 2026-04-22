@@ -53,6 +53,7 @@ import Profile from "./src/assets/pages/profile";
 import Logo from "./src/assets/logo.png";
 import { tipoAcesso, getDadosCadastro } from "./src/services/api";
 import SetupApelido from "./src/assets/pages/setupApelido";
+import MolduraPreview from "./src/assets/pages/moldura-preview";
 
 
 const RootStack = createNativeStackNavigator();
@@ -398,6 +399,7 @@ function RootNavigator() {
       {user ? (
         <>
           <RootStack.Screen name="AppTabs" component={AppTabs} />
+          <RootStack.Screen name="MolduraPreview" component={MolduraPreview} options={{ headerShown: false }} />
           <RootStack.Screen
             name="Withdraw"
             component={Withdraw}
@@ -482,6 +484,7 @@ const linking: LinkingOptions<any> = {
         },
       },
       Withdraw: "sacar", Deposit: "depositar", PixInfo: "pix",
+      MolduraPreview: "preview-molduras",
     },
   },
 };

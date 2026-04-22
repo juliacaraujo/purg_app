@@ -72,7 +72,7 @@ export interface HistoricoRendimentosResponse {
 
 export interface ObjetivoItem {
   objetivo_id: number;
-  descricao: string;
+  objetivo_descricao: string;
   valor_alvo: number;
   prazo_total: number;
   saldo_alocado_total: number;
@@ -83,8 +83,24 @@ export interface ObjetivoItem {
   is_patrimonio: boolean;
 }
 
+export interface MetaDetalhe {
+  id: number;
+  numero: number;
+  valor_alvo: number;
+  saldo_alocado: number;
+  percentual: number;
+  pontos: number;
+  completo: boolean;
+  data_limite: string;
+}
+
 export interface PontosInfo {
   total: number;
+}
+
+export interface LigaItem {
+  nome: string;
+  pontuacao_minima: number;
 }
 
 export interface ObjetivosResponse {

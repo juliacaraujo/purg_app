@@ -1,3 +1,19 @@
+purg-develop-9 — 2026-04-22
+- Perfil: correção no salvamento das chaves Pix — CPF e celular agora são enviados sem formatação (somente dígitos) ao backend
+- Cadastro: adicionado campo "Nome da mãe" com formatação title-case; incluído no payload do endpoint de criação de conta
+- API: criarConta agora envia o campo nome_da_mae; adicionada função getLigas (GET /api/v1/ligas)
+- Types: adicionada interface MetaDetalhe (com data_limite), LigaItem; corrigido campo objetivo_descricao em ObjetivoItem
+- Objetivos: card de objetivo redesenhado com duas barras de progressão separadas — "Progressão Financeira" (saldo alocado / meta financeira) e "Progressão das Metas" (metas concluídas / metas totais), ambas com porcentagem com 2 casas decimais
+- Objetivos: barra de metas segmentada — cada segmento representa uma meta; segmentos concluídos pintados na cor primária
+- Objetivos: datas abaixo dos segmentos da barra de metas em formato abr/26; intervalo de exibição calculado conforme total de metas (1 para ≤10, 2 para ≤20, 3 para ≤30, 6 para ≤60, 12 acima)
+- Objetivos: badge com objetivo_descricao no canto superior esquerdo; Meta (valor) e Prazo (última data_limite) no canto superior direito
+- Objetivos: rodapé do card com três colunas separadas — Metas (x/x), Aporte e Parcela
+- Objetivos: seção "Liga" com barra de progressão em direção à próxima liga, texto "Faltam X pontos para Y" e porcentagem acima da barra
+- Objetivos: linha inferior da seção Liga com três colunas — Pontos | Liga Atual (com badge colorida) | Próxima (com badge colorida)
+- Objetivos: molduras ornamentais SVG por tier de liga — basico (Cobre/Bronze): colchete L + diamante; medio (Prata/Ouro): colchete duplo + ticks + diamante; avancado (Platina/Ametista): colchete triplo + gema pentagonal + spikes triangulares; supremo (Safira/Esmeralda/Rubi/Diamante): colchete quádruplo com linhas em fade + gema octagonal + spikes múltiplos + rail interno; tiers Ouro+ com ornamento de coroa no topo
+- MolduraLiga: extraído para componente compartilhado em src/assets/components/MolduraLiga.tsx
+- Preview: tela /preview-molduras exibe todas as 10 ligas com suas respectivas molduras para visualização em desenvolvimento
+
 purg-develop-8 — 2026-04-21
 - Patrimônio: gráfico de pizza exibe percentual com duas casas decimais dentro de cada fatia
 - Patrimônio: legenda do gráfico de pizza ordenada do maior para o menor percentual

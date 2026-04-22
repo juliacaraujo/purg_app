@@ -14,92 +14,143 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
-import { getObjetivos, criarObjetivo, cancelarObjetivo, getCarteira } from "../../../services/api";
-import type { ObjetivoItem, PontosInfo } from "../../../types";
-
-const LIGA_CORES: Record<string, { bg: string; text: string }> = {
-  "Cobre":     { bg: "#B87333", text: "#fff" },
-  "Bronze":    { bg: "#CD7F32", text: "#fff" },
-  "Prata":     { bg: "#9E9E9E", text: "#fff" },
-  "Ouro":      { bg: "#F0C040", text: "#333" },
-  "Platina":   { bg: "#78909C", text: "#fff" },
-  "Ametista":  { bg: "#8E44AD", text: "#fff" },
-  "Safira":    { bg: "#1565C0", text: "#fff" },
-  "Esmeralda": { bg: "#2E7D32", text: "#fff" },
-  "Rubi":      { bg: "#C0392B", text: "#fff" },
-  "Diamante":  { bg: "#29B6F6", text: "#fff" },
-};
-
-function getLigaCores(liga: string | null): { bg: string; text: string } | null {
-  if (!liga) return null;
-  const metal = liga.split(" ")[0];
-  return LIGA_CORES[metal] ?? null;
-}
+import { getObjetivos, getObjetivoDetalhe, getLigas, criarObjetivo, cancelarObjetivo } from "../../../services/api";
+import type { ObjetivoItem, MetaDetalhe, PontosInfo, LigaItem } from "../../../types";
+import { MolduraLiga, getLigaCores } from "../../components/MolduraLiga";
 
 function moeda(v: any) {
   const n = Math.trunc((Number(v) || 0) * 100) / 100;
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
 }
 
-function ProgressBar({ percent, cor }: { percent: number; cor: string }) {
-  const p = Math.min(100, Math.max(0, percent));
+const MESES_ABR = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+
+function formatDataLimite(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const mes = MESES_ABR[d.getUTCMonth()];
+  const aa = String(d.getUTCFullYear()).slice(2);
+  return `${mes}/${aa}`;
+}
+
+function calcIntervalo(total: number): number {
+  if (total <= 10) return 1;
+  if (total <= 20) return 2;
+  if (total <= 30) return 3;
+  if (total <= 60) return 6;
+  return 12;
+}
+
+function SegmentedBar({ completas, total, cor, metas }: { completas: number; total: number; cor: string; metas?: MetaDetalhe[] }) {
+  const n = Math.max(1, total);
+  const intervalo = calcIntervalo(n);
   return (
-    <View style={s.barBg}>
-      <View style={[s.barFill, { width: `${p}%` as any, backgroundColor: cor }]} />
+    <View style={s.segRow}>
+      {Array.from({ length: n }).map((_, i) => {
+        const mostraData = i % intervalo === 0;
+        const dataLabel = mostraData && metas?.[i]?.data_limite ? formatDataLimite(metas[i].data_limite) : "";
+        return (
+          <View key={i} style={{ flex: 1, alignItems: "center" }}>
+            <View
+              style={[
+                s.segItem,
+                { backgroundColor: i < completas ? cor : "#e0e0e0" },
+                i === 0 && s.segFirst,
+                i === n - 1 && s.segLast,
+              ]}
+            />
+            {dataLabel ? <Text style={s.segData}>{dataLabel}</Text> : <Text style={s.segData}>{" "}</Text>}
+          </View>
+        );
+      })}
     </View>
   );
 }
 
-function CardObjetivo({ item, onCancelar, colors }: {
+function CardObjetivo({ item, metas, onCancelar, colors }: {
   item: ObjetivoItem;
+  metas?: MetaDetalhe[];
   onCancelar: (id: number, desc: string) => void;
   colors: ReturnType<typeof import("../../../context/ThemeContext").useTheme>["colors"];
 }) {
-  const pct = Number(item.percentual_geral) || 0;
+  const total = Number(item.metas_total) || 0;
+  const pct = total > 0 ? Math.min(100, (item.metas_completas / total) * 100) : 0;
+  const valorAlvo = Number(item.valor_alvo) || 0;
+  const saldo = Number(item.saldo_alocado_total) || 0;
+  const pctFinanceiro = valorAlvo > 0 ? Math.min(100, (saldo / valorAlvo) * 100) : 0;
   const cor = item.objetivo_completo ? colors.primary : pct > 50 ? "#007AFF" : colors.textPrimary;
+  const corFin = item.objetivo_completo ? colors.primary : pctFinanceiro > 50 ? "#007AFF" : colors.textPrimary;
 
   return (
     <View style={[s.card, { backgroundColor: colors.card }]}>
       <View style={s.cardHeader}>
-        <Text style={[s.cardTitulo, { color: colors.textPrimary }]} numberOfLines={2}>
-          {item.descricao}
-        </Text>
-        {item.objetivo_completo && (
-          <View style={[s.badge, { backgroundColor: "#d4edda", borderColor: colors.primary }]}>
-            <Text style={s.badgeText}>Concluído</Text>
-          </View>
+        {!item.is_patrimonio && (
+          <Text style={[s.cardTitulo, { color: colors.textPrimary }]} numberOfLines={2}>
+            {item.objetivo_descricao}
+          </Text>
         )}
         {item.is_patrimonio && (
-          <View style={[s.badge, { backgroundColor: "#fff3cd", borderColor: "#ffc107" }]}>
-            <Text style={[s.badgeText, { color: "#856404" }]}>Patrimônio</Text>
+          <View style={{ flex: 1 }}>
+            <View style={[s.badge, { backgroundColor: "#fff3cd", borderColor: "#ffc107", alignSelf: "flex-start" }]}>
+              <Text style={[s.badgeText, { color: "#856404" }]}>{item.objetivo_descricao}</Text>
+            </View>
           </View>
         )}
-      </View>
-
-      <ProgressBar percent={pct} cor={colors.primary} />
-      <Text style={[s.pct, { color: cor }]}>{pct.toFixed(0)}%</Text>
-
-      <View style={s.row}>
-        <View style={s.col}>
+        <View style={{ alignItems: "flex-end" }}>
           <Text style={[s.label, { color: colors.textTertiary }]}>Meta</Text>
           <Text style={[s.valor, { color: colors.textPrimary }]}>{moeda(item.valor_alvo)}</Text>
         </View>
-        <View style={s.col}>
-          <Text style={[s.label, { color: colors.textTertiary }]}>Acumulado</Text>
-          <Text style={[s.valor, { color: colors.textPrimary }]}>{moeda(item.saldo_alocado_total)}</Text>
-        </View>
-        <View style={s.col}>
+        <View style={{ alignItems: "flex-end", marginLeft: 12 }}>
           <Text style={[s.label, { color: colors.textTertiary }]}>Prazo</Text>
-          <Text style={[s.valor, { color: colors.textPrimary }]}>{item.prazo_total} meses</Text>
+          <Text style={[s.valor, { color: colors.textPrimary }]}>
+            {metas && metas.length > 0 ? formatDataLimite(metas[metas.length - 1].data_limite) : "—"}
+          </Text>
         </View>
       </View>
 
-      <View style={s.row}>
-        <Text style={[s.metas, { color: colors.textTertiary }]}>
-          {item.metas_completas}/{item.metas_total} metas concluídas
-        </Text>
+      <View style={s.secaoBloco}>
+        <View style={s.secaoBlocoHeader}>
+          <Text style={[s.barLabel, { color: colors.textSecondary }]}>Progressão Financeira</Text>
+          <Text style={[s.pct, { color: corFin, marginBottom: 0 }]}>{pctFinanceiro.toFixed(2)}%</Text>
+        </View>
+        <View style={s.barBg}>
+          <View style={[s.barFill, { width: `${pctFinanceiro}%` as any, backgroundColor: colors.primary }]} />
+        </View>
+        <Text style={[s.metas, { color: colors.textTertiary, marginTop: 6 }]}>Alocado: {moeda(item.saldo_alocado_total)}</Text>
+      </View>
+
+      <View style={s.separador} />
+
+      <View style={s.secaoBloco}>
+        <View style={s.secaoBlocoHeader}>
+          <Text style={[s.barLabel, { color: colors.textSecondary }]}>Progressão das Metas</Text>
+          <Text style={[s.pct, { color: cor, marginBottom: 0 }]}>{pct.toFixed(2)}%</Text>
+        </View>
+        <SegmentedBar completas={item.metas_completas} total={item.metas_total} cor={colors.primary} metas={metas} />
+      </View>
+
+      <View style={s.separador} />
+      <View style={s.rodapeRow}>
+        <View style={s.rodapeCol}>
+          <Text style={[s.label, { color: colors.textTertiary }]}>Metas</Text>
+          <Text style={[s.metas, { color: colors.textPrimary }]}>{item.metas_completas}/{item.metas_total}</Text>
+        </View>
+        {metas && metas.length > 0 && (
+          <>
+            <View style={s.rodapeDivisor} />
+            <View style={s.rodapeCol}>
+              <Text style={[s.label, { color: colors.textTertiary }]}>Aporte</Text>
+              <Text style={[s.metas, { color: colors.textPrimary }]}>{moeda(metas[0].valor_alvo)}</Text>
+            </View>
+            <View style={s.rodapeDivisor} />
+            <View style={s.rodapeCol}>
+              <Text style={[s.label, { color: colors.textTertiary }]}>Parcela</Text>
+              <Text style={[s.metas, { color: colors.textPrimary }]}>{moeda(metas.length > 1 ? metas[1].valor_alvo : metas[0].valor_alvo)}</Text>
+            </View>
+          </>
+        )}
         {!item.is_patrimonio && !item.objetivo_completo && (
-          <TouchableOpacity onPress={() => onCancelar(item.objetivo_id, item.descricao)}>
+          <TouchableOpacity style={{ marginLeft: "auto" as any }} onPress={() => onCancelar(item.objetivo_id, item.objetivo_descricao)}>
             <Text style={s.cancelar}>Cancelar</Text>
           </TouchableOpacity>
         )}
@@ -201,23 +252,35 @@ export default function Objetivos() {
   const [refreshing, setRefreshing] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [objetivos, setObjetivos] = useState<ObjetivoItem[]>([]);
+  const [metasDetalhe, setMetasDetalhe] = useState<Record<number, MetaDetalhe[]>>({});
   const [pontos, setPontos] = useState<PontosInfo | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [liga, setLiga] = useState<string | null>(null);
+  const [ligas, setLigas] = useState<LigaItem[]>([]);
 
   const carregar = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const [res, cart] = await Promise.allSettled([
+      const [res, ligasRes] = await Promise.allSettled([
         getObjetivos(user.id),
-        getCarteira(user.id),
+        getLigas(),
       ]);
       if (res.status === "fulfilled") {
-        setObjetivos(Array.isArray(res.value?.objetivos) ? res.value.objetivos : []);
+        const lista = Array.isArray(res.value?.objetivos) ? res.value.objetivos : [];
+        setObjetivos(lista);
         setPontos(res.value?.pontos ?? null);
+        const detalhes = await Promise.allSettled(
+          lista.map((o) => getObjetivoDetalhe(user.id, o.objetivo_id))
+        );
+        const mapaDetalhe: Record<number, MetaDetalhe[]> = {};
+        lista.forEach((o, i) => {
+          const d = detalhes[i];
+          if (d.status === "fulfilled") mapaDetalhe[o.objetivo_id] = d.value.metas;
+        });
+        setMetasDetalhe(mapaDetalhe);
       }
-      if (cart.status === "fulfilled") {
-        setLiga(cart.value?.liga ?? null);
+
+      if (ligasRes.status === "fulfilled") {
+        setLigas(ligasRes.value);
       }
     } catch {
       Alert.alert("Erro", "Não foi possível carregar os objetivos.");
@@ -274,24 +337,73 @@ export default function Objetivos() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 20, marginBottom: 16 }}>
-          <Text style={[s.tituloPagina, { marginTop: 0, marginBottom: 0, color: colors.textPrimary }]}>Objetivos</Text>
-          {(() => {
-            const ligaCores = getLigaCores(liga);
-            return ligaCores ? (
-              <View style={{ backgroundColor: ligaCores.bg, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 }}>
-                <Text style={{ fontSize: 11, fontWeight: "700", color: ligaCores.text }}>{liga}</Text>
-              </View>
-            ) : null;
-          })()}
+        <View style={[s.secaoHeader, { marginBottom: 12, marginTop: 8 }]}>
+          <Text style={[s.secaoTitulo, { color: colors.textPrimary }]}>Liga</Text>
         </View>
 
-        {pontos && (
-          <View style={[s.pontosCard, { backgroundColor: colors.heroCard }]}>
-            <Text style={s.pontosTitle}>Pontos</Text>
-            <Text style={[s.pontoValor, { color: colors.primary }]}>{pontos.total}</Text>
-          </View>
-        )}
+        {pontos && (() => {
+          const total = pontos.total;
+          const ligasDesc = ligas;
+          const idxAtual = ligasDesc.findIndex((l) => total >= l.pontuacao_minima);
+          const ligaAtual = idxAtual >= 0 ? ligasDesc[idxAtual] : null;
+          const proximaLiga = idxAtual > 0 ? ligasDesc[idxAtual - 1] : null;
+          const pctLiga = ligaAtual && proximaLiga
+            ? Math.min(100, ((total - ligaAtual.pontuacao_minima) / (proximaLiga.pontuacao_minima - ligaAtual.pontuacao_minima)) * 100)
+            : 100;
+          const faltam = proximaLiga ? proximaLiga.pontuacao_minima - total : 0;
+          const ligaCores = getLigaCores(ligaAtual?.nome ?? null);
+          const proxCores = getLigaCores(proximaLiga?.nome ?? null);
+          return (
+            <MolduraLiga ligaNome={ligaAtual?.nome ?? null} bg={colors.card}>
+              {/* Linha superior: "faltam X pts" à esquerda, tag próxima liga à direita */}
+
+              {/* "Faltam X pontos" à esquerda e % à direita, acima da barra */}
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                {proximaLiga ? (
+                  <Text style={[s.metas, { color: colors.textTertiary }]}>Faltam {faltam} pontos para {proximaLiga.nome}</Text>
+                ) : (
+                  <Text style={[s.metas, { color: colors.textTertiary }]}>Liga máxima atingida!</Text>
+                )}
+                <Text style={[s.pct, { color: ligaCores?.bg ?? colors.primary, marginBottom: 0 }]}>{pctLiga.toFixed(2)}%</Text>
+              </View>
+
+              {/* Barra de progressão */}
+              <View style={s.barBg}>
+                <View style={[s.barFill, { width: `${pctLiga}%` as any, backgroundColor: ligaCores?.bg ?? colors.primary }]} />
+              </View>
+
+              {/* Linha inferior: Pontos | Liga Atual | Próxima Liga */}
+              <View style={[s.rodapeRow, { marginTop: 8 }]}>
+                <View style={s.rodapeCol}>
+                  <Text style={[s.label, { color: colors.textTertiary }]}>Pontos</Text>
+                  <Text style={[s.pontoValor, { color: colors.primary }]}>{total}</Text>
+                </View>
+                {ligaCores && ligaAtual && (
+                  <>
+                    <View style={s.rodapeDivisor} />
+                    <View style={s.rodapeCol}>
+                      <Text style={[s.label, { color: colors.textTertiary }]}>Liga Atual</Text>
+                      <View style={{ backgroundColor: ligaCores.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, marginTop: 2 }}>
+                        <Text style={{ fontSize: 11, fontWeight: "700", color: ligaCores.text }}>{ligaAtual.nome}</Text>
+                      </View>
+                    </View>
+                  </>
+                )}
+                {proxCores && proximaLiga && (
+                  <>
+                    <View style={s.rodapeDivisor} />
+                    <View style={s.rodapeCol}>
+                      <Text style={[s.label, { color: colors.textTertiary }]}>Próxima</Text>
+                      <View style={{ backgroundColor: proxCores.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, marginTop: 2 }}>
+                        <Text style={{ fontSize: 11, fontWeight: "700", color: proxCores.text }}>{proximaLiga.nome}</Text>
+                      </View>
+                    </View>
+                  </>
+                )}
+              </View>
+            </MolduraLiga>
+          );
+        })()}
 
         <View style={s.secaoHeader}>
           <Text style={[s.secaoTitulo, { color: colors.textPrimary }]}>Meus Objetivos</Text>
@@ -304,7 +416,7 @@ export default function Objetivos() {
           <Text style={[s.vazio, { color: colors.textTertiary }]}>Nenhum objetivo cadastrado ainda.</Text>
         ) : (
           objetivos.map((item) => (
-            <CardObjetivo key={item.objetivo_id} item={item} onCancelar={handleCancelar} colors={colors} />
+            <CardObjetivo key={item.objetivo_id} item={item} metas={metasDetalhe[item.objetivo_id]} onCancelar={handleCancelar} colors={colors} />
           ))
         )}
       </ScrollView>
@@ -332,9 +444,9 @@ const s = StyleSheet.create({
   content: { padding: 16, paddingBottom: 32 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   tituloPagina: { fontSize: 22, fontWeight: "bold", marginTop: 20, marginBottom: 16 },
-  pontosCard: { borderRadius: 16, padding: 16, marginBottom: 20 },
-  pontosTitle: { color: "#aaa", fontSize: 12, fontWeight: "600", marginBottom: 10, letterSpacing: 1 },
-  pontoValor: { fontSize: 22, fontWeight: "700" },
+  pontosCard: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 16 },
+  pontosTitle: { color: "#aaa", fontSize: 11, fontWeight: "600", marginBottom: 2, letterSpacing: 1 },
+  pontoValor: { fontSize: 18, fontWeight: "700" },
   secaoHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   secaoTitulo: { fontSize: 16, fontWeight: "700" },
   novoBtn: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
@@ -344,14 +456,26 @@ const s = StyleSheet.create({
   cardTitulo: { flex: 1, fontSize: 14, fontWeight: "700" },
   badge: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
   badgeText: { fontSize: 10, fontWeight: "700", color: "#155724" },
-  barBg: { height: 8, backgroundColor: "#e8e8e8", borderRadius: 4, marginBottom: 4 },
+  rodapeRow: { flexDirection: "row", alignItems: "center", marginTop: 12, gap: 0 },
+  rodapeCol: { alignItems: "center", flex: 1 },
+  rodapeDivisor: { width: 1, height: 28, backgroundColor: "#e0e0e0" },
+  secaoBloco: { marginTop: 14 },
+  secaoBlocoHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
+  separador: { height: 1, backgroundColor: "#e8e8e8", marginTop: 14 },
+  barLabel: { fontSize: 11, fontWeight: "600", marginBottom: 2 },
+  barBg: { height: 8, backgroundColor: "#e0e0e0", borderRadius: 4, marginBottom: 6 },
   barFill: { height: 8, borderRadius: 4 },
-  pct: { fontSize: 12, fontWeight: "700", marginBottom: 10, textAlign: "right" },
+  segRow: { flexDirection: "row", gap: 3, marginBottom: 6 },
+  segItem: { width: "100%", height: 8 },
+  segData: { fontSize: 8, marginTop: 2, color: "#999", textAlign: "center" },
+  segFirst: { borderTopLeftRadius: 4, borderBottomLeftRadius: 4 },
+  segLast: { borderTopRightRadius: 4, borderBottomRightRadius: 4 },
+  pct: { fontSize: 12, fontWeight: "700", marginBottom: 2, textAlign: "right" },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 },
   col: { flex: 1 },
   label: { fontSize: 10, fontWeight: "600", marginBottom: 2 },
   valor: { fontSize: 13, fontWeight: "700" },
-  metas: { fontSize: 12 },
+  metas: { fontSize: 11 },
   cancelar: { fontSize: 12, color: "#FF3B30", fontWeight: "600" },
   vazio: { textAlign: "center", marginTop: 40, fontSize: 14 },
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },

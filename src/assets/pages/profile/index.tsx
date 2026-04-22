@@ -178,7 +178,12 @@ export default function Profile() {
   async function salvarPix() {
     try {
       setSalvando(true);
-      await editarPerfil(user!.id, { pix_cpf: pixCpfEdit.trim(), pix_celular: pixCelEdit.trim(), pix_email: pixEmailEdit.trim(), pix_chave: pixChaveEdit.trim() });
+      await editarPerfil(user!.id, {
+        pix_cpf: pixCpfEdit.replace(/\D/g, ""),
+        pix_celular: pixCelEdit.replace(/\D/g, ""),
+        pix_email: pixEmailEdit.trim(),
+        pix_chave: pixChaveEdit.trim(),
+      });
       setModalPix(false);
       carregar();
       mostrarToast("Chaves Pix salvas com sucesso!", "sucesso");

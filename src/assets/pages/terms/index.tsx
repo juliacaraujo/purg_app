@@ -223,7 +223,7 @@ export default function Terms({ navigation, route }: any) {
   };
 
   const handleConfirmar = async () => {
-    const { nome, cpf, celular, email, senha, data_nascimento, genero } = dadosCadastro;
+    const { nome, nome_da_mae, cpf, celular, email, senha, data_nascimento, genero } = dadosCadastro;
 
     if (!nome || !cpf || !celular || !email || !senha) {
       setFeedback({ msg: "Dados incompletos. Volte e preencha todos os campos.", tipo: "erro" });
@@ -236,6 +236,7 @@ export default function Terms({ navigation, route }: any) {
 
       const result = await criarConta({
         nome_completo: nome,
+        nome_da_mae,
         cpf,
         celular,
         email,

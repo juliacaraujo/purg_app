@@ -167,6 +167,7 @@ export async function solicitarSaque(usuarioId: number, valor: number, chavePix?
    ====================================================== */
 export async function criarConta(dados: {
   nome_completo: string;
+  nome_da_mae?: string;
   cpf: string;
   celular: string;
   email: string;
@@ -366,7 +367,14 @@ export async function getObjetivos(usuarioId: number): Promise<ObjetivosResponse
   return response.json() as Promise<ObjetivosResponse>;
 }
 
-export async function getObjetivoDetalhe(usuarioId: number, objetivoId: number) {
+export async function getLigas(): Promise<import("../types").LigaItem[]> {
+  const response = await apiFetch("/api/v1/ligas");
+  if (!response.ok) throw new ApiError("Erro ao buscar ligas", response.status);
+  const data = await response.json();
+  return data.ligas ?? [];
+}
+
+export async function getObjetivoDetalhe(usuarioId: number, objetivoId: number): Promise<{ metas: import("../types").MetaDetalhe[] }> {
   const response = await apiFetch(`/api/v1/objetivos/${usuarioId}/${objetivoId}`);
 
   if (!response.ok) {
