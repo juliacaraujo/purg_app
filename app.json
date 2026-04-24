@@ -25,7 +25,7 @@
       "package": "com.juliacaraujo.Purg"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/site-icon.png"
     },
     "extra": {
       "eas": {

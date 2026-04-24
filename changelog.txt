@@ -1,3 +1,17 @@
+purg-develop-10 — 2026-04-24
+- Depósito: botão "Cancelar" adicionado nos depósitos pendentes e no histórico
+- Depósito: status redefinidos para os 4 valores válidos do backend — Executado (verde), Processando (amarelo), Cancelado/Rejeitado (vermelho); comparações case-sensitive
+- Saque: botão "Cancelar" adicionado nos saques pendentes e no histórico
+- Saque: status redefinidos para os 4 valores válidos do backend — Executado (verde), Processando (amarelo), Rejeitado (vermelho), Cancelado (cinza); comparações case-sensitive
+- API: cancelarDeposito usa POST /api/v1/cancelar-deposito/:depositoId (ID do depósito, não do usuário)
+- API: cancelarSaque usa POST /api/v1/cancelar-saque/:saqueId (ID do saque, não do usuário)
+- API: tratamento explícito de 403, 422 e 429 em solicitarDeposito e solicitarSaque; ApiError carrega campo data para repassar payload do 429 ao frontend
+- Home: auto-atualização dos dados ao retornar para a tela via useFocusEffect
+- PixInfo: tela reescrita com QR Code, countdown, polling de confirmação a cada 5s e estados automáticos — "confirmado" (quando não há mais pendentes) e "expirado" (quando o tempo se encerra)
+- Web: título fixado como "Purg" em todas as telas via documentTitle no NavigationContainer
+- Web: favicon atualizado para site-icon.png
+- deploy-web.sh: patch de title garantido no index.html gerado pelo Expo
+
 purg-develop-9 — 2026-04-22
 - Perfil: correção no salvamento das chaves Pix — CPF e celular agora são enviados sem formatação (somente dígitos) ao backend
 - Cadastro: adicionado campo "Nome da mãe" com formatação title-case; incluído no payload do endpoint de criação de conta

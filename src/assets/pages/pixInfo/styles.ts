@@ -9,6 +9,14 @@ export const styles = StyleSheet.create({
     paddingBottom: 36,
   },
 
+  fullCenter: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
+
   backBtn: {
     marginTop: 20,
     marginBottom: 16,
@@ -25,13 +33,7 @@ export const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "bold",
     color: theme.colors.textPrimary,
-    marginBottom: 6,
-  },
-
-  subtitle: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: 24,
+    marginBottom: 20,
   },
 
   valorBox: {
@@ -62,12 +64,53 @@ export const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
 
+  qrCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+
+  qrImage: {
+    width: 220,
+    height: 220,
+  },
+
+  countdownRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 20,
+  },
+
+  countdownLabel: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+
+  countdownValue: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: theme.colors.textPrimary,
+    fontVariant: ["tabular-nums"],
+  },
+
+  countdownUrgent: {
+    color: "#dc2626",
+  },
+
   pixCard: {
     backgroundColor: "#111",
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
-    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
@@ -86,10 +129,10 @@ export const styles = StyleSheet.create({
 
   pixChave: {
     color: "#fff",
-    fontSize: 15,
-    fontWeight: "bold",
-    letterSpacing: 0.3,
+    fontSize: 13,
+    letterSpacing: 0.2,
     marginBottom: 16,
+    lineHeight: 20,
   },
 
   copyBtn: {
@@ -114,60 +157,78 @@ export const styles = StyleSheet.create({
     backgroundColor: "#166534",
   },
 
-  infoCard: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+  waitingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 8,
   },
 
-  infoCardTitle: {
-    fontSize: 14,
+  waitingText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+
+  confirmedIcon: {
+    fontSize: 56,
+    color: theme.colors.primary,
+    marginBottom: 16,
+  },
+
+  confirmedTitle: {
+    fontSize: 22,
     fontWeight: "bold",
     color: theme.colors.textPrimary,
     marginBottom: 8,
+    textAlign: "center",
   },
 
-  infoCardText: {
-    fontSize: 13,
+  confirmedSubtitle: {
+    fontSize: 14,
     color: theme.colors.textSecondary,
-    lineHeight: 20,
+    textAlign: "center",
+    marginBottom: 32,
+    lineHeight: 22,
   },
 
-  rulesTitle: {
-    fontSize: 13,
+  expiredIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+
+  expiredTitle: {
+    fontSize: 22,
     fontWeight: "bold",
+    color: theme.colors.textPrimary,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+
+  expiredSubtitle: {
+    fontSize: 14,
     color: theme.colors.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginTop: 8,
-    marginBottom: 12,
+    textAlign: "center",
+    marginBottom: 32,
+    lineHeight: 22,
   },
 
-  ruleItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 10,
-    gap: 8,
-  },
-
-  ruleDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  actionBtn: {
     backgroundColor: theme.colors.primary,
-    marginTop: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 5,
   },
 
-  ruleText: {
-    flex: 1,
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
+  actionBtnText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });

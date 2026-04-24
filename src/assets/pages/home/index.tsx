@@ -16,6 +16,7 @@ import imgPerfil from "../../../../assets/perfil.png";
 import { makeHomeStyle } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
+import { useFocusEffect } from "@react-navigation/native";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import {
   ApiError,
@@ -138,7 +139,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
     }
   }, [user?.id]);
 
-  useEffect(() => { carregar(); }, [carregar]);
+  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
   useEffect(() => {
     navigation.setOptions({

@@ -89,9 +89,25 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  pendenteInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
   pendenteText: {
     fontWeight: "900",
     color: "#0f172a",
+  },
+
+  statusBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
 
   cancelarBtn: {
@@ -123,7 +139,8 @@ export const styles = StyleSheet.create({
   historicoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 4,
+    alignItems: "center",
+    marginBottom: 6,
   },
   historicoLabel: {
     color: "#64748b",
@@ -136,5 +153,12 @@ export const styles = StyleSheet.create({
   historicoStatus: {
     fontWeight: "800",
     color: "#64748b",
+  },
+  historicoObs: {
+    fontSize: 12,
+    color: "#991b1b",
+    fontWeight: "600",
+    marginBottom: 6,
+    lineHeight: 18,
   },
 });

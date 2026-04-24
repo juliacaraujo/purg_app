@@ -17,7 +17,6 @@ import {
   getHistoricoSaques,
   solicitarSaque,
   cancelarSaque,
-  atualizarAssinatura,
 } from "../../../services/api";
 
 // Trunca para 2 casas decimais SEM arredondar (vírgula)
@@ -27,6 +26,25 @@ const moneyTrunc = (v: any) => {
 };
 
 type PixKeyName = "pix_cpf" | "pix_celular" | "pix_email" | "pix_chave";
+
+function saqueCancelavel(status: string): boolean {
+  return !["Executado", "Cancelado", "Rejeitado"].includes(status);
+}
+
+function saqueStatusInfo(status: string): { label: string; cor: string; bg: string; obs?: string } {
+  switch (status) {
+    case "Executado":
+      return { label: "Executado", cor: "#166534", bg: "#dcfce7" };
+    case "Processando":
+      return { label: "Processando", cor: "#854d0e", bg: "#fef9c3" };
+    case "Rejeitado":
+      return { label: "Rejeitado", cor: "#991b1b", bg: "#fee2e2" };
+    case "Cancelado":
+      return { label: "Cancelado", cor: "#475569", bg: "#f1f5f9" };
+    default:
+      return { label: status ?? "—", cor: "#475569", bg: "#f1f5f9" };
+  }
+}
 
 export default function Withdraw() {
   const { user } = useAuth();
@@ -93,8 +111,8 @@ export default function Withdraw() {
     carregarDados();
   }, [carregarDados]);
 
-  const handleCancelar = async () => {
-    Alert.alert("Cancelar saque", "Tem certeza que deseja cancelar o saque pendente?", [
+  const handleCancelar = (saqueId: number) => {
+    Alert.alert("Cancelar saque", "Tem certeza que deseja cancelar este saque?", [
       { text: "Não", style: "cancel" },
       {
         text: "Sim, cancelar",
@@ -102,7 +120,7 @@ export default function Withdraw() {
         onPress: async () => {
           try {
             setLoading(true);
-            await cancelarSaque(user.id);
+            await cancelarSaque(saqueId);
             Alert.alert("Sucesso", "Saque cancelado com sucesso.");
             carregarDados();
           } catch (e: any) {
@@ -116,6 +134,7 @@ export default function Withdraw() {
   };
 
   const handleSacar = async () => {
+    if (!user?.id) return;
     const valorNum = Number(valor.replace(",", "."));
 
     if (!valorNum || valorNum <= 0) {
@@ -141,13 +160,14 @@ export default function Withdraw() {
 
       await solicitarSaque(user.id, valorNum, pixSelecionado);
 
-      atualizarAssinatura(user.id, "Poppy Pro").catch(() => {});
-
-      Alert.alert("Sucesso", "Saque solicitado com sucesso.");
+      Alert.alert(
+        "Saque em processamento",
+        "O valor chegará em instantes após a confirmação do banco."
+      );
       setValor("");
       carregarDados();
-    } catch (e) {
-      Alert.alert("Erro", "Não foi possível realizar o saque.");
+    } catch (e: any) {
+      Alert.alert("Erro", e?.message || "Não foi possível realizar o saque.");
     } finally {
       setLoading(false);
     }
@@ -202,39 +222,58 @@ export default function Withdraw() {
       )}
 
       {/* Saques pendentes */}
-      {saquesPendentes.map((s, i) => (
-        <View key={s.id ?? i} style={styles.pendenteBox}>
-          <Text style={styles.pendenteText}>
-            Saque pendente — {moneyTrunc(s.valor_saque)}
-          </Text>
-          <TouchableOpacity style={styles.cancelarBtn} onPress={handleCancelar}>
-            <Text style={styles.cancelarText}>Cancelar</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
+      {saquesPendentes.map((s, i) => {
+        const st = saqueStatusInfo(s.status_saque);
+        return (
+          <View key={s.id ?? i} style={styles.pendenteBox}>
+            <View style={styles.pendenteInfo}>
+              <Text style={styles.pendenteText}>{moneyTrunc(s.valor_saque)}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: st.bg }]}>
+                <Text style={[styles.statusBadgeText, { color: st.cor }]}>{st.label}</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.cancelarBtn} onPress={() => handleCancelar(s.id)}>
+              <Text style={styles.cancelarText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      })}
 
       {/* Histórico de saques */}
       {historicoSaques.length > 0 && (
         <>
           <Text style={styles.historicoTitle}>Histórico de saques</Text>
-          {historicoSaques.map((s, i) => (
-            <View key={s.id ?? i} style={styles.historicoBox}>
-              <View style={styles.historicoRow}>
-                <Text style={styles.historicoLabel}>Valor</Text>
-                <Text style={styles.historicoValor}>{moneyTrunc(s.valor_saque)}</Text>
+          {historicoSaques.map((s, i) => {
+            const st = saqueStatusInfo(s.status_saque);
+            return (
+              <View key={s.id ?? i} style={styles.historicoBox}>
+                <View style={styles.historicoRow}>
+                  <Text style={styles.historicoLabel}>Valor</Text>
+                  <Text style={styles.historicoValor}>{moneyTrunc(s.valor_saque)}</Text>
+                </View>
+                <View style={styles.historicoRow}>
+                  <Text style={styles.historicoLabel}>Status</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: st.bg }]}>
+                    <Text style={[styles.statusBadgeText, { color: st.cor }]}>{st.label}</Text>
+                  </View>
+                </View>
+                {st.obs && (
+                  <Text style={styles.historicoObs}>{st.obs}</Text>
+                )}
+                <View style={styles.historicoRow}>
+                  <Text style={styles.historicoLabel}>Data</Text>
+                  <Text style={styles.historicoStatus}>
+                    {new Date(s.data_criacao).toLocaleDateString("pt-BR")}
+                  </Text>
+                </View>
+                {saqueCancelavel(s.status_saque) && s.id != null && (
+                  <TouchableOpacity style={styles.cancelarBtn} onPress={() => handleCancelar(s.id)}>
+                    <Text style={styles.cancelarText}>Cancelar</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              <View style={styles.historicoRow}>
-                <Text style={styles.historicoLabel}>Status</Text>
-                <Text style={styles.historicoStatus}>{s.status_saque}</Text>
-              </View>
-              <View style={styles.historicoRow}>
-                <Text style={styles.historicoLabel}>Data</Text>
-                <Text style={styles.historicoStatus}>
-                  {new Date(s.data_criacao).toLocaleDateString("pt-BR")}
-                </Text>
-              </View>
-            </View>
-          ))}
+            );
+          })}
         </>
       )}
     </ScrollView>

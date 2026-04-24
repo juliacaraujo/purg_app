@@ -1,39 +1,116 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
+import { useAuth } from "../../../context/AuthContext";
+import { getBuscarDepositosPendentes } from "../../../services/api";
 import { styles } from "./styles";
 
-// ── Altere aqui a chave PIX da empresa ──
-const CHAVE_PIX = "pix@purg.com.br";
-
-const REGRAS = [
-  "Realize a transferência PIX exatamente com o valor informado.",
-  "Use o mesmo CPF cadastrado na sua conta Purg.",
-  "Depósitos são processados em até 1 dia útil após confirmação.",
-  "Valor mínimo de depósito: R$ 1,00.",
-  "Em caso de dúvidas, entre em contato com nosso suporte.",
-];
-
-// Trunca para 2 casas decimais (vírgula)
 const moneyFmt = (v: any) => {
   const n = Math.trunc((Number(v) || 0) * 100) / 100;
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
 };
 
+const fmtTime = (s: number) => {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+};
+
 export default function PixInfo({ route, navigation }: any) {
-  const valor = route?.params?.valor ?? 0;
+  const { user } = useAuth();
+  const {
+    valor = 0,
+    pix_copia_cola,
+    qr_code,
+    expiracao_min = 60,
+  } = route?.params ?? {};
+
   const [copied, setCopied] = useState(false);
+  const [step, setStep] = useState<"qrcode" | "confirmed" | "expired">("qrcode");
+  const [secondsLeft, setSecondsLeft] = useState(expiracao_min * 60);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let remaining = expiracao_min * 60;
+    let done = false;
+
+    let timerId: ReturnType<typeof setInterval>;
+    let pollId: ReturnType<typeof setInterval>;
+
+    timerId = setInterval(() => {
+      remaining -= 1;
+      setSecondsLeft(remaining);
+      if (remaining <= 0 && !done) {
+        done = true;
+        clearInterval(timerId);
+        clearInterval(pollId);
+        setStep("expired");
+      }
+    }, 1000);
+
+    pollId = setInterval(async () => {
+      if (done) return;
+      try {
+        const pendentes = await getBuscarDepositosPendentes(user.id);
+        if (!Array.isArray(pendentes) || pendentes.length === 0) {
+          done = true;
+          clearInterval(timerId);
+          clearInterval(pollId);
+          setStep("confirmed");
+        }
+      } catch {}
+    }, 5000);
+
+    return () => {
+      clearInterval(timerId);
+      clearInterval(pollId);
+    };
+  }, [user?.id]);
 
   const handleCopiar = async () => {
-    await Clipboard.setStringAsync(CHAVE_PIX);
+    if (!pix_copia_cola) return;
+    await Clipboard.setStringAsync(pix_copia_cola);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
+
+  if (step === "confirmed") {
+    return (
+      <View style={styles.fullCenter}>
+        <Text style={styles.confirmedIcon}>✓</Text>
+        <Text style={styles.confirmedTitle}>Pagamento confirmado!</Text>
+        <Text style={styles.confirmedSubtitle}>
+          Seu saldo foi creditado na conta Purg.
+        </Text>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.popToTop()}>
+          <Text style={styles.actionBtnText}>Ver minha conta</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (step === "expired") {
+    return (
+      <View style={styles.fullCenter}>
+        <Text style={styles.expiredIcon}>⏱</Text>
+        <Text style={styles.expiredTitle}>QR Code expirado</Text>
+        <Text style={styles.expiredSubtitle}>
+          O tempo para pagamento se encerrou. Solicite um novo depósito.
+        </Text>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.actionBtnText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -41,12 +118,8 @@ export default function PixInfo({ route, navigation }: any) {
         <Text style={styles.backBtnText}>← Voltar</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Como depositar</Text>
-      <Text style={styles.subtitle}>
-        Faça um PIX para a chave abaixo e seu saldo será creditado automaticamente.
-      </Text>
+      <Text style={styles.title}>Pagar com Pix</Text>
 
-      {/* Valor a depositar */}
       {valor > 0 && (
         <View style={styles.valorBox}>
           <Text style={styles.valorLabel}>Valor a depositar</Text>
@@ -54,38 +127,40 @@ export default function PixInfo({ route, navigation }: any) {
         </View>
       )}
 
-      {/* Chave PIX + botão copiar */}
-      <View style={styles.pixCard}>
-        <Text style={styles.pixCardLabel}>Chave PIX</Text>
-        <Text style={styles.pixChave}>{CHAVE_PIX}</Text>
-        <TouchableOpacity
-          style={[styles.copyBtn, copied && styles.copied]}
-          onPress={handleCopiar}
-        >
-          <Text style={styles.copyBtnText}>
-            {copied ? "Chave copiada!" : "Copiar chave PIX"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {qr_code ? (
+        <View style={styles.qrCard}>
+          <Image source={{ uri: qr_code }} style={styles.qrImage} resizeMode="contain" />
+        </View>
+      ) : null}
 
-      {/* Como funciona */}
-      <View style={styles.infoCard}>
-        <Text style={styles.infoCardTitle}>Como funciona</Text>
-        <Text style={styles.infoCardText}>
-          Após copiar a chave PIX, abra o app do seu banco, escolha a opção PIX e cole a chave.
-          Confirme o valor e finalize a transferência. Assim que o pagamento for identificado,
-          seu saldo na Purg será atualizado automaticamente.
+      <View style={styles.countdownRow}>
+        <Text style={styles.countdownLabel}>Expira em</Text>
+        <Text style={[styles.countdownValue, secondsLeft < 300 && styles.countdownUrgent]}>
+          {fmtTime(secondsLeft)}
         </Text>
       </View>
 
-      {/* Regras */}
-      <Text style={styles.rulesTitle}>Regras de depósito</Text>
-      {REGRAS.map((r, i) => (
-        <View key={i} style={styles.ruleItem}>
-          <View style={styles.ruleDot} />
-          <Text style={styles.ruleText}>{r}</Text>
+      {pix_copia_cola ? (
+        <View style={styles.pixCard}>
+          <Text style={styles.pixCardLabel}>Pix Copia e Cola</Text>
+          <Text style={styles.pixChave} numberOfLines={3}>
+            {pix_copia_cola}
+          </Text>
+          <TouchableOpacity
+            style={[styles.copyBtn, copied && styles.copied]}
+            onPress={handleCopiar}
+          >
+            <Text style={styles.copyBtnText}>
+              {copied ? "Copiado!" : "Copiar código"}
+            </Text>
+          </TouchableOpacity>
         </View>
-      ))}
+      ) : null}
+
+      <View style={styles.waitingRow}>
+        <ActivityIndicator size="small" color="#888" />
+        <Text style={styles.waitingText}>Aguardando confirmação do pagamento...</Text>
+      </View>
     </ScrollView>
   );
 }

@@ -15,7 +15,7 @@ const BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://jinx.purg.com.br";
 
 export class ApiError extends Error {
-  constructor(message: string, public status?: number) {
+  constructor(message: string, public status?: number, public data?: any) {
     super(message);
     this.name = "ApiError";
   }
@@ -155,11 +155,32 @@ export async function solicitarSaque(usuarioId: number, valor: number, chavePix?
     body: JSON.stringify({ amount: valor, chave_pix: chavePix }),
   });
 
-  if (!response.ok) {
-    throw new ApiError("Erro ao solicitar saque", response.status);
+  const data = await response.json();
+
+  if (response.status === 403) {
+    const msg =
+      data?.codigo === "OBJETIVOS_NAO_CONFIGURADOS"
+        ? "Configure um objetivo antes do primeiro saque."
+        : data?.message || "Ação não permitida.";
+    throw new ApiError(msg, 403);
   }
 
-  return response.json();
+  if (response.status === 422) {
+    throw new ApiError("Cadastre seu CPF no perfil antes de sacar.", 422);
+  }
+
+  if (response.status === 429) {
+    throw new ApiError(
+      data?.message || "Você já possui um saque em andamento. Aguarde a confirmação antes de solicitar um novo.",
+      429
+    );
+  }
+
+  if (!response.ok) {
+    throw new ApiError(data?.message || "Erro ao solicitar saque", response.status);
+  }
+
+  return data;
 }
 
 /* ======================================================
@@ -254,8 +275,8 @@ export async function getBuscarSaquesPendentes(usuarioId: number) {
 /* ======================================================
    CANCELAR SAQUE
    ====================================================== */
-export async function cancelarSaque(usuarioId: number) {
-  const response = await apiFetch(`/api/v1/cancelar-saque/${usuarioId}`, {
+export async function cancelarSaque(saqueId: number) {
+  const response = await apiFetch(`/api/v1/cancelar-saque/${saqueId}`, {
     method: "POST",
     body: JSON.stringify({ motivo: "Saque cancelado pelo usuário." }),
   });
@@ -292,6 +313,22 @@ export async function solicitarDeposito(usuarioId: number, amount: number) {
 
   const data = await response.json();
 
+  if (response.status === 403) {
+    const msg =
+      data?.codigo === "OBJETIVOS_NAO_CONFIGURADOS"
+        ? "Configure um objetivo antes do primeiro depósito."
+        : data?.message || "Ação não permitida.";
+    throw new ApiError(msg, 403);
+  }
+
+  if (response.status === 422) {
+    throw new ApiError("Cadastre seu CPF no perfil antes de depositar.", 422);
+  }
+
+  if (response.status === 429) {
+    throw new ApiError("Depósito pendente.", 429, data);
+  }
+
   if (!response.ok) {
     throw new ApiError(data?.message || "Erro ao solicitar depósito", response.status);
   }
@@ -302,8 +339,8 @@ export async function solicitarDeposito(usuarioId: number, amount: number) {
 /* ======================================================
    CANCELAR DEPÓSITO
    ====================================================== */
-export async function cancelarDeposito(usuarioId: number) {
-  const response = await apiFetch(`/api/v1/cancelar-deposito/${usuarioId}`, {
+export async function cancelarDeposito(depositoId: number) {
+  const response = await apiFetch(`/api/v1/cancelar-deposito/${depositoId}`, {
     method: "POST",
     body: JSON.stringify({ motivo: "Depósito cancelado pelo usuário." }),
   });

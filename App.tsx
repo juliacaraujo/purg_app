@@ -494,7 +494,7 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
-          <NavigationContainer linking={linking}>
+          <NavigationContainer linking={linking} documentTitle={{ formatter: () => "Purg" }}>
             <StatusBar style="auto" />
             {isWeb ? (
               <View style={appStyles.webOuter}>

@@ -30,12 +30,18 @@ html = re.sub(
     flags=re.DOTALL
 )
 
+# 3. Title — garante que o título seja Purg
+import re as re2
+html = re2.sub(r'<title>[^<]*</title>', '<title>Purg</title>', html)
+
 with open("dist/index.html", "w") as f:
     f.write(html)
 
 print("  viewport-fit=cover: ok")
 print("  height 100dvh: ok")
+print("  title Purg: ok")
 EOF
+
 
 echo "Publicando em /var/www/purg..."
 cp -r dist/. /var/www/purg/

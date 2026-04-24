@@ -18,18 +18,18 @@ const moneyTrunc = (v: any) => {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
 };
 
+function depositoCancelavel(status: string): boolean {
+  return !["Executado", "Cancelado", "Rejeitado"].includes(status);
+}
+
 function statusColor(status: string) {
-  switch (status?.toLowerCase()) {
-    case "confirmado":
-    case "aprovado":
-    case "concluido":
-    case "concluído":
+  switch (status) {
+    case "Executado":
       return { bg: "#dcfce7", text: "#166534" };
-    case "pendente":
-    case "aguardando":
+    case "Processando":
       return { bg: "#fef9c3", text: "#854d0e" };
-    case "cancelado":
-    case "recusado":
+    case "Cancelado":
+    case "Rejeitado":
       return { bg: "#fee2e2", text: "#991b1b" };
     default:
       return { bg: "#f1f5f9", text: "#475569" };
@@ -79,8 +79,8 @@ export default function Deposit({ navigation }: any) {
     carregarHistorico();
   }, [carregarHistorico]);
 
-  const handleCancelarDeposito = () => {
-    Alert.alert("Cancelar depósito", "Tem certeza que deseja cancelar o depósito pendente?", [
+  const handleCancelarDeposito = (depositoId: number) => {
+    Alert.alert("Cancelar depósito", "Tem certeza que deseja cancelar este depósito?", [
       { text: "Não", style: "cancel" },
       {
         text: "Sim, cancelar",
@@ -88,7 +88,7 @@ export default function Deposit({ navigation }: any) {
         onPress: async () => {
           try {
             setLoading(true);
-            await cancelarDeposito(user.id);
+            await cancelarDeposito(depositoId);
             Alert.alert("Sucesso", "Depósito cancelado com sucesso.");
             carregarHistorico();
           } catch (e: any) {
@@ -102,6 +102,7 @@ export default function Deposit({ navigation }: any) {
   };
 
   const handleDepositar = async () => {
+    if (!user?.id) return;
     const valorNum = Number(valor.replace(/\./g, "").replace(",", "."));
 
     if (!valorNum || isNaN(valorNum) || valorNum <= 0) {
@@ -111,12 +112,27 @@ export default function Deposit({ navigation }: any) {
 
     try {
       setLoading(true);
-      await solicitarDeposito(user.id, valorNum);
+      const res = await solicitarDeposito(user.id, valorNum);
       setValor("");
-      carregarHistorico();
-      navigation.navigate("PixInfo", { valor: valorNum });
+      navigation.navigate("PixInfo", {
+        valor: valorNum,
+        pix_copia_cola: res.pix_copia_cola,
+        qr_code: res.qr_code,
+        expiracao_min: res.expiracao_min ?? 60,
+      });
     } catch (e: any) {
-      Alert.alert("Erro", e?.message || "Não foi possível registrar o depósito.");
+      if (e?.status === 403 || e?.status === 422) {
+        Alert.alert("Atenção", e.message);
+      } else if (e?.status === 429) {
+        navigation.navigate("PixInfo", {
+          valor: valorNum,
+          pix_copia_cola: e.data?.pix_copia_cola,
+          qr_code: e.data?.qr_code,
+          expiracao_min: e.data?.expiracao_min ?? 60,
+        });
+      } else {
+        Alert.alert("Erro", e?.message || "Não foi possível registrar o depósito.");
+      }
     } finally {
       setLoading(false);
     }
@@ -164,7 +180,7 @@ export default function Deposit({ navigation }: any) {
                     {formatData(item.data_criacao)}
                   </Text>
                 )}
-                <TouchableOpacity style={styles.cancelarBtn} onPress={handleCancelarDeposito}>
+                <TouchableOpacity style={styles.cancelarBtn} onPress={() => handleCancelarDeposito(item.id)}>
                   <Text style={styles.cancelarText}>Cancelar</Text>
                 </TouchableOpacity>
               </View>
@@ -199,6 +215,11 @@ export default function Deposit({ navigation }: any) {
                 <Text style={styles.historicoData}>
                   {formatData(item.data_criacao)}
                 </Text>
+              )}
+              {depositoCancelavel(item.status_deposito) && item.id != null && (
+                <TouchableOpacity style={styles.cancelarBtn} onPress={() => handleCancelarDeposito(item.id)}>
+                  <Text style={styles.cancelarText}>Cancelar</Text>
+                </TouchableOpacity>
               )}
             </View>
           );
