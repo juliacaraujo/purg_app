@@ -17,7 +17,10 @@ import { makeProfileStyle } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
-import { getDadosCadastro, editarPerfil, trocarSenha, putTema, atualizarPreferenciaLogin } from "../../../services/api";
+import {
+  getDadosCadastro, editarPerfil, trocarSenha, putTema, atualizarPreferenciaLogin,
+  getPinNegociacaoStatus, criarPinNegociacao, alterarPinNegociacao, recuperarPinSolicitar,
+} from "../../../services/api";
 import type { DadosCadastroResponse } from "../../../types";
 import { cadastrarBiometria, isPasskeySupported } from "../../../services/biometria";
 
@@ -87,6 +90,28 @@ export default function Profile() {
   const [cadastrandoBio, setCadastrandoBio] = useState(false);
   const biometriaSuportada = isPasskeySupported();
 
+  // PIN de Negociação
+  const [pinCadastrado, setPinCadastrado] = useState<boolean | null>(null);
+
+  const [modalCriarPin, setModalCriarPin] = useState(false);
+  const [pinNovo1, setPinNovo1] = useState("");
+  const [pinNovo1Conf, setPinNovo1Conf] = useState("");
+  const [erroCriarPin, setErroCriarPin] = useState<string | null>(null);
+  const [criandoPin, setCriandoPin] = useState(false);
+
+  const [modalAlterarPin, setModalAlterarPin] = useState(false);
+  const [pinAtual, setPinAtual] = useState("");
+  const [pinNovo2, setPinNovo2] = useState("");
+  const [pinNovo2Conf, setPinNovo2Conf] = useState("");
+  const [erroAlterarPin, setErroAlterarPin] = useState<string | null>(null);
+  const [alterandoPin, setAlterandoPin] = useState(false);
+
+  const [modalRecuperarPin, setModalRecuperarPin] = useState(false);
+  const [senhaRecupPin, setSenhaRecupPin] = useState("");
+  const [erroRecupPin, setErroRecupPin] = useState<string | null>(null);
+  const [recuperandoPin, setRecuperandoPin] = useState(false);
+  const [recupPinEnviado, setRecupPinEnviado] = useState(false);
+
   const [toast, setToast] = useState<{ msg: string; tipo: "sucesso" | "erro" } | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -105,8 +130,12 @@ export default function Profile() {
   const carregar = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await getDadosCadastro(user.id);
+      const [res, pinStatus] = await Promise.all([
+        getDadosCadastro(user.id),
+        getPinNegociacaoStatus(user.id),
+      ]);
       setDados(res);
+      setPinCadastrado(pinStatus.pin_cadastrado);
     } catch {
       mostrarToast("Não foi possível carregar os dados do perfil.", "erro");
     } finally {
@@ -204,6 +233,68 @@ export default function Profile() {
     } catch (e: any) {
       setErroSenha(e?.message || "Não foi possível trocar a senha.");
     } finally { setSalvando(false); }
+  }
+
+  function tentativasLabel(n: number) {
+    return `${n} tentativa${n !== 1 ? "s" : ""} restante${n !== 1 ? "s" : ""}`;
+  }
+
+  async function handleCriarPin() {
+    if (pinNovo1.length !== 4 || !/^\d{4}$/.test(pinNovo1)) {
+      setErroCriarPin("O PIN deve ter exatamente 4 dígitos numéricos."); return;
+    }
+    if (pinNovo1 !== pinNovo1Conf) { setErroCriarPin("Os PINs não coincidem."); return; }
+    try {
+      setCriandoPin(true); setErroCriarPin(null);
+      await criarPinNegociacao(user!.id, { pin: pinNovo1, pin_confirmacao: pinNovo1Conf });
+      setModalCriarPin(false); setPinNovo1(""); setPinNovo1Conf("");
+      setPinCadastrado(true);
+      mostrarToast("PIN de Negociação criado com sucesso!", "sucesso");
+    } catch (e: any) {
+      setErroCriarPin(e?.message || "Não foi possível criar o PIN.");
+    } finally { setCriandoPin(false); }
+  }
+
+  async function handleAlterarPin() {
+    if (!pinAtual) { setErroAlterarPin("Informe o PIN atual."); return; }
+    if (pinNovo2.length !== 4 || !/^\d{4}$/.test(pinNovo2)) {
+      setErroAlterarPin("O novo PIN deve ter exatamente 4 dígitos numéricos."); return;
+    }
+    if (pinNovo2 !== pinNovo2Conf) { setErroAlterarPin("Os PINs não coincidem."); return; }
+    try {
+      setAlterandoPin(true); setErroAlterarPin(null);
+      await alterarPinNegociacao(user!.id, { pin_atual: pinAtual, pin_novo: pinNovo2, pin_confirmacao: pinNovo2Conf });
+      setModalAlterarPin(false); setPinAtual(""); setPinNovo2(""); setPinNovo2Conf("");
+      mostrarToast("PIN de Negociação alterado com sucesso!", "sucesso");
+    } catch (e: any) {
+      if (e?.status === 401) {
+        const tent = e?.data?.tentativas_restantes;
+        setErroAlterarPin(`PIN atual incorreto.${tent != null ? ` ${tentativasLabel(tent)}.` : ""}`);
+      } else if (e?.status === 423) {
+        const ate = e?.data?.bloqueado_ate;
+        let msg = "Conta bloqueada temporariamente.";
+        if (ate) {
+          try {
+            const hora = new Date(ate).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+            msg = `Conta bloqueada. Tente novamente após ${hora}.`;
+          } catch {}
+        }
+        setErroAlterarPin(msg);
+      } else {
+        setErroAlterarPin(e?.message || "Não foi possível alterar o PIN.");
+      }
+    } finally { setAlterandoPin(false); }
+  }
+
+  async function handleRecuperarPin() {
+    if (!senhaRecupPin) { setErroRecupPin("Informe sua senha de login."); return; }
+    try {
+      setRecuperandoPin(true); setErroRecupPin(null);
+      await recuperarPinSolicitar(user!.id, { senha_login: senhaRecupPin });
+      setRecupPinEnviado(true);
+    } catch (e: any) {
+      setErroRecupPin(e?.message || "Não foi possível enviar o e-mail de recuperação.");
+    } finally { setRecuperandoPin(false); }
   }
 
   async function handleCadastrarBiometria() {
@@ -366,6 +457,38 @@ export default function Profile() {
           )}
         </View>
 
+        {/* PIN de Negociação */}
+        <View style={style.secao}>
+          <Text style={[style.secaoTitulo, { marginBottom: 8 }]}>PIN de Negociação</Text>
+          <Text style={[ms.bioDesc, { color: colors.textSecondary }]}>
+            Proteja seus saques com um PIN de 4 dígitos numéricos.
+          </Text>
+          {pinCadastrado === false && (
+            <TouchableOpacity
+              style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }]}
+              onPress={() => { setPinNovo1(""); setPinNovo1Conf(""); setErroCriarPin(null); setModalCriarPin(true); }}
+            >
+              <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Criar PIN de Negociação</Text>
+            </TouchableOpacity>
+          )}
+          {pinCadastrado === true && (
+            <>
+              <TouchableOpacity
+                style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary, marginBottom: 10 }]}
+                onPress={() => { setPinAtual(""); setPinNovo2(""); setPinNovo2Conf(""); setErroAlterarPin(null); setModalAlterarPin(true); }}
+              >
+                <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Alterar PIN</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[ms.secaoBtn, { borderColor: colors.border }]}
+                onPress={() => { setSenhaRecupPin(""); setErroRecupPin(null); setRecupPinEnviado(false); setModalRecuperarPin(true); }}
+              >
+                <Text style={[ms.secaoBtnText, { color: colors.textSecondary }]}>Esqueci meu PIN</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
         <TouchableOpacity style={style.botaoSair} onPress={logout}>
           <Text style={style.botaoSairTexto}>Sair</Text>
         </TouchableOpacity>
@@ -411,6 +534,88 @@ export default function Profile() {
         <Campo ms={ms} label="Nova senha" value={novaSenha} onChangeText={setNovaSenha} placeholder="Mínimo 6 caracteres" secureTextEntry />
         <Campo ms={ms} label="Confirmar nova senha" value={confirmarSenha} onChangeText={setConfirmarSenha} placeholder="Repita a nova senha" secureTextEntry />
       </ModalEdicao>
+
+      {/* Modal — Criar PIN de Negociação */}
+      <ModalEdicao
+        visible={modalCriarPin}
+        titulo="Criar PIN de Negociação"
+        onClose={() => setModalCriarPin(false)}
+        onSalvar={handleCriarPin}
+        loading={criandoPin}
+        erro={erroCriarPin}
+        ms={ms}
+      >
+        <Campo ms={ms} label="PIN (4 dígitos)" value={pinNovo1} onChangeText={(v) => { setPinNovo1(v); setErroCriarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
+        <Campo ms={ms} label="Confirmar PIN" value={pinNovo1Conf} onChangeText={(v) => { setPinNovo1Conf(v); setErroCriarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
+      </ModalEdicao>
+
+      {/* Modal — Alterar PIN de Negociação */}
+      <ModalEdicao
+        visible={modalAlterarPin}
+        titulo="Alterar PIN de Negociação"
+        onClose={() => setModalAlterarPin(false)}
+        onSalvar={handleAlterarPin}
+        loading={alterandoPin}
+        erro={erroAlterarPin}
+        ms={ms}
+      >
+        <Campo ms={ms} label="PIN atual" value={pinAtual} onChangeText={(v) => { setPinAtual(v); setErroAlterarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
+        <Campo ms={ms} label="Novo PIN (4 dígitos)" value={pinNovo2} onChangeText={(v) => { setPinNovo2(v); setErroAlterarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
+        <Campo ms={ms} label="Confirmar novo PIN" value={pinNovo2Conf} onChangeText={(v) => { setPinNovo2Conf(v); setErroAlterarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
+      </ModalEdicao>
+
+      {/* Modal — Recuperar PIN de Negociação */}
+      <Modal visible={modalRecuperarPin} animationType="slide" transparent>
+        <View style={ms.overlay}>
+          <View style={ms.modal}>
+            <Text style={ms.modalTitulo}>Recuperar PIN</Text>
+            {recupPinEnviado ? (
+              <>
+                <Text style={[ms.bioDesc, { color: colors.primary, marginBottom: 20 }]}>
+                  E-mail enviado! Verifique sua caixa de entrada para redefinir o PIN. O link expira em 15 minutos.
+                </Text>
+                <TouchableOpacity style={ms.btnSalvar} onPress={() => setModalRecuperarPin(false)}>
+                  <Text style={ms.btnSalvarText}>Fechar</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={[ms.bioDesc, { color: colors.textSecondary }]}>
+                  Informe a senha do seu login para confirmar sua identidade. Enviaremos um e-mail com o link de recuperação do PIN.
+                </Text>
+                <Text style={ms.inputLabel}>Senha de Login</Text>
+                <TextInput
+                  style={ms.input}
+                  placeholder="Sua senha de acesso"
+                  placeholderTextColor="#bbb"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  value={senhaRecupPin}
+                  onChangeText={(v) => { setSenhaRecupPin(v); setErroRecupPin(null); }}
+                />
+                {erroRecupPin && (
+                  <View style={ms.modalErro}><Text style={ms.modalErroTexto}>{erroRecupPin}</Text></View>
+                )}
+                <View style={ms.modalBtns}>
+                  <TouchableOpacity style={ms.btnCancelar} onPress={() => setModalRecuperarPin(false)}>
+                    <Text style={ms.btnCancelarText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[ms.btnSalvar, recuperandoPin && { opacity: 0.6 }]}
+                    onPress={handleRecuperarPin}
+                    disabled={recuperandoPin}
+                  >
+                    {recuperandoPin
+                      ? <ActivityIndicator color="#fff" />
+                      : <Text style={ms.btnSalvarText}>Enviar e-mail</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {toast && (
         <Animated.View style={[ms.toast, { opacity: toastOpacity, backgroundColor: toast.tipo === "sucesso" ? "#1a7a3a" : "#c0392b" }]}>

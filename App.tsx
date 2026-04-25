@@ -51,9 +51,10 @@ import PixInfo from "./src/assets/pages/pixInfo";
 import Profile from "./src/assets/pages/profile";
 
 import Logo from "./src/assets/logo.png";
-import { tipoAcesso, getDadosCadastro } from "./src/services/api";
+import { tipoAcesso, getDadosCadastro, getPinNegociacaoStatus } from "./src/services/api";
 import SetupApelido from "./src/assets/pages/setupApelido";
 import MolduraPreview from "./src/assets/pages/moldura-preview";
+import SetupPinCadastro from "./src/assets/pages/setupPinCadastro";
 
 
 const RootStack = createNativeStackNavigator();
@@ -244,6 +245,11 @@ function AuthStack() {
       <AuthStackNav.Screen name="CodeValidation" component={CodeValidation} />
       <AuthStackNav.Screen name="NewPassword" component={NewPassword} />
       <AuthStackNav.Screen name="Terms" component={Terms} />
+      <AuthStackNav.Screen
+        name="SetupPinCadastro"
+        component={SetupPinCadastro}
+        options={{ gestureEnabled: false }}
+      />
     </AuthStackNav.Navigator>
   );
 }
@@ -368,19 +374,29 @@ function ThemeSync() {
 function RootNavigator() {
   const { user, isLoading } = useAuth();
   const { colors } = useTheme();
-  const [verificandoApelido, setVerificandoApelido] = useState(true);
+  const [verificando, setVerificando] = useState(true);
   const [precisaApelido, setPrecisaApelido] = useState(false);
+  const [precisaPin, setPrecisaPin] = useState(false);
 
   useEffect(() => {
-    if (!user?.id) { setVerificandoApelido(false); return; }
-    setVerificandoApelido(true);
-    getDadosCadastro(user.id)
-      .then((d) => setPrecisaApelido(!d?.apelido))
-      .catch(() => setPrecisaApelido(false))
-      .finally(() => setVerificandoApelido(false));
+    if (!user?.id) { setVerificando(false); return; }
+    setVerificando(true);
+    Promise.all([
+      getDadosCadastro(user.id),
+      getPinNegociacaoStatus(user.id),
+    ])
+      .then(([d, pinStatus]) => {
+        setPrecisaApelido(!d?.apelido);
+        setPrecisaPin(!pinStatus.pin_cadastrado);
+      })
+      .catch(() => {
+        setPrecisaApelido(false);
+        setPrecisaPin(false);
+      })
+      .finally(() => setVerificando(false));
   }, [user?.id]);
 
-  if (isLoading || (user && verificandoApelido)) {
+  if (isLoading || (user && verificando)) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
         <Image source={Logo} style={{ width: 120, height: 120, resizeMode: "contain" }} />
@@ -390,6 +406,10 @@ function RootNavigator() {
 
   if (user && precisaApelido) {
     return <SetupApelido onConcluido={() => setPrecisaApelido(false)} />;
+  }
+
+  if (user && precisaPin) {
+    return <SetupPinCadastro onConcluido={() => setPrecisaPin(false)} />;
   }
 
   return (

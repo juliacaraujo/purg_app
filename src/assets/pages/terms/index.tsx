@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { style } from "./styles";
-import { criarConta } from "../../../services/api";
+import { criarConta, loginUser } from "../../../services/api";
 
 // -----------------------------------------------
 // Conteúdo de cada termo
@@ -253,8 +253,10 @@ export default function Terms({ navigation, route }: any) {
         return;
       }
 
-      setFeedback({ msg: "Conta criada com sucesso! Faça login para continuar.", tipo: "sucesso" });
-      setTimeout(() => navigation.navigate("Login"), 1500);
+      // Faz login automático para estabelecer sessão (necessário para criar o PIN)
+      try { await loginUser(email, senha); } catch {}
+
+      navigation.navigate("SetupPinCadastro", { userId: result.userId });
     } catch (e: any) {
       setFeedback({ msg: e?.message || "Não foi possível conectar ao servidor.", tipo: "erro" });
     } finally {

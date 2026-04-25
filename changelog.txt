@@ -1,3 +1,17 @@
+purg-develop-11 — 2026-04-25
+- PIN de Negociação: nova tela SetupPinCadastro (4 dígitos, secureTextEntry, validação inline) usada em dois contextos — pós-cadastro e pós-login
+- Cadastro: após aceitar os termos e criar conta, app faz login automático e abre SetupPinCadastro antes de ir para Login; PIN é obrigatório para prosseguir
+- Login: ao conectar, RootNavigator verifica via GET /api/v1/pin-negociacao/status/:id se o usuário já tem PIN cadastrado; caso não tenha, exibe SetupPinCadastro e bloqueia acesso ao app até o PIN ser criado
+- RootNavigator: refatorado para checar apelido e PIN em paralelo (Promise.all) numa única requisição ao carregar o app; estado renomeado de verificandoApelido para verificando
+- Saque: campo de PIN de Negociação adicionado ao formulário quando pin_cadastrado=true; enviado no body do POST de solicitação de saque
+- Saque: quando pin_cadastrado=false, banner laranja de aviso com botão "Criar PIN de Negociação" (abre modal inline)
+- Saque: erro 401 (PIN incorreto) exibido inline com tentativas_restantes; erro 423 (conta bloqueada) exibido com horário de desbloqueio em HH:MM
+- Saque: link "Esqueci meu PIN" ao lado do label do campo, abre modal de recuperação via senha de login
+- Perfil: seção "PIN de Negociação" adicionada com botões "Criar PIN" (quando não cadastrado) ou "Alterar PIN" + "Esqueci meu PIN" (quando cadastrado)
+- Perfil: modal de criação de PIN, modal de alteração (exige PIN atual + novo + confirmação, trata 401/423), modal de recuperação (envia e-mail via senha de login)
+- API: adicionadas funções getPinNegociacaoStatus, criarPinNegociacao, alterarPinNegociacao, recuperarPinSolicitar e recuperarPinConfirmar
+- API: solicitarSaque atualizado — aceita parâmetro pin e trata 401 e 423 antes dos demais status de erro
+
 purg-develop-10 — 2026-04-24
 - Depósito: botão "Cancelar" adicionado nos depósitos pendentes e no histórico
 - Depósito: status redefinidos para os 4 valores válidos do backend — Executado (verde), Processando (amarelo), Cancelado/Rejeitado (vermelho); comparações case-sensitive
