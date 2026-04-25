@@ -1,3 +1,7 @@
+purg-develop-12 — 2026-04-25
+- Renomeação: "PIN de Negociação" → "Senha de Negociação" em todos os textos visíveis ao usuário (títulos, labels, botões, mensagens de erro, modais e avisos)
+- Afetados: setupPinCadastro, tela de Saque e tela de Perfil; nomes de variáveis e funções internas mantidos inalterados
+
 purg-develop-11 — 2026-04-25
 - PIN de Negociação: nova tela SetupPinCadastro (4 dígitos, secureTextEntry, validação inline) usada em dois contextos — pós-cadastro e pós-login
 - Cadastro: após aceitar os termos e criar conta, app faz login automático e abre SetupPinCadastro antes de ir para Login; PIN é obrigatório para prosseguir

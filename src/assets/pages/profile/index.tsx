@@ -90,7 +90,7 @@ export default function Profile() {
   const [cadastrandoBio, setCadastrandoBio] = useState(false);
   const biometriaSuportada = isPasskeySupported();
 
-  // PIN de Negociação
+  // Senha de Negociação
   const [pinCadastrado, setPinCadastrado] = useState<boolean | null>(null);
 
   const [modalCriarPin, setModalCriarPin] = useState(false);
@@ -241,35 +241,35 @@ export default function Profile() {
 
   async function handleCriarPin() {
     if (pinNovo1.length !== 4 || !/^\d{4}$/.test(pinNovo1)) {
-      setErroCriarPin("O PIN deve ter exatamente 4 dígitos numéricos."); return;
+      setErroCriarPin("A senha deve ter exatamente 4 dígitos numéricos."); return;
     }
-    if (pinNovo1 !== pinNovo1Conf) { setErroCriarPin("Os PINs não coincidem."); return; }
+    if (pinNovo1 !== pinNovo1Conf) { setErroCriarPin("As senhas não coincidem."); return; }
     try {
       setCriandoPin(true); setErroCriarPin(null);
       await criarPinNegociacao(user!.id, { pin: pinNovo1, pin_confirmacao: pinNovo1Conf });
       setModalCriarPin(false); setPinNovo1(""); setPinNovo1Conf("");
       setPinCadastrado(true);
-      mostrarToast("PIN de Negociação criado com sucesso!", "sucesso");
+      mostrarToast("Senha de Negociação criada com sucesso!", "sucesso");
     } catch (e: any) {
-      setErroCriarPin(e?.message || "Não foi possível criar o PIN.");
+      setErroCriarPin(e?.message || "Não foi possível criar a senha.");
     } finally { setCriandoPin(false); }
   }
 
   async function handleAlterarPin() {
-    if (!pinAtual) { setErroAlterarPin("Informe o PIN atual."); return; }
+    if (!pinAtual) { setErroAlterarPin("Informe a senha atual."); return; }
     if (pinNovo2.length !== 4 || !/^\d{4}$/.test(pinNovo2)) {
-      setErroAlterarPin("O novo PIN deve ter exatamente 4 dígitos numéricos."); return;
+      setErroAlterarPin("A nova senha deve ter exatamente 4 dígitos numéricos."); return;
     }
-    if (pinNovo2 !== pinNovo2Conf) { setErroAlterarPin("Os PINs não coincidem."); return; }
+    if (pinNovo2 !== pinNovo2Conf) { setErroAlterarPin("As senhas não coincidem."); return; }
     try {
       setAlterandoPin(true); setErroAlterarPin(null);
       await alterarPinNegociacao(user!.id, { pin_atual: pinAtual, pin_novo: pinNovo2, pin_confirmacao: pinNovo2Conf });
       setModalAlterarPin(false); setPinAtual(""); setPinNovo2(""); setPinNovo2Conf("");
-      mostrarToast("PIN de Negociação alterado com sucesso!", "sucesso");
+      mostrarToast("Senha de Negociação alterada com sucesso!", "sucesso");
     } catch (e: any) {
       if (e?.status === 401) {
         const tent = e?.data?.tentativas_restantes;
-        setErroAlterarPin(`PIN atual incorreto.${tent != null ? ` ${tentativasLabel(tent)}.` : ""}`);
+        setErroAlterarPin(`Senha atual incorreta.${tent != null ? ` ${tentativasLabel(tent)}.` : ""}`);
       } else if (e?.status === 423) {
         const ate = e?.data?.bloqueado_ate;
         let msg = "Conta bloqueada temporariamente.";
@@ -281,7 +281,7 @@ export default function Profile() {
         }
         setErroAlterarPin(msg);
       } else {
-        setErroAlterarPin(e?.message || "Não foi possível alterar o PIN.");
+        setErroAlterarPin(e?.message || "Não foi possível alterar a senha.");
       }
     } finally { setAlterandoPin(false); }
   }
@@ -457,18 +457,18 @@ export default function Profile() {
           )}
         </View>
 
-        {/* PIN de Negociação */}
+        {/* Senha de Negociação */}
         <View style={style.secao}>
-          <Text style={[style.secaoTitulo, { marginBottom: 8 }]}>PIN de Negociação</Text>
+          <Text style={[style.secaoTitulo, { marginBottom: 8 }]}>Senha de Negociação</Text>
           <Text style={[ms.bioDesc, { color: colors.textSecondary }]}>
-            Proteja seus saques com um PIN de 4 dígitos numéricos.
+            Proteja seus saques com uma senha de 4 dígitos numéricos.
           </Text>
           {pinCadastrado === false && (
             <TouchableOpacity
               style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }]}
               onPress={() => { setPinNovo1(""); setPinNovo1Conf(""); setErroCriarPin(null); setModalCriarPin(true); }}
             >
-              <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Criar PIN de Negociação</Text>
+              <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Criar Senha de Negociação</Text>
             </TouchableOpacity>
           )}
           {pinCadastrado === true && (
@@ -477,13 +477,13 @@ export default function Profile() {
                 style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary, marginBottom: 10 }]}
                 onPress={() => { setPinAtual(""); setPinNovo2(""); setPinNovo2Conf(""); setErroAlterarPin(null); setModalAlterarPin(true); }}
               >
-                <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Alterar PIN</Text>
+                <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Alterar Senha</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[ms.secaoBtn, { borderColor: colors.border }]}
                 onPress={() => { setSenhaRecupPin(""); setErroRecupPin(null); setRecupPinEnviado(false); setModalRecuperarPin(true); }}
               >
-                <Text style={[ms.secaoBtnText, { color: colors.textSecondary }]}>Esqueci meu PIN</Text>
+                <Text style={[ms.secaoBtnText, { color: colors.textSecondary }]}>Esqueci minha senha</Text>
               </TouchableOpacity>
             </>
           )}
@@ -535,44 +535,44 @@ export default function Profile() {
         <Campo ms={ms} label="Confirmar nova senha" value={confirmarSenha} onChangeText={setConfirmarSenha} placeholder="Repita a nova senha" secureTextEntry />
       </ModalEdicao>
 
-      {/* Modal — Criar PIN de Negociação */}
+      {/* Modal — Criar Senha de Negociação */}
       <ModalEdicao
         visible={modalCriarPin}
-        titulo="Criar PIN de Negociação"
+        titulo="Criar Senha de Negociação"
         onClose={() => setModalCriarPin(false)}
         onSalvar={handleCriarPin}
         loading={criandoPin}
         erro={erroCriarPin}
         ms={ms}
       >
-        <Campo ms={ms} label="PIN (4 dígitos)" value={pinNovo1} onChangeText={(v) => { setPinNovo1(v); setErroCriarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
-        <Campo ms={ms} label="Confirmar PIN" value={pinNovo1Conf} onChangeText={(v) => { setPinNovo1Conf(v); setErroCriarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
+        <Campo ms={ms} label="Senha (4 dígitos)" value={pinNovo1} onChangeText={(v) => { setPinNovo1(v); setErroCriarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
+        <Campo ms={ms} label="Confirmar Senha" value={pinNovo1Conf} onChangeText={(v) => { setPinNovo1Conf(v); setErroCriarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
       </ModalEdicao>
 
-      {/* Modal — Alterar PIN de Negociação */}
+      {/* Modal — Alterar Senha de Negociação */}
       <ModalEdicao
         visible={modalAlterarPin}
-        titulo="Alterar PIN de Negociação"
+        titulo="Alterar Senha de Negociação"
         onClose={() => setModalAlterarPin(false)}
         onSalvar={handleAlterarPin}
         loading={alterandoPin}
         erro={erroAlterarPin}
         ms={ms}
       >
-        <Campo ms={ms} label="PIN atual" value={pinAtual} onChangeText={(v) => { setPinAtual(v); setErroAlterarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
-        <Campo ms={ms} label="Novo PIN (4 dígitos)" value={pinNovo2} onChangeText={(v) => { setPinNovo2(v); setErroAlterarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
-        <Campo ms={ms} label="Confirmar novo PIN" value={pinNovo2Conf} onChangeText={(v) => { setPinNovo2Conf(v); setErroAlterarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
+        <Campo ms={ms} label="Senha atual" value={pinAtual} onChangeText={(v) => { setPinAtual(v); setErroAlterarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
+        <Campo ms={ms} label="Nova senha (4 dígitos)" value={pinNovo2} onChangeText={(v) => { setPinNovo2(v); setErroAlterarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
+        <Campo ms={ms} label="Confirmar nova senha" value={pinNovo2Conf} onChangeText={(v) => { setPinNovo2Conf(v); setErroAlterarPin(null); }} placeholder="••••" keyboardType="number-pad" secureTextEntry />
       </ModalEdicao>
 
-      {/* Modal — Recuperar PIN de Negociação */}
+      {/* Modal — Recuperar Senha de Negociação */}
       <Modal visible={modalRecuperarPin} animationType="slide" transparent>
         <View style={ms.overlay}>
           <View style={ms.modal}>
-            <Text style={ms.modalTitulo}>Recuperar PIN</Text>
+            <Text style={ms.modalTitulo}>Recuperar Senha de Negociação</Text>
             {recupPinEnviado ? (
               <>
                 <Text style={[ms.bioDesc, { color: colors.primary, marginBottom: 20 }]}>
-                  E-mail enviado! Verifique sua caixa de entrada para redefinir o PIN. O link expira em 15 minutos.
+                  E-mail enviado! Verifique sua caixa de entrada para redefinir a senha. O link expira em 15 minutos.
                 </Text>
                 <TouchableOpacity style={ms.btnSalvar} onPress={() => setModalRecuperarPin(false)}>
                   <Text style={ms.btnSalvarText}>Fechar</Text>
@@ -581,7 +581,7 @@ export default function Profile() {
             ) : (
               <>
                 <Text style={[ms.bioDesc, { color: colors.textSecondary }]}>
-                  Informe a senha do seu login para confirmar sua identidade. Enviaremos um e-mail com o link de recuperação do PIN.
+                  Informe a senha do seu login para confirmar sua identidade. Enviaremos um e-mail com o link de recuperação da senha.
                 </Text>
                 <Text style={ms.inputLabel}>Senha de Login</Text>
                 <TextInput

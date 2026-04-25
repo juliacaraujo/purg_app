@@ -33,11 +33,11 @@ export default function SetupPinCadastro({ onConcluido, route, navigation }: Pro
 
   async function handleCriar() {
     if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      setErro("O PIN deve ter exatamente 4 dígitos numéricos.");
+      setErro("A senha deve ter exatamente 4 dígitos numéricos.");
       return;
     }
     if (pin !== pinConf) {
-      setErro("Os PINs não coincidem.");
+      setErro("As senhas não coincidem.");
       return;
     }
     try {
@@ -50,7 +50,7 @@ export default function SetupPinCadastro({ onConcluido, route, navigation }: Pro
         navigation?.navigate("Login");
       }
     } catch (e: any) {
-      setErro(e?.message || "Não foi possível criar o PIN. Tente novamente.");
+      setErro(e?.message || "Não foi possível criar a senha. Tente novamente.");
     } finally {
       setCriando(false);
     }
@@ -63,10 +63,10 @@ export default function SetupPinCadastro({ onConcluido, route, navigation }: Pro
           <Text style={s.iconText}>🔐</Text>
         </View>
 
-        <Text style={s.titulo}>Criar PIN de Negociação</Text>
+        <Text style={s.titulo}>Criar Senha de Negociação</Text>
         <Text style={s.descricao}>
-          Seu PIN de 4 dígitos protege todos os seus saques. Você precisará
-          dele sempre que quiser transferir dinheiro.
+          Sua senha de 4 dígitos protege todos os seus saques. Você precisará
+          dela sempre que quiser transferir dinheiro.
         </Text>
 
         <View style={s.regrasBox}>
@@ -75,7 +75,7 @@ export default function SetupPinCadastro({ onConcluido, route, navigation }: Pro
           <Text style={s.regraItem}>• Guarde-o em local seguro</Text>
         </View>
 
-        <Text style={s.inputLabel}>PIN</Text>
+        <Text style={s.inputLabel}>Senha</Text>
         <TextInput
           style={[s.pinInput, erro ? s.pinInputErro : undefined]}
           placeholder="••••"
@@ -87,7 +87,7 @@ export default function SetupPinCadastro({ onConcluido, route, navigation }: Pro
           onChangeText={(v) => { setPin(v); setErro(null); }}
         />
 
-        <Text style={s.inputLabel}>Confirmar PIN</Text>
+        <Text style={s.inputLabel}>Confirmar Senha</Text>
         <TextInput
           style={[s.pinInput, erro ? s.pinInputErro : undefined]}
           placeholder="••••"
@@ -112,12 +112,12 @@ export default function SetupPinCadastro({ onConcluido, route, navigation }: Pro
         >
           {criando
             ? <ActivityIndicator color="#fff" />
-            : <Text style={s.btnText}>Criar PIN e continuar</Text>
+            : <Text style={s.btnText}>Criar Senha e continuar</Text>
           }
         </TouchableOpacity>
 
         <Text style={s.aviso}>
-          Esta etapa é obrigatória. O PIN será necessário para realizar saques na plataforma.
+          Esta etapa é obrigatória. A senha de negociação será necessária para realizar saques na plataforma.
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>

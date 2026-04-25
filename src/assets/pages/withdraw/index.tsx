@@ -61,19 +61,19 @@ export default function Withdraw() {
   const [dadosCadastro, setDadosCadastro] = useState<any>(null);
   const [pixSelecionado, setPixSelecionado] = useState<PixKeyName | null>(null);
 
-  // PIN de Negociação
+  // Senha de Negociação
   const [pinCadastrado, setPinCadastrado] = useState<boolean | null>(null);
   const [pinInput, setPinInput] = useState("");
   const [pinErro, setPinErro] = useState<string | null>(null);
 
-  // Modal: criar PIN
+  // Modal: criar Senha de Negociação
   const [modalCriarPin, setModalCriarPin] = useState(false);
   const [pinNovo, setPinNovo] = useState("");
   const [pinNovoConf, setPinNovoConf] = useState("");
   const [erroCriarPin, setErroCriarPin] = useState<string | null>(null);
   const [criandoPin, setCriandoPin] = useState(false);
 
-  // Modal: esqueci meu PIN
+  // Modal: esqueci minha senha
   const [modalEsqueciPin, setModalEsqueciPin] = useState(false);
   const [senhaLoginRecup, setSenhaLoginRecup] = useState("");
   const [erroRecupPin, setErroRecupPin] = useState<string | null>(null);
@@ -156,7 +156,7 @@ export default function Withdraw() {
       return;
     }
     if (!pinInput || pinInput.length !== 4) {
-      setPinErro("Informe os 4 dígitos do PIN de Negociação.");
+      setPinErro("Informe os 4 dígitos da Senha de Negociação.");
       return;
     }
     setPinErro(null);
@@ -170,7 +170,7 @@ export default function Withdraw() {
     } catch (e: any) {
       if (e?.status === 401) {
         const tent = e?.data?.tentativas_restantes;
-        setPinErro(`PIN incorreto.${tent != null ? ` ${tentativasLabel(tent)}.` : ""}`);
+        setPinErro(`Senha incorreta.${tent != null ? ` ${tentativasLabel(tent)}.` : ""}`);
       } else if (e?.status === 423) {
         const ate = e?.data?.bloqueado_ate;
         let msg = "Conta bloqueada temporariamente.";
@@ -191,11 +191,11 @@ export default function Withdraw() {
 
   async function handleCriarPin() {
     if (pinNovo.length !== 4 || !/^\d{4}$/.test(pinNovo)) {
-      setErroCriarPin("O PIN deve ter exatamente 4 dígitos numéricos.");
+      setErroCriarPin("A senha deve ter exatamente 4 dígitos numéricos.");
       return;
     }
     if (pinNovo !== pinNovoConf) {
-      setErroCriarPin("Os PINs não coincidem.");
+      setErroCriarPin("As senhas não coincidem.");
       return;
     }
     try {
@@ -207,7 +207,7 @@ export default function Withdraw() {
       setPinNovoConf("");
       setPinCadastrado(true);
     } catch (e: any) {
-      setErroCriarPin(e?.message || "Não foi possível criar o PIN.");
+      setErroCriarPin(e?.message || "Não foi possível criar a senha.");
     } finally {
       setCriandoPin(false);
     }
@@ -245,12 +245,12 @@ export default function Withdraw() {
         <ActivityIndicator style={{ marginTop: 16 }} />
       )}
 
-      {/* Sem PIN: banner de aviso */}
+      {/* Sem Senha de Negociação: banner de aviso */}
       {!loading && pinCadastrado === false && (
         <View style={ps.aviso}>
-          <Text style={ps.avisoTitulo}>PIN de Negociação necessário</Text>
+          <Text style={ps.avisoTitulo}>Senha de Negociação necessária</Text>
           <Text style={ps.avisoText}>
-            Para realizar saques, você precisa criar um PIN de 4 dígitos que protege suas transações financeiras.
+            Para realizar saques, você precisa criar uma senha de 4 dígitos que protege suas transações financeiras.
           </Text>
           <TouchableOpacity
             style={ps.criarPinBtn}
@@ -259,12 +259,12 @@ export default function Withdraw() {
               setModalCriarPin(true);
             }}
           >
-            <Text style={ps.criarPinText}>Criar PIN de Negociação</Text>
+            <Text style={ps.criarPinText}>Criar Senha de Negociação</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Formulário de saque — apenas quando PIN cadastrado */}
+      {/* Formulário de saque — apenas quando Senha de Negociação cadastrada */}
       {pinCadastrado === true && (
         <>
           <TextInput
@@ -290,17 +290,17 @@ export default function Withdraw() {
             ))}
           </View>
 
-          {/* PIN de Negociação */}
+          {/* Senha de Negociação */}
           <View style={ps.pinSection}>
             <View style={ps.pinLabelRow}>
-              <Text style={ps.pinLabel}>PIN de Negociação</Text>
+              <Text style={ps.pinLabel}>Senha de Negociação</Text>
               <TouchableOpacity
                 onPress={() => {
                   setSenhaLoginRecup(""); setErroRecupPin(null);
                   setRecuperacaoEnviada(false); setModalEsqueciPin(true);
                 }}
               >
-                <Text style={ps.esqueciLink}>Esqueci meu PIN</Text>
+                <Text style={ps.esqueciLink}>Esqueci minha senha</Text>
               </TouchableOpacity>
             </View>
             <TextInput
@@ -378,15 +378,15 @@ export default function Withdraw() {
         </>
       )}
 
-      {/* ── Modal: Criar PIN ── */}
+      {/* ── Modal: Criar Senha de Negociação ── */}
       <Modal visible={modalCriarPin} animationType="slide" transparent>
         <View style={ps.overlay}>
           <View style={ps.modal}>
-            <Text style={ps.modalTitulo}>Criar PIN de Negociação</Text>
+            <Text style={ps.modalTitulo}>Criar Senha de Negociação</Text>
             <Text style={ps.modalDesc}>
-              Escolha um PIN de 4 dígitos numéricos (sem sequências repetidas como 1111) para proteger seus saques.
+              Escolha uma senha de 4 dígitos numéricos (sem sequências repetidas como 1111) para proteger seus saques.
             </Text>
-            <Text style={ps.inputLabel}>PIN</Text>
+            <Text style={ps.inputLabel}>Senha</Text>
             <TextInput
               style={ps.modalInput}
               placeholder="••••"
@@ -397,7 +397,7 @@ export default function Withdraw() {
               value={pinNovo}
               onChangeText={(v) => { setPinNovo(v); setErroCriarPin(null); }}
             />
-            <Text style={ps.inputLabel}>Confirmar PIN</Text>
+            <Text style={ps.inputLabel}>Confirmar Senha</Text>
             <TextInput
               style={ps.modalInput}
               placeholder="••••"
@@ -420,7 +420,7 @@ export default function Withdraw() {
               >
                 {criandoPin
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={ps.btnSalvarText}>Criar PIN</Text>
+                  : <Text style={ps.btnSalvarText}>Criar Senha</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -428,15 +428,15 @@ export default function Withdraw() {
         </View>
       </Modal>
 
-      {/* ── Modal: Esqueci meu PIN ── */}
+      {/* ── Modal: Esqueci minha senha ── */}
       <Modal visible={modalEsqueciPin} animationType="slide" transparent>
         <View style={ps.overlay}>
           <View style={ps.modal}>
-            <Text style={ps.modalTitulo}>Recuperar PIN</Text>
+            <Text style={ps.modalTitulo}>Recuperar Senha de Negociação</Text>
             {recuperacaoEnviada ? (
               <>
                 <Text style={[ps.modalDesc, { color: "#166534" }]}>
-                  E-mail enviado com sucesso! Verifique sua caixa de entrada para redefinir o PIN. O link expira em 15 minutos.
+                  E-mail enviado com sucesso! Verifique sua caixa de entrada para redefinir a senha. O link expira em 15 minutos.
                 </Text>
                 <TouchableOpacity style={[ps.btnSalvar, { marginTop: 8 }]} onPress={() => setModalEsqueciPin(false)}>
                   <Text style={ps.btnSalvarText}>Fechar</Text>
@@ -445,7 +445,7 @@ export default function Withdraw() {
             ) : (
               <>
                 <Text style={ps.modalDesc}>
-                  Informe a senha do seu login para confirmar sua identidade. Enviaremos um e-mail com o link de recuperação do PIN.
+                  Informe a senha do seu login para confirmar sua identidade. Enviaremos um e-mail com o link de recuperação da senha.
                 </Text>
                 <Text style={ps.inputLabel}>Senha de Login</Text>
                 <TextInput
