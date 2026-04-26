@@ -1,3 +1,10 @@
+purg-develop-13 — 2026-04-26
+- Perfil: ao clicar em "Salvar" nos modais de Dados Pessoais e Chaves Pix, abre modal "Confirmar identidade" solicitando a Senha de Negociação de 4 dígitos
+- Perfil: somente após a verificação da senha (POST /api/v1/pin-negociacao/verificar/:id) retornar sucesso o endpoint de edição é chamado
+- Perfil: erro 401 (senha incorreta) exibido inline com tentativas_restantes; erro 423 (conta bloqueada) exibido com horário de desbloqueio
+- Perfil: erros do endpoint de edição (ex: apelido duplicado) fecham o modal de confirmação e exibem a mensagem no modal de edição original
+- API: nova função verificarSenhaNegociacao (POST /api/v1/pin-negociacao/verificar/:id) com tratamento de 401 e 423
+
 purg-develop-12 — 2026-04-25
 - Renomeação: "PIN de Negociação" → "Senha de Negociação" em todos os textos visíveis ao usuário (títulos, labels, botões, mensagens de erro, modais e avisos)
 - Afetados: setupPinCadastro, tela de Saque e tela de Perfil; nomes de variáveis e funções internas mantidos inalterados

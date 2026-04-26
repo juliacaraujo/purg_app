@@ -255,6 +255,17 @@ export async function recuperarPinConfirmar(dados: {
   return data;
 }
 
+export async function verificarSenhaNegociacao(usuarioId: number, pin: string): Promise<void> {
+  const response = await apiFetch(`/api/v1/pin-negociacao/verificar/${usuarioId}`, {
+    method: "POST",
+    body: JSON.stringify({ pin }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (response.status === 401) throw new ApiError(data?.error || "Senha incorreta.", 401, data);
+  if (response.status === 423) throw new ApiError(data?.error || "Conta bloqueada temporariamente.", 423, data);
+  if (!response.ok) throw new ApiError(data?.error || data?.message || "Erro ao verificar senha.", response.status, data);
+}
+
 /* ======================================================
    CRIAR CONTA
    ====================================================== */

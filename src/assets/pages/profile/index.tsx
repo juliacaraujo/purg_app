@@ -19,7 +19,7 @@ import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import {
   getDadosCadastro, editarPerfil, trocarSenha, putTema, atualizarPreferenciaLogin,
-  getPinNegociacaoStatus, criarPinNegociacao, alterarPinNegociacao, recuperarPinSolicitar,
+  getPinNegociacaoStatus, criarPinNegociacao, alterarPinNegociacao, recuperarPinSolicitar, verificarSenhaNegociacao,
 } from "../../../services/api";
 import type { DadosCadastroResponse } from "../../../types";
 import { cadastrarBiometria, isPasskeySupported } from "../../../services/biometria";
@@ -112,6 +112,13 @@ export default function Profile() {
   const [recuperandoPin, setRecuperandoPin] = useState(false);
   const [recupPinEnviado, setRecupPinEnviado] = useState(false);
 
+  // Confirmação por Senha de Negociação antes de salvar dados/pix
+  const [modalConfSenha, setModalConfSenha] = useState(false);
+  const [senhaConf, setSenhaConf] = useState("");
+  const [erroSenhaConf, setErroSenhaConf] = useState<string | null>(null);
+  const [verificandoSenha, setVerificandoSenha] = useState(false);
+  const [acaoPendente, setAcaoPendente] = useState<"dados" | "pix" | null>(null);
+
   const [toast, setToast] = useState<{ msg: string; tipo: "sucesso" | "erro" } | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -179,46 +186,84 @@ export default function Profile() {
     setModalSenha(true);
   }
 
-  async function salvarDados() {
+  function salvarDados() {
     if (!nomeEdit.trim()) { mostrarToast("Nome não pode ficar em branco.", "erro"); return; }
-    try {
-      setSalvando(true);
-      await editarPerfil(user!.id, {
-        nome_completo: nomeEdit.trim(),
-        apelido: apelidoEdit.trim(),
-        genero: generoEdit || undefined,
-        celular: celularEdit.replace(/\D/g, ""),
-        logradouro: logradouroEdit.trim(),
-        numero_da_rua: numeroEdit.trim() || undefined,
-        complemento: complementoEdit.trim(),
-        bairro: bairroEdit.trim(),
-        cidade: cidadeEdit.trim(),
-        estado: estadoEdit.trim(),
-        cep: cepEdit.replace(/\D/g, ""),
-      });
-      setModalDados(false);
-      carregar();
-      mostrarToast("Dados salvos com sucesso!", "sucesso");
-    } catch (e: any) {
-      setErroDados(e?.message || "Não foi possível salvar os dados.");
-    } finally { setSalvando(false); }
+    setAcaoPendente("dados");
+    setSenhaConf("");
+    setErroSenhaConf(null);
+    setModalConfSenha(true);
   }
 
-  async function salvarPix() {
+  function salvarPix() {
+    setAcaoPendente("pix");
+    setSenhaConf("");
+    setErroSenhaConf(null);
+    setModalConfSenha(true);
+  }
+
+  async function executarSalvarPendente() {
+    if (!senhaConf || senhaConf.length !== 4) {
+      setErroSenhaConf("Informe os 4 dígitos da Senha de Negociação.");
+      return;
+    }
+    setVerificandoSenha(true);
+    setErroSenhaConf(null);
     try {
+      await verificarSenhaNegociacao(user!.id, senhaConf);
       setSalvando(true);
-      await editarPerfil(user!.id, {
-        pix_cpf: pixCpfEdit.replace(/\D/g, ""),
-        pix_celular: pixCelEdit.replace(/\D/g, ""),
-        pix_email: pixEmailEdit.trim(),
-        pix_chave: pixChaveEdit.trim(),
-      });
-      setModalPix(false);
-      carregar();
-      mostrarToast("Chaves Pix salvas com sucesso!", "sucesso");
+      if (acaoPendente === "dados") {
+        await editarPerfil(user!.id, {
+          nome_completo: nomeEdit.trim(),
+          apelido: apelidoEdit.trim(),
+          genero: generoEdit || undefined,
+          celular: celularEdit.replace(/\D/g, ""),
+          logradouro: logradouroEdit.trim(),
+          numero_da_rua: numeroEdit.trim() || undefined,
+          complemento: complementoEdit.trim(),
+          bairro: bairroEdit.trim(),
+          cidade: cidadeEdit.trim(),
+          estado: estadoEdit.trim(),
+          cep: cepEdit.replace(/\D/g, ""),
+        });
+        setModalConfSenha(false);
+        setModalDados(false);
+        carregar();
+        mostrarToast("Dados salvos com sucesso!", "sucesso");
+      } else if (acaoPendente === "pix") {
+        await editarPerfil(user!.id, {
+          pix_cpf: pixCpfEdit.replace(/\D/g, ""),
+          pix_celular: pixCelEdit.replace(/\D/g, ""),
+          pix_email: pixEmailEdit.trim(),
+          pix_chave: pixChaveEdit.trim(),
+        });
+        setModalConfSenha(false);
+        setModalPix(false);
+        carregar();
+        mostrarToast("Chaves Pix salvas com sucesso!", "sucesso");
+      }
     } catch (e: any) {
-      setErroPix(e?.message || "Não foi possível salvar as chaves Pix.");
-    } finally { setSalvando(false); }
+      if (e?.status === 401) {
+        const tent = e?.data?.tentativas_restantes;
+        setErroSenhaConf(`Senha incorreta.${tent != null ? ` ${tentativasLabel(tent)}.` : ""}`);
+      } else if (e?.status === 423) {
+        const ate = e?.data?.bloqueado_ate;
+        let msg = "Conta bloqueada temporariamente.";
+        if (ate) {
+          try {
+            const hora = new Date(ate).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+            msg = `Conta bloqueada. Tente novamente após ${hora}.`;
+          } catch {}
+        }
+        setErroSenhaConf(msg);
+      } else {
+        setModalConfSenha(false);
+        if (acaoPendente === "dados") setErroDados(e?.message || "Não foi possível salvar os dados.");
+        else setErroPix(e?.message || "Não foi possível salvar as chaves Pix.");
+      }
+    } finally {
+      setVerificandoSenha(false);
+      setSalvando(false);
+    }
   }
 
   async function salvarSenha() {
@@ -613,6 +658,47 @@ export default function Profile() {
                 </View>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal — Confirmar com Senha de Negociação */}
+      <Modal visible={modalConfSenha} animationType="slide" transparent>
+        <View style={ms.overlay}>
+          <View style={ms.modal}>
+            <Text style={ms.modalTitulo}>Confirmar identidade</Text>
+            <Text style={[ms.bioDesc, { color: colors.textSecondary }]}>
+              Informe sua Senha de Negociação de 4 dígitos para confirmar a alteração.
+            </Text>
+            <Text style={ms.inputLabel}>Senha de Negociação</Text>
+            <TextInput
+              style={ms.input}
+              placeholder="••••"
+              placeholderTextColor="#bbb"
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={4}
+              value={senhaConf}
+              onChangeText={(v) => { setSenhaConf(v); setErroSenhaConf(null); }}
+            />
+            {erroSenhaConf && (
+              <View style={ms.modalErro}><Text style={ms.modalErroTexto}>{erroSenhaConf}</Text></View>
+            )}
+            <View style={ms.modalBtns}>
+              <TouchableOpacity style={ms.btnCancelar} onPress={() => setModalConfSenha(false)}>
+                <Text style={ms.btnCancelarText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[ms.btnSalvar, (verificandoSenha || salvando) && { opacity: 0.6 }]}
+                onPress={executarSalvarPendente}
+                disabled={verificandoSenha || salvando}
+              >
+                {(verificandoSenha || salvando)
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={ms.btnSalvarText}>Confirmar</Text>
+                }
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
