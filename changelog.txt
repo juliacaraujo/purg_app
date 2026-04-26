@@ -1,3 +1,16 @@
+purg-develop-14 — 2026-04-26
+- API: rotas migradas de /pin-negociacao/* para /senha-negociacao/*; campos do body renomeados (pin → senha, pin_confirmacao → senha_confirmacao, pin_atual → senha_atual, pin_novo → senha_nova); resposta pin_cadastrado → senha_cadastrada
+- API: verificarSenhaNegociacao migrado de /verificar para /validar com tratamento de 400 e 403
+- API: nova função editarChavesPix (PUT /api/v1/edita-pix/:id) separando edição de chaves Pix do endpoint de perfil
+- Perfil: carregamento da tela não é mais bloqueado por falha na chamada de status da Senha de Negociação
+- Perfil: botão "Trocar senha" renomeado para "Trocar senha de acesso"; "Alterar Senha" renomeado para "Trocar senha de negociação"
+- Vídeo de abertura: reproduzido após login bem-sucedido, antes de abrir a Home; arquivo purg_video_abertura.mp4
+- Vídeo de abertura: pré-carregado via <link rel="prefetch"> injetado no index.html pelo deploy-web.sh
+- Vídeo de abertura: componente web (index.web.tsx) com <video> nativo e objectFit: cover para vídeo em formato portrait
+- Vídeo de abertura: exibido apenas em logins explícitos (freshLogin no AuthContext); reloads e restaurações de sessão ignoram o vídeo
+- Vídeo de abertura: renderizado como overlay (position: fixed, zIndex: 9999) sem desmontar o navigator, eliminando flash entre login e vídeo
+- Vídeo de abertura: efeito de clarão no final — overlay branco entra e sai por animação CSS (keyframes), sem desaparecer na tela branca
+
 purg-develop-13 — 2026-04-26
 - Perfil: ao clicar em "Salvar" nos modais de Dados Pessoais e Chaves Pix, abre modal "Confirmar identidade" solicitando a Senha de Negociação de 4 dígitos
 - Perfil: somente após a verificação da senha (POST /api/v1/pin-negociacao/verificar/:id) retornar sucesso o endpoint de edição é chamado

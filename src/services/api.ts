@@ -149,10 +149,10 @@ export async function getDadosEmpresa(empresaId: number) {
 /* ======================================================
    SAQUE
    ====================================================== */
-export async function solicitarSaque(usuarioId: number, valor: number, chavePix?: string, pin?: string) {
+export async function solicitarSaque(usuarioId: number, valor: number, chavePix?: string, senha?: string) {
   const response = await apiFetch(`/api/v1/saque/${usuarioId}`, {
     method: "POST",
-    body: JSON.stringify({ amount: valor, chave_pix: chavePix, pin }),
+    body: JSON.stringify({ amount: valor, chave_pix: chavePix, senha }),
   });
 
   const data = await response.json();
@@ -192,39 +192,39 @@ export async function solicitarSaque(usuarioId: number, valor: number, chavePix?
 }
 
 /* ======================================================
-   PIN DE NEGOCIAÇÃO
+   SENHA DE NEGOCIAÇÃO
    ====================================================== */
-export async function getPinNegociacaoStatus(usuarioId: number): Promise<{ pin_cadastrado: boolean }> {
-  const response = await apiFetch(`/api/v1/pin-negociacao/status/${usuarioId}`);
-  if (!response.ok) throw new ApiError("Erro ao verificar status do PIN", response.status);
+export async function getPinNegociacaoStatus(usuarioId: number): Promise<{ senha_cadastrada: boolean }> {
+  const response = await apiFetch(`/api/v1/senha-negociacao/status/${usuarioId}`);
+  if (!response.ok) throw new ApiError("Erro ao verificar status da senha de negociação", response.status);
   return response.json();
 }
 
 export async function criarPinNegociacao(
   usuarioId: number,
-  dados: { pin: string; pin_confirmacao: string }
+  dados: { senha: string; senha_confirmacao: string }
 ) {
-  const response = await apiFetch(`/api/v1/pin-negociacao/criar/${usuarioId}`, {
+  const response = await apiFetch(`/api/v1/senha-negociacao/criar/${usuarioId}`, {
     method: "POST",
     body: JSON.stringify(dados),
   });
   const data = await response.json();
-  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao criar PIN", response.status);
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao criar senha de negociação", response.status);
   return data;
 }
 
 export async function alterarPinNegociacao(
   usuarioId: number,
-  dados: { pin_atual: string; pin_novo: string; pin_confirmacao: string }
+  dados: { senha_atual: string; senha_nova: string; senha_confirmacao: string }
 ) {
-  const response = await apiFetch(`/api/v1/pin-negociacao/alterar/${usuarioId}`, {
+  const response = await apiFetch(`/api/v1/senha-negociacao/alterar/${usuarioId}`, {
     method: "PUT",
     body: JSON.stringify(dados),
   });
   const data = await response.json();
-  if (response.status === 401) throw new ApiError(data?.error || "PIN atual incorreto.", 401, data);
+  if (response.status === 401) throw new ApiError(data?.error || "Senha atual incorreta.", 401, data);
   if (response.status === 423) throw new ApiError(data?.error || "Conta bloqueada temporariamente.", 423, data);
-  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao alterar PIN", response.status);
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao alterar senha de negociação", response.status);
   return data;
 }
 
@@ -232,38 +232,40 @@ export async function recuperarPinSolicitar(
   usuarioId: number,
   dados: { senha_login: string }
 ) {
-  const response = await apiFetch(`/api/v1/pin-negociacao/recuperar/solicitar/${usuarioId}`, {
+  const response = await apiFetch(`/api/v1/senha-negociacao/recuperar/solicitar/${usuarioId}`, {
     method: "POST",
     body: JSON.stringify(dados),
   });
   const data = await response.json();
-  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao solicitar recuperação do PIN", response.status);
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao solicitar recuperação da senha de negociação", response.status);
   return data;
 }
 
 export async function recuperarPinConfirmar(dados: {
   token: string;
-  pin_novo: string;
-  pin_confirmacao: string;
+  senha_nova: string;
+  senha_confirmacao: string;
 }) {
-  const response = await apiFetch("/api/v1/pin-negociacao/recuperar/confirmar", {
+  const response = await apiFetch("/api/v1/senha-negociacao/recuperar/confirmar", {
     method: "POST",
     body: JSON.stringify(dados),
   });
   const data = await response.json();
-  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao confirmar novo PIN", response.status);
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao confirmar nova senha de negociação", response.status);
   return data;
 }
 
-export async function verificarSenhaNegociacao(usuarioId: number, pin: string): Promise<void> {
-  const response = await apiFetch(`/api/v1/pin-negociacao/verificar/${usuarioId}`, {
+export async function verificarSenhaNegociacao(usuarioId: number, senha: string): Promise<void> {
+  const response = await apiFetch(`/api/v1/senha-negociacao/validar/${usuarioId}`, {
     method: "POST",
-    body: JSON.stringify({ pin }),
+    body: JSON.stringify({ senha }),
   });
   const data = await response.json().catch(() => ({}));
+  if (response.status === 400) throw new ApiError(data?.error || data?.message || "Formato de senha inválido.", 400, data);
   if (response.status === 401) throw new ApiError(data?.error || "Senha incorreta.", 401, data);
+  if (response.status === 403) throw new ApiError(data?.error || "Nenhuma senha de negociação cadastrada.", 403, data);
   if (response.status === 423) throw new ApiError(data?.error || "Conta bloqueada temporariamente.", 423, data);
-  if (!response.ok) throw new ApiError(data?.error || data?.message || "Erro ao verificar senha.", response.status, data);
+  if (!response.ok) throw new ApiError(data?.error || data?.message || "Erro ao validar senha de negociação.", response.status, data);
 }
 
 /* ======================================================
@@ -647,6 +649,29 @@ export async function editarPerfil(
     throw new ApiError(data?.message || data?.error || "Erro ao editar perfil", response.status);
   }
 
+  return data;
+}
+
+/* ======================================================
+   EDITAR CHAVES PIX
+   ====================================================== */
+export async function editarChavesPix(
+  usuarioId: number,
+  dados: {
+    pix_cpf?: string;
+    pix_celular?: string;
+    pix_email?: string;
+    pix_chave?: string;
+  }
+) {
+  const response = await apiFetch(`/api/v1/edita-pix/${usuarioId}`, {
+    method: "PUT",
+    body: JSON.stringify(dados),
+  });
+  const data = await response.json();
+  if (response.status === 400) throw new ApiError(data?.message || data?.error || "Formato de chave Pix inválido.", 400);
+  if (response.status === 403) throw new ApiError(data?.message || data?.error || "Ação não permitida.", 403);
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao salvar chaves Pix.", response.status);
   return data;
 }
 

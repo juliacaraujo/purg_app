@@ -43,7 +43,7 @@ export default function SetupPinCadastro({ onConcluido, route, navigation }: Pro
     try {
       setCriando(true);
       setErro(null);
-      await criarPinNegociacao(userId, { pin, pin_confirmacao: pinConf });
+      await criarPinNegociacao(userId, { senha: pin, senha_confirmacao: pinConf });
       if (onConcluido) {
         onConcluido();
       } else {

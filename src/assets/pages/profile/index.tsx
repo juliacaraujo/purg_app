@@ -18,7 +18,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import {
-  getDadosCadastro, editarPerfil, trocarSenha, putTema, atualizarPreferenciaLogin,
+  getDadosCadastro, editarPerfil, editarChavesPix, trocarSenha, putTema, atualizarPreferenciaLogin,
   getPinNegociacaoStatus, criarPinNegociacao, alterarPinNegociacao, recuperarPinSolicitar, verificarSenhaNegociacao,
 } from "../../../services/api";
 import type { DadosCadastroResponse } from "../../../types";
@@ -137,18 +137,17 @@ export default function Profile() {
   const carregar = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const [res, pinStatus] = await Promise.all([
-        getDadosCadastro(user.id),
-        getPinNegociacaoStatus(user.id),
-      ]);
+      const res = await getDadosCadastro(user.id);
       setDados(res);
-      setPinCadastrado(pinStatus.pin_cadastrado);
     } catch {
       mostrarToast("Não foi possível carregar os dados do perfil.", "erro");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
+    getPinNegociacaoStatus(user.id)
+      .then((s) => setPinCadastrado(s.senha_cadastrada))
+      .catch(() => setPinCadastrado(null));
   }, [user?.id]);
 
   useEffect(() => { carregar(); }, [carregar]);
@@ -230,7 +229,7 @@ export default function Profile() {
         carregar();
         mostrarToast("Dados salvos com sucesso!", "sucesso");
       } else if (acaoPendente === "pix") {
-        await editarPerfil(user!.id, {
+        await editarChavesPix(user!.id, {
           pix_cpf: pixCpfEdit.replace(/\D/g, ""),
           pix_celular: pixCelEdit.replace(/\D/g, ""),
           pix_email: pixEmailEdit.trim(),
@@ -291,7 +290,7 @@ export default function Profile() {
     if (pinNovo1 !== pinNovo1Conf) { setErroCriarPin("As senhas não coincidem."); return; }
     try {
       setCriandoPin(true); setErroCriarPin(null);
-      await criarPinNegociacao(user!.id, { pin: pinNovo1, pin_confirmacao: pinNovo1Conf });
+      await criarPinNegociacao(user!.id, { senha: pinNovo1, senha_confirmacao: pinNovo1Conf });
       setModalCriarPin(false); setPinNovo1(""); setPinNovo1Conf("");
       setPinCadastrado(true);
       mostrarToast("Senha de Negociação criada com sucesso!", "sucesso");
@@ -308,7 +307,7 @@ export default function Profile() {
     if (pinNovo2 !== pinNovo2Conf) { setErroAlterarPin("As senhas não coincidem."); return; }
     try {
       setAlterandoPin(true); setErroAlterarPin(null);
-      await alterarPinNegociacao(user!.id, { pin_atual: pinAtual, pin_novo: pinNovo2, pin_confirmacao: pinNovo2Conf });
+      await alterarPinNegociacao(user!.id, { senha_atual: pinAtual, senha_nova: pinNovo2, senha_confirmacao: pinNovo2Conf });
       setModalAlterarPin(false); setPinAtual(""); setPinNovo2(""); setPinNovo2Conf("");
       mostrarToast("Senha de Negociação alterada com sucesso!", "sucesso");
     } catch (e: any) {
@@ -466,7 +465,7 @@ export default function Profile() {
         <View style={style.secao}>
           <Text style={[style.secaoTitulo, { marginBottom: 12 }]}>Segurança</Text>
           <TouchableOpacity style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }]} onPress={abrirModalSenha}>
-            <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Trocar senha</Text>
+            <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Trocar senha de acesso</Text>
           </TouchableOpacity>
         </View>
 
@@ -506,7 +505,7 @@ export default function Profile() {
         <View style={style.secao}>
           <Text style={[style.secaoTitulo, { marginBottom: 8 }]}>Senha de Negociação</Text>
           <Text style={[ms.bioDesc, { color: colors.textSecondary }]}>
-            Proteja seus saques com uma senha de 4 dígitos numéricos.
+            Proteja seus saques e edições com uma senha de 4 dígitos numéricos.
           </Text>
           {pinCadastrado === false && (
             <TouchableOpacity
@@ -522,7 +521,7 @@ export default function Profile() {
                 style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary, marginBottom: 10 }]}
                 onPress={() => { setPinAtual(""); setPinNovo2(""); setPinNovo2Conf(""); setErroAlterarPin(null); setModalAlterarPin(true); }}
               >
-                <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Alterar Senha</Text>
+                <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Trocar senha de negociação</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[ms.secaoBtn, { borderColor: colors.border }]}

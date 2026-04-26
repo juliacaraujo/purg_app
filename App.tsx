@@ -55,6 +55,7 @@ import { tipoAcesso, getDadosCadastro, getPinNegociacaoStatus } from "./src/serv
 import SetupApelido from "./src/assets/pages/setupApelido";
 import MolduraPreview from "./src/assets/pages/moldura-preview";
 import SetupPinCadastro from "./src/assets/pages/setupPinCadastro";
+import VideoAbertura from "./src/assets/pages/videoAbertura";
 
 
 const RootStack = createNativeStackNavigator();
@@ -372,7 +373,7 @@ function ThemeSync() {
 }
 
 function RootNavigator() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, freshLogin, clearFreshLogin } = useAuth();
   const { colors } = useTheme();
   const [verificando, setVerificando] = useState(true);
   const [precisaApelido, setPrecisaApelido] = useState(false);
@@ -387,7 +388,7 @@ function RootNavigator() {
     ])
       .then(([d, pinStatus]) => {
         setPrecisaApelido(!d?.apelido);
-        setPrecisaPin(!pinStatus.pin_cadastrado);
+        setPrecisaPin(!pinStatus.senha_cadastrada);
       })
       .catch(() => {
         setPrecisaApelido(false);
@@ -396,27 +397,23 @@ function RootNavigator() {
       .finally(() => setVerificando(false));
   }, [user?.id]);
 
+  let content: React.ReactNode;
   if (isLoading || (user && verificando)) {
-    return (
+    content = (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
         <Image source={Logo} style={{ width: 120, height: 120, resizeMode: "contain" }} />
       </View>
     );
-  }
-
-  if (user && precisaApelido) {
-    return <SetupApelido onConcluido={() => setPrecisaApelido(false)} />;
-  }
-
-  if (user && precisaPin) {
-    return <SetupPinCadastro onConcluido={() => setPrecisaPin(false)} />;
-  }
-
-  return (
-    <>
-      <ThemeSync />
-      <RootStack.Navigator screenOptions={{ headerShown: false }}>
-      {user ? (
+  } else if (user && precisaApelido) {
+    content = <SetupApelido onConcluido={() => setPrecisaApelido(false)} />;
+  } else if (user && precisaPin) {
+    content = <SetupPinCadastro onConcluido={() => setPrecisaPin(false)} />;
+  } else {
+    content = (
+      <>
+        <ThemeSync />
+        <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        {user ? (
         <>
           <RootStack.Screen name="AppTabs" component={AppTabs} />
           <RootStack.Screen name="MolduraPreview" component={MolduraPreview} options={{ headerShown: false }} />
@@ -476,6 +473,14 @@ function RootNavigator() {
         <RootStack.Screen name="AuthStack" component={AuthStack} />
       )}
       </RootStack.Navigator>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {content}
+      {user && freshLogin && <VideoAbertura onConcluido={clearFreshLogin} />}
     </>
   );
 }

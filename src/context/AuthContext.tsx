@@ -17,6 +17,8 @@ type AuthContextType = {
   login: (user: User) => void;
   logout: () => void;
   isLoading: boolean;
+  freshLogin: boolean;
+  clearFreshLogin: () => void;
 };
 
 // Tempo máximo em segundo plano antes de deslogar (3 minutos)
@@ -56,15 +58,18 @@ const webStorage = {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  // isLoading = true enquanto verifica sessão salva no reload
   const [isLoading, setIsLoading] = useState(true);
+  const [freshLogin, setFreshLogin] = useState(false);
   const hiddenAt = useRef<number | null>(null);
+
+  const clearFreshLogin = useCallback(() => setFreshLogin(false), []);
 
   const logout = useCallback(async () => {
     try {
       await logoutUser();
     } catch {}
     setUser(null);
+    setFreshLogin(false);
     webStorage.remove(STORAGE_ID_KEY);
     webStorage.remove(STORAGE_EMAIL_KEY);
     webStorage.remove(STORAGE_HIDDEN_AT_KEY);
@@ -72,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback((u: User) => {
     setUser(u);
-    // Persiste no localStorage para sobreviver ao reload no web
+    setFreshLogin(true);
     webStorage.set(STORAGE_ID_KEY, String(u.id));
     if (u.email) webStorage.set(STORAGE_EMAIL_KEY, u.email);
     webStorage.remove(STORAGE_HIDDEN_AT_KEY);
@@ -172,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, logout]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, freshLogin, clearFreshLogin }}>
       {children}
     </AuthContext.Provider>
   );

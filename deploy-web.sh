@@ -34,17 +34,23 @@ html = re.sub(
 import re as re2
 html = re2.sub(r'<title>[^<]*</title>', '<title>Purg</title>', html)
 
+# 4. Prefetch do vídeo de abertura — inicia o download assim que o site carrega
+if '<link rel="prefetch" href="/abertura.mp4"' not in html:
+    html = html.replace('</head>', '<link rel="prefetch" href="/abertura.mp4" as="video">\n</head>')
+
 with open("dist/index.html", "w") as f:
     f.write(html)
 
 print("  viewport-fit=cover: ok")
 print("  height 100dvh: ok")
 print("  title Purg: ok")
+print("  prefetch vídeo: ok")
 EOF
 
 
 echo "Publicando em /var/www/purg..."
 cp -r dist/. /var/www/purg/
+cp assets/purg_video_abertura.mp4 /var/www/purg/abertura.mp4
 
 echo "Limpando dist..."
 rm -rf dist/

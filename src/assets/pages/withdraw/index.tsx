@@ -108,7 +108,7 @@ export default function Withdraw() {
       setDadosCadastro(d || null);
       setSaquesPendentes(Array.isArray(pendentes) ? pendentes : []);
       setHistoricoSaques(Array.isArray(hist) ? hist : []);
-      setPinCadastrado(pinStatus.pin_cadastrado);
+      setPinCadastrado(pinStatus.senha_cadastrada);
     } catch {
       Alert.alert("Erro", "Erro ao carregar dados do saque.");
     } finally {
@@ -201,7 +201,7 @@ export default function Withdraw() {
     try {
       setCriandoPin(true);
       setErroCriarPin(null);
-      await criarPinNegociacao(user!.id, { pin: pinNovo, pin_confirmacao: pinNovoConf });
+      await criarPinNegociacao(user!.id, { senha: pinNovo, senha_confirmacao: pinNovoConf });
       setModalCriarPin(false);
       setPinNovo("");
       setPinNovoConf("");
