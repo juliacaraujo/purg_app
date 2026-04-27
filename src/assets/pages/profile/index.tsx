@@ -436,9 +436,7 @@ export default function Profile() {
         {/* Plataforma */}
         <View style={style.secao}>
           <Text style={[style.secaoTitulo, { marginBottom: 8 }]}>Plataforma</Text>
-          <View style={style.linha}><Text style={style.linhaLabel}>Assinatura</Text><Text style={style.linhaValor}>{dados?.assinatura ?? "—"}</Text></View>
-          <View style={style.linha}><Text style={style.linhaLabel}>Suitability</Text><Text style={style.linhaValor}>{dados?.suitability ?? "—"}</Text></View>
-          <View style={[style.linha, { borderBottomWidth: 0 }]}><Text style={style.linhaLabel}>Suitability complementar</Text><Text style={style.linhaValor}>{dados?.suitability_complementar ?? "—"}</Text></View>
+          <View style={[style.linha, { borderBottomWidth: 0 }]}><Text style={style.linhaLabel}>Assinatura</Text><Text style={style.linhaValor}>{dados?.assinatura ?? "—"}</Text></View>
         </View>
 
         {/* Chaves Pix */}

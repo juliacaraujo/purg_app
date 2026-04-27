@@ -786,6 +786,23 @@ export async function atualizarAssinatura(usuarioId: number, novaAssinatura: str
 }
 
 /* ======================================================
+   PROJEÇÃO
+   ====================================================== */
+export async function getProjecaoPatrimonio(usuarioId: number): Promise<import("../types").ProjecaoItem[]> {
+  const response = await apiFetch(`/api/v1/projecao/patrimonio/${usuarioId}`);
+  if (!response.ok) throw new ApiError("Erro ao buscar projeção de patrimônio", response.status);
+  const data = await response.json();
+  return data.projecao ?? [];
+}
+
+export async function getProjecaoRendimento(usuarioId: number): Promise<import("../types").ProjecaoItem[]> {
+  const response = await apiFetch(`/api/v1/projecao/rendimento/${usuarioId}`);
+  if (!response.ok) throw new ApiError("Erro ao buscar projeção de rendimento", response.status);
+  const data = await response.json();
+  return data.projecao ?? [];
+}
+
+/* ======================================================
    HELPERS
    ====================================================== */
 export function getTotalPinsFromPins(pins: PinUsuario[]): number {

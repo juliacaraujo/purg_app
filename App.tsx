@@ -56,6 +56,7 @@ import SetupApelido from "./src/assets/pages/setupApelido";
 import MolduraPreview from "./src/assets/pages/moldura-preview";
 import SetupPinCadastro from "./src/assets/pages/setupPinCadastro";
 import VideoAbertura from "./src/assets/pages/videoAbertura";
+import PinRecuperacao from "./src/assets/pages/pinRecuperacao";
 
 
 const RootStack = createNativeStackNavigator();
@@ -472,6 +473,7 @@ function RootNavigator() {
       ) : (
         <RootStack.Screen name="AuthStack" component={AuthStack} />
       )}
+          <RootStack.Screen name="PinRecuperacao" component={PinRecuperacao} options={{ headerShown: false }} />
       </RootStack.Navigator>
       </>
     );
@@ -510,6 +512,7 @@ const linking: LinkingOptions<any> = {
       },
       Withdraw: "sacar", Deposit: "depositar", PixInfo: "pix",
       MolduraPreview: "preview-molduras",
+      PinRecuperacao: "pin-recuperacao",
     },
   },
 };

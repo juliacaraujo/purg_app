@@ -17,6 +17,7 @@ interface Props {
   altura?: number;
   formatarValor?: (v: number) => string;
   titulo?: string;
+  mostrarPontos?: boolean;
 }
 
 function abrevia(iso: string): string {
@@ -36,7 +37,7 @@ function abreviaEixo(v: number): string {
   return `R$${v.toFixed(0)}`;
 }
 
-export default function GraficoLinha({ pontos, cor = "#34C759", altura = 160, formatarValor, titulo }: Props) {
+export default function GraficoLinha({ pontos, cor = "#34C759", altura = 160, formatarValor, titulo, mostrarPontos }: Props) {
   const { colors } = useTheme();
 
   const largura = 320;
@@ -56,10 +57,10 @@ export default function GraficoLinha({ pontos, cor = "#34C759", altura = 160, fo
     vMax: number;
   }>({ toX: null, toY: null, valores: [], vMin: 0, vMax: 0 });
 
-  const { path, fillPath, labelX, yLabels } = useMemo(() => {
+  const { path, fillPath, labelX, yLabels, dots } = useMemo(() => {
     if (!pontos || pontos.length < 2) {
       computedRef.current = { toX: null, toY: null, valores: [], vMin: 0, vMax: 0 };
-      return { path: "", fillPath: "", labelX: [], yLabels: [] };
+      return { path: "", fillPath: "", labelX: [], yLabels: [], dots: [] };
     }
 
     const valores = pontos.map((p) => p.valor);
@@ -98,7 +99,9 @@ export default function GraficoLinha({ pontos, cor = "#34C759", altura = 160, fo
       { v: vMin, y: toY(vMin) },
     ];
 
-    return { path: d, fillPath: fill, labelX, yLabels };
+    const dots = pontos.map((_, i) => ({ cx: toX(i), cy: toY(valores[i]) }));
+
+    return { path: d, fillPath: fill, labelX, yLabels, dots };
   }, [pontos, areaW, areaH]);
 
   function getIdxFromX(px: number): number {
@@ -186,6 +189,11 @@ export default function GraficoLinha({ pontos, cor = "#34C759", altura = 160, fo
 
           <Path d={fillPath} fill={`url(#grad${cor.replace("#","")})`} />
           <Path d={path} stroke={cor} strokeWidth={2.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+
+          {/* Pontos permanentes */}
+          {mostrarPontos && dots.map(({ cx, cy }, i) => (
+            <Circle key={i} cx={cx} cy={cy} r={3.5} fill={cor} />
+          ))}
 
           {/* Eixo Y */}
           {yLabels.map(({ v, y }, i) => (

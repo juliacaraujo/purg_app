@@ -24,6 +24,7 @@ import {
   getDadosCadastro,
   getRendimentosUsuario,
   getHistoricoPatrimonio,
+  getHistoricoRendimentos,
 } from "../../../services/api";
 import GraficoLinha from "../../components/GraficoLinha";
 import type { GraficoPoint } from "../../../types";
@@ -78,6 +79,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
   const [rendimentoTotal, setRendimentoTotal] = useState(0);
   const [rendimentoDiario, setRendimentoDiario] = useState(0);
   const [historicoPatrimonio, setHistoricoPatrimonio] = useState<GraficoPoint[]>([]);
+  const [historicoRendimentos, setHistoricoRendimentos] = useState<GraficoPoint[]>([]);
 
   const primeiroNome = useMemo(() => nome?.split(" ")[0] ?? "", [nome]);
 
@@ -102,11 +104,12 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
     if (!user?.id) return;
     try {
       setLoading(true);
-      const [cad, cart, rend, hist] = await Promise.allSettled([
+      const [cad, cart, rend, hist, histRend] = await Promise.allSettled([
         getDadosCadastro(user.id),
         getCarteira(user.id),
         getRendimentosUsuario(user.id),
         getHistoricoPatrimonio(user.id),
+        getHistoricoRendimentos(user.id),
       ]);
       if (cad.status === "fulfilled") {
         setNome(cad.value?.apelido ?? "");

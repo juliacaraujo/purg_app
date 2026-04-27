@@ -214,8 +214,8 @@ export default function Account({ navigation }: { navigation: { navigate: (route
               {historicoPatrimonio.length >= 2 && (
                 <GraficoLinha
                   pontos={historicoPatrimonio}
-                  cor={colors.primary}
-                  titulo="Crescimento do Patrimônio"
+                  cor="#4BC0C0"
+                  titulo="CRESCIMENTO DE PATRIMÔNIO"
                   altura={140}
                   formatarValor={moneyTrunc2}
                 />
@@ -224,8 +224,8 @@ export default function Account({ navigation }: { navigation: { navigate: (route
                 <View style={historicoPatrimonio.length >= 2 ? { marginTop: 20 } : undefined}>
                   <GraficoLinha
                     pontos={historicoRendimentos}
-                    cor="#007AFF"
-                    titulo="Crescimento dos Rendimentos"
+                    cor="#A0D47C"
+                    titulo="CRESCIMENTO DOS RENDIMENTOS"
                     altura={140}
                     formatarValor={moneyTrunc8}
                   />

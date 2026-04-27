@@ -29,8 +29,6 @@ export interface DadosCadastroResponse {
   created_at?: string;
   status_ativo: number;
   assinatura?: string;
-  suitability?: string;
-  suitability_complementar?: string;
   pix_cpf?: string;
   pix_celular?: string;
   pix_email?: string;
@@ -111,6 +109,16 @@ export interface ObjetivosResponse {
 export interface GraficoPoint {
   data: string;
   valor: number;
+}
+
+export interface ProjecaoItem {
+  mes: string;
+  label: string;
+  valor: number;
+}
+
+export interface ProjecaoResponse {
+  projecao: ProjecaoItem[];
 }
 
 export interface RankingItem {

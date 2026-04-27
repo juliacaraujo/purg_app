@@ -14,8 +14,9 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
-import { getObjetivos, getObjetivoDetalhe, getLigas, criarObjetivo, cancelarObjetivo } from "../../../services/api";
-import type { ObjetivoItem, MetaDetalhe, PontosInfo, LigaItem } from "../../../types";
+import { getObjetivos, getObjetivoDetalhe, getLigas, criarObjetivo, cancelarObjetivo, getProjecaoPatrimonio, getProjecaoRendimento } from "../../../services/api";
+import type { ObjetivoItem, MetaDetalhe, PontosInfo, LigaItem, ProjecaoItem } from "../../../types";
+import GraficoLinha from "../../components/GraficoLinha";
 import { MolduraLiga, getLigaCores } from "../../components/MolduraLiga";
 
 function moeda(v: any) {
@@ -47,8 +48,8 @@ function SegmentedBar({ completas, total, cor, metas }: { completas: number; tot
   return (
     <View style={s.segRow}>
       {Array.from({ length: n }).map((_, i) => {
-        const mostraData = i % intervalo === 0;
-        const dataLabel = mostraData && metas?.[i]?.data_limite ? formatDataLimite(metas[i].data_limite) : "";
+        const mostraData = i === 0 || i % intervalo === 0;
+        const dataLabel = i === 0 ? "aporte" : mostraData && metas?.[i]?.data_limite ? formatDataLimite(metas[i].data_limite) : "";
         return (
           <View key={i} style={{ flex: 1, alignItems: "center" }}>
             <View
@@ -73,6 +74,7 @@ function CardObjetivo({ item, metas, onCancelar, colors }: {
   onCancelar: (id: number, desc: string) => void;
   colors: ReturnType<typeof import("../../../context/ThemeContext").useTheme>["colors"];
 }) {
+  const [tooltipVisible, setTooltipVisible] = useState(false);
   const total = Number(item.metas_total) || 0;
   const pct = total > 0 ? Math.min(100, (item.metas_completas / total) * 100) : 0;
   const valorAlvo = Number(item.valor_alvo) || 0;
@@ -155,6 +157,44 @@ function CardObjetivo({ item, metas, onCancelar, colors }: {
           </TouchableOpacity>
         )}
       </View>
+
+      {metas && metas.length > 0 && (() => {
+        const pontosPorMeta = metas[0].pontos;
+        const valorParcela = metas.length > 1 ? metas[1].valor_alvo : metas[0].valor_alvo;
+        const pontosPorReal = valorParcela > 0
+          ? (pontosPorMeta / valorParcela).toFixed(2)
+          : "—";
+        return (
+          <>
+            <View style={s.separador} />
+            <View style={s.rodapeRow}>
+              <View style={s.rodapeCol}>
+                <Text style={[s.label, { color: colors.textTertiary }]}>Pontos por meta</Text>
+                <Text style={[s.metas, { color: colors.textPrimary }]}>{pontosPorMeta} pontos</Text>
+              </View>
+              <View style={s.rodapeDivisor} />
+              <View style={[s.rodapeCol, { position: "relative" }]}>
+                <Text style={[s.label, { color: colors.textTertiary }]}>Pontos a cada R$ 1,00</Text>
+                <Text style={[s.metas, { color: colors.textPrimary }]}>{pontosPorReal} pontos</Text>
+                <TouchableOpacity
+                  onPress={() => setTooltipVisible((v) => !v)}
+                  style={[s.tooltipBtn, { borderColor: colors.textTertiary, position: "absolute", top: 0, right: 0 }]}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                >
+                  <Text style={[s.tooltipBtnText, { color: colors.textTertiary }]}>?</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            {tooltipVisible && (
+              <View style={[s.tooltip, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+                <Text style={[s.tooltipText, { color: colors.textSecondary }]}>
+                  Esse valor é considerado para as metas após o aporte, o aporte dá uma pontuação fixa de 40 pontos.
+                </Text>
+              </View>
+            )}
+          </>
+        );
+      })()}
     </View>
   );
 }
@@ -256,6 +296,8 @@ export default function Objetivos() {
   const [pontos, setPontos] = useState<PontosInfo | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [ligas, setLigas] = useState<LigaItem[]>([]);
+  const [projecaoPatrimonio, setProjecaoPatrimonio] = useState<ProjecaoItem[]>([]);
+  const [projecaoRendimento, setProjecaoRendimento] = useState<ProjecaoItem[]>([]);
 
   const carregar = useCallback(async () => {
     if (!user?.id) return;
@@ -282,6 +324,13 @@ export default function Objetivos() {
       if (ligasRes.status === "fulfilled") {
         setLigas(ligasRes.value);
       }
+
+      const [projPatRes, projRendRes] = await Promise.allSettled([
+        getProjecaoPatrimonio(user.id),
+        getProjecaoRendimento(user.id),
+      ]);
+      if (projPatRes.status === "fulfilled") setProjecaoPatrimonio(projPatRes.value);
+      if (projRendRes.status === "fulfilled") setProjecaoRendimento(projRendRes.value);
     } catch {
       Alert.alert("Erro", "Não foi possível carregar os objetivos.");
     } finally {
@@ -419,6 +468,40 @@ export default function Objetivos() {
             <CardObjetivo key={item.objetivo_id} item={item} metas={metasDetalhe[item.objetivo_id]} onCancelar={handleCancelar} colors={colors} />
           ))
         )}
+
+        {(projecaoPatrimonio.length >= 2 || projecaoRendimento.length >= 2) && (
+          <>
+            <View style={[s.secaoHeader, { marginTop: 8 }]}>
+              <Text style={[s.secaoTitulo, { color: colors.textPrimary }]}>Projeção</Text>
+            </View>
+
+            {projecaoPatrimonio.length >= 2 && (
+              <View style={[s.card, { backgroundColor: colors.card }]}>
+                <GraficoLinha
+                  titulo="PATRIMÔNIO PROJETADO"
+                  pontos={projecaoPatrimonio.map((p) => ({ data: p.mes + "-01", valor: p.valor }))}
+                  cor="#4BC0C0"
+                  altura={160}
+                  mostrarPontos
+                  formatarValor={(v) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                />
+              </View>
+            )}
+
+            {projecaoRendimento.length >= 2 && (
+              <View style={[s.card, { backgroundColor: colors.card }]}>
+                <GraficoLinha
+                  titulo="RENDIMENTO MENSAL PROJETADO"
+                  pontos={projecaoRendimento.map((p) => ({ data: p.mes + "-01", valor: p.valor }))}
+                  cor="#A0D47C"
+                  altura={160}
+                  mostrarPontos
+                  formatarValor={(v) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`}
+                />
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
 
       <ModalNovoObjetivo
@@ -477,6 +560,10 @@ const s = StyleSheet.create({
   valor: { fontSize: 13, fontWeight: "700" },
   metas: { fontSize: 11 },
   cancelar: { fontSize: 12, color: "#FF3B30", fontWeight: "600" },
+  tooltip: { marginTop: 10, borderWidth: 1, borderRadius: 10, padding: 10 },
+  tooltipText: { fontSize: 12, lineHeight: 17 },
+  tooltipBtn: { width: 16, height: 16, borderRadius: 8, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  tooltipBtnText: { fontSize: 9, fontWeight: "700", lineHeight: 11 },
   vazio: { textAlign: "center", marginTop: 40, fontSize: 14 },
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   modal: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
