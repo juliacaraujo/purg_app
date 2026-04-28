@@ -52,6 +52,7 @@ import Profile from "./src/assets/pages/profile";
 
 import Logo from "./src/assets/logo.png";
 import { tipoAcesso, getDadosCadastro, getPinNegociacaoStatus } from "./src/services/api";
+import ChatScreen from "./src/assets/pages/chat";
 import SetupApelido from "./src/assets/pages/setupApelido";
 import MolduraPreview from "./src/assets/pages/moldura-preview";
 import SetupPinCadastro from "./src/assets/pages/setupPinCadastro";
@@ -161,23 +162,6 @@ function LoginScreen({ navigation }: any) {
   );
 }
 
-/* ──────────────────────────────────────────────
-   Tela de Chat (em construção)
-────────────────────────────────────────────── */
-import EmConstrucao from "./src/assets/purg_contrucao.png";
-
-function ChatScreen() {
-  const { colors } = useTheme();
-  return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.backgroundSecondary, padding: 24 }}>
-      <Image source={EmConstrucao} style={{ width: 280, height: 280, resizeMode: "contain" }} />
-      <Text style={{ fontSize: 18, fontWeight: "bold", color: colors.textPrimary, marginTop: 8 }}>Em construção</Text>
-      <Text style={{ fontSize: 14, color: colors.textSecondary, marginTop: 6, textAlign: "center" }}>
-        A tela de Chat está sendo desenvolvida. Em breve!
-      </Text>
-    </View>
-  );
-}
 
 /* ──────────────────────────────────────────────
    Ícones do header (Perfil + Chat)

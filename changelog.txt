@@ -1,3 +1,26 @@
+purg-develop-16 — 2026-04-27
+- Chat: nova tela de chat integrada ao webhook n8n (POST /webhook/purg-chat) com sessionId baseado no user.id
+- Chat: indicador animado de "digitando" — três bolinhas com bounce sequencial via Animated.loop enquanto aguarda resposta
+- Chat: parsing defensivo da resposta do webhook com res.text() + JSON.parse condicional, tolerando body vazio
+- Chat: mensagem de erro amigável em caso de falha de rede ou resposta inválida
+- PinRecuperacao: nova tela acessível via deep link purg.com.br/pin-recuperacao?token=xxx para redefinição de senha via e-mail
+- PinRecuperacao: campos Nova senha e Confirmar nova senha; chama recuperarPinConfirmar com token, senha_nova e senha_confirmacao
+- PinRecuperacao: estados de sucesso (mensagem + botão "Ir para o login") e de erro (box inline vermelho)
+- Objetivos: card do objetivo expandido com seção "Pontos" abaixo da linha de Metas/Aporte/Parcela
+- Objetivos: campo "Pontos por meta" exibe o valor de pontos da primeira meta; campo "Pontos a cada R$ 1,00" calcula pontos/valor_parcela
+- Objetivos: ícone "?" circular (cor primária) no canto direito do campo Pontos a cada R$ 1,00; toque exibe balão explicativo
+- Objetivos: primeiro segmento da barra de progressão das metas sempre exibe "aporte" em vez de data
+- Objetivos: gráficos PATRIMÔNIO PROJETADO e RENDIMENTO MENSAL PROJETADO adicionados abaixo do card, com pontos permanentes e linhas retas
+- Objetivos: projeção busca dados em GET /api/v1/projecao/patrimonio/:id e GET /api/v1/projecao/rendimento/:id via Promise.allSettled
+- GraficoLinha: nova prop suavizar (padrão true) — false usa L (linha reta) em vez de curva cúbica C entre pontos
+- GraficoLinha: nova prop mostrarPontos — exibe círculos permanentes em cada ponto de dado
+- Home: adicionado gráfico CRESCIMENTO DOS RENDIMENTOS (cor #A0D47C) com dados de getHistoricoRendimentos mapeando rendimento_dia
+- Home: gráfico CRESCIMENTO DE PATRIMÔNIO atualizado para cor #4BC0C0 (consistente com Objetivos e Patrimônio)
+- Patrimônio: gráficos renomeados para CRESCIMENTO DE PATRIMÔNIO (#4BC0C0) e CRESCIMENTO DOS RENDIMENTOS (#A0D47C)
+- Perfil: removidos campos Suitability e Suitability complementar da seção Plataforma
+- API: adicionadas getProjecaoPatrimonio e getProjecaoRendimento retornando ProjecaoItem[]
+- Types: adicionadas interfaces ProjecaoItem (mes, label, valor) e ProjecaoResponse
+
 purg-develop-14 — 2026-04-26
 - API: rotas migradas de /pin-negociacao/* para /senha-negociacao/*; campos do body renomeados (pin → senha, pin_confirmacao → senha_confirmacao, pin_atual → senha_atual, pin_novo → senha_nova); resposta pin_cadastrado → senha_cadastrada
 - API: verificarSenhaNegociacao migrado de /verificar para /validar com tratamento de 400 e 403
