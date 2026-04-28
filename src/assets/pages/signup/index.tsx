@@ -123,6 +123,8 @@ export default function Signup({ navigation }) {
     }
   };
 
+  const PREP_MINUSCULA = new Set(["da", "de", "do", "das", "dos", "e", "a", "o", "as", "os"]);
+
   const titleCaseName = (value: string) => {
     const clean = value.replace(/\s+/g, " ").trim();
     if (!clean) return "";
@@ -132,9 +134,11 @@ export default function Signup({ navigation }) {
     return safe
       .split(" ")
       .filter(Boolean)
-      .map(
-        (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
-      )
+      .map((w, i) => {
+        const lower = w.toLowerCase();
+        if (i > 0 && PREP_MINUSCULA.has(lower)) return lower;
+        return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+      })
       .join(" ");
   };
 

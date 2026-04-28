@@ -24,6 +24,23 @@ import {
 import type { DadosCadastroResponse } from "../../../types";
 import { cadastrarBiometria, isPasskeySupported } from "../../../services/biometria";
 
+const PREP_MINUSCULA = new Set(["da", "de", "do", "das", "dos", "e", "a", "o", "as", "os"]);
+
+function titleCaseName(value: string): string {
+  const clean = value.replace(/\s+/g, " ").trim();
+  if (!clean) return "";
+  const safe = clean.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ''\-\s]/g, "");
+  return safe
+    .split(" ")
+    .filter(Boolean)
+    .map((w, i) => {
+      const lower = w.toLowerCase();
+      if (i > 0 && PREP_MINUSCULA.has(lower)) return lower;
+      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -212,7 +229,7 @@ export default function Profile() {
       setSalvando(true);
       if (acaoPendente === "dados") {
         await editarPerfil(user!.id, {
-          nome_completo: nomeEdit.trim(),
+          nome_completo: titleCaseName(nomeEdit),
           apelido: apelidoEdit.trim(),
           genero: generoEdit || undefined,
           celular: celularEdit.replace(/\D/g, ""),
@@ -380,7 +397,7 @@ export default function Profile() {
           <View style={style.avatar}>
             <Text style={style.avatarLetra}>{dados?.nome_completo?.[0] ?? "?"}</Text>
           </View>
-          <Text style={style.nome}>{dados?.nome_completo ?? "—"}</Text>
+          <Text style={style.nome}>{dados?.nome_completo ? titleCaseName(dados.nome_completo) : "—"}</Text>
           <View style={style.badges}>
             <View style={[style.badge, { backgroundColor: corStatus + "22", borderColor: corStatus }]}>
               <Text style={[style.badgeTexto, { color: corStatus }]}>{statusAtivo}</Text>
@@ -423,11 +440,11 @@ export default function Profile() {
               <Text style={[ms.editarLink, { color: colors.primary }]}>Editar</Text>
             </TouchableOpacity>
           </View>
-          <View style={style.linha}><Text style={style.linhaLabel}>Nome completo</Text><Text style={style.linhaValor}>{dados?.nome_completo ?? "—"}</Text></View>
+          <View style={style.linha}><Text style={style.linhaLabel}>Nome completo</Text><Text style={style.linhaValor}>{dados?.nome_completo ? titleCaseName(dados.nome_completo) : "—"}</Text></View>
           <View style={style.linha}><Text style={style.linhaLabel}>Apelido</Text><Text style={style.linhaValor}>{dados?.apelido ?? "—"}</Text></View>
           <View style={style.linha}><Text style={style.linhaLabel}>Data de nascimento</Text><Text style={style.linhaValor}>{formatDate(dados?.data_nascimento)}</Text></View>
           <View style={style.linha}><Text style={style.linhaLabel}>Gênero</Text><Text style={style.linhaValor}>{dados?.genero ?? "—"}</Text></View>
-          <View style={style.linha}><Text style={style.linhaLabel}>Nome da mãe</Text><Text style={style.linhaValor}>{dados?.nome_da_mae ?? "—"}</Text></View>
+          <View style={style.linha}><Text style={style.linhaLabel}>Nome da mãe</Text><Text style={style.linhaValor}>{dados?.nome_da_mae ? titleCaseName(dados.nome_da_mae) : "—"}</Text></View>
           <View style={style.linha}><Text style={style.linhaLabel}>Celular</Text><Text style={style.linhaValor}>{dados?.celular ?? "—"}</Text></View>
           <View style={style.linha}><Text style={style.linhaLabel}>Endereço</Text><Text style={style.linhaValor}>{[dados?.logradouro, dados?.numero_da_rua, dados?.complemento, dados?.bairro, dados?.cidade, dados?.estado, dados?.cep].filter(Boolean).join(", ") || "—"}</Text></View>
           <View style={[style.linha, { borderBottomWidth: 0 }]}><Text style={style.linhaLabel}>Membro desde</Text><Text style={style.linhaValor}>{formatDate(dados?.created_at)}</Text></View>

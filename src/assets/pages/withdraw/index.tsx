@@ -10,8 +10,11 @@ import {
   Modal,
   StyleSheet,
 } from "react-native";
-import { styles } from "./styles";
+import { makeWithdrawStyles } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
+import { useTheme } from "../../../context/ThemeContext";
+import type { ThemeColors } from "../../../context/ThemeContext";
+import { AppBottomBar } from "../../components/AppBottomBar";
 import {
   getCarteira,
   getDadosCadastro,
@@ -51,6 +54,9 @@ function tentativasLabel(n: number): string {
 
 export default function Withdraw() {
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeWithdrawStyles(colors), [colors]);
+  const ps = useMemo(() => makePinStyles(colors), [colors]);
 
   const [loading, setLoading] = useState(false);
   const [saldo, setSaldo] = useState(0);
@@ -231,7 +237,8 @@ export default function Withdraw() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container}>
       <Text style={styles.title}>Saque</Text>
 
       {/* Saldo disponível */}
@@ -478,67 +485,72 @@ export default function Withdraw() {
         </View>
       </Modal>
     </ScrollView>
+    <AppBottomBar />
+    </View>
   );
 }
 
-const ps = StyleSheet.create({
-  aviso: {
-    backgroundColor: "#fff7ed",
-    borderWidth: 1,
-    borderColor: "#f97316",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 20,
-  },
-  avisoTitulo: { fontSize: 14, fontWeight: "800", color: "#7c2d12", marginBottom: 6 },
-  avisoText: { fontSize: 13, color: "#7c2d12", fontWeight: "600", marginBottom: 14, lineHeight: 19 },
-  criarPinBtn: { backgroundColor: "#14532d", paddingVertical: 13, borderRadius: 12, alignItems: "center" },
-  criarPinText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+function makePinStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    aviso: {
+      backgroundColor: "#fff7ed",
+      borderWidth: 1,
+      borderColor: "#f97316",
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 20,
+    },
+    avisoTitulo: { fontSize: 14, fontWeight: "800", color: "#7c2d12", marginBottom: 6 },
+    avisoText: { fontSize: 13, color: "#7c2d12", fontWeight: "600", marginBottom: 14, lineHeight: 19 },
+    criarPinBtn: { backgroundColor: c.primary, paddingVertical: 13, borderRadius: 12, alignItems: "center" },
+    criarPinText: { color: "#fff", fontWeight: "800", fontSize: 15 },
 
-  pinSection: { marginBottom: 16 },
-  pinLabelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  pinLabel: { fontWeight: "900", color: "#0f172a" },
-  esqueciLink: { fontSize: 13, fontWeight: "700", color: "#14532d" },
-  pinInput: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 14,
-    padding: 14,
-    fontWeight: "800",
-    color: "#0f172a",
-    fontSize: 20,
-    letterSpacing: 10,
-    textAlign: "center",
-  },
-  pinInputErro: { borderColor: "#ef4444" },
-  pinErroText: { color: "#ef4444", fontSize: 13, fontWeight: "700", marginTop: 6 },
+    pinSection: { marginBottom: 16 },
+    pinLabelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+    pinLabel: { fontWeight: "900", color: c.textPrimary },
+    esqueciLink: { fontSize: 13, fontWeight: "700", color: c.primary },
+    pinInput: {
+      borderWidth: 1,
+      borderColor: c.inputBorder,
+      borderRadius: 14,
+      padding: 14,
+      fontWeight: "800",
+      color: c.textPrimary,
+      fontSize: 20,
+      letterSpacing: 10,
+      textAlign: "center",
+      backgroundColor: c.card,
+    },
+    pinInputErro: { borderColor: "#ef4444" },
+    pinErroText: { color: "#ef4444", fontSize: 13, fontWeight: "700", marginTop: 6 },
 
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  modal: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  modalTitulo: { fontSize: 18, fontWeight: "700", color: "#0f172a", marginBottom: 8 },
-  modalDesc: { fontSize: 14, color: "#64748b", marginBottom: 20, lineHeight: 20 },
-  inputLabel: { fontSize: 12, fontWeight: "600", color: "#64748b", marginBottom: 4 },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: "#0f172a",
-    marginBottom: 14,
-    backgroundColor: "#f8fafc",
-  },
-  erroText: { color: "#ef4444", fontSize: 13, fontWeight: "600", marginBottom: 10, textAlign: "center" },
-  modalBtns: { flexDirection: "row", gap: 12, marginTop: 4 },
-  btnCancelar: { flex: 1, borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 12, paddingVertical: 14, alignItems: "center" },
-  btnCancelarText: { color: "#64748b", fontWeight: "600" },
-  btnSalvar: { flex: 1, backgroundColor: "#14532d", borderRadius: 12, paddingVertical: 14, alignItems: "center" },
-  btnSalvarText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-});
+    overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+    modal: {
+      backgroundColor: c.background,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: 24,
+      paddingBottom: 40,
+    },
+    modalTitulo: { fontSize: 18, fontWeight: "700", color: c.textPrimary, marginBottom: 8 },
+    modalDesc: { fontSize: 14, color: c.textSecondary, marginBottom: 20, lineHeight: 20 },
+    inputLabel: { fontSize: 12, fontWeight: "600", color: c.textSecondary, marginBottom: 4 },
+    modalInput: {
+      borderWidth: 1,
+      borderColor: c.inputBorder,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 15,
+      color: c.textPrimary,
+      marginBottom: 14,
+      backgroundColor: c.backgroundSecondary,
+    },
+    erroText: { color: "#ef4444", fontSize: 13, fontWeight: "600", marginBottom: 10, textAlign: "center" },
+    modalBtns: { flexDirection: "row", gap: 12, marginTop: 4 },
+    btnCancelar: { flex: 1, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
+    btnCancelarText: { color: c.textSecondary, fontWeight: "600" },
+    btnSalvar: { flex: 1, backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
+    btnSalvarText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  });
+}

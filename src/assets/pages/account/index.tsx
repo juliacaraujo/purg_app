@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   ScrollView,
   RefreshControl,
@@ -49,6 +50,7 @@ export default function Account({ navigation }: { navigation: { navigate: (route
 
   const [pins, setPins] = useState<PinUsuario[]>([]);
   const [pinsLoaded, setPinsLoaded] = useState(false);
+  const [filtroEmpresa, setFiltroEmpresa] = useState("");
 
   const [historicoPatrimonio, setHistoricoPatrimonio] = useState<GraficoPoint[]>([]);
   const [historicoRendimentos, setHistoricoRendimentos] = useState<GraficoPoint[]>([]);
@@ -62,6 +64,14 @@ export default function Account({ navigation }: { navigation: { navigate: (route
         .sort((a, b) => Number(b.juros_a_a || 0) - Number(a.juros_a_a || 0)),
     [pins]
   );
+
+  const pinsFiltrados = useMemo(() => {
+    if (!filtroEmpresa.trim()) return pinsSorted;
+    const termo = filtroEmpresa.trim().toLowerCase();
+    return pinsSorted.filter((p) =>
+      (p.razao_social ?? "").toLowerCase().includes(termo)
+    );
+  }, [pinsSorted, filtroEmpresa]);
 
   const RISCO_CORES: Record<string, string> = {
     Baixo: "#00C48C",
@@ -261,31 +271,60 @@ export default function Account({ navigation }: { navigation: { navigate: (route
             </Text>
           </View>
         ) : (
-          <View style={styles.pinTableContainer}>
-            <View style={styles.pinTableHeaderRow}>
-              <Text style={[styles.pinTableHeaderCell, { flex: 2, textAlign: "left" }]}>EMPRESA</Text>
-              <Text style={[styles.pinTableHeaderCell, { flex: 1 }]}>PINS</Text>
-              <Text style={[styles.pinTableHeaderCell, { flex: 1 }]}>REND.</Text>
-              <Text style={[styles.pinTableHeaderCell, { flex: 1 }]}>JUROS A.A</Text>
-              <Text style={[styles.pinTableHeaderCell, { flex: 1 }]}>RISCO</Text>
-            </View>
-            {pinsSorted.map((item, index) => (
-              <View
-                key={item.id_resultado}
-                style={[styles.pinTableRow, index === pinsSorted.length - 1 && { borderBottomWidth: 0 }]}
-              >
-                <Text style={[styles.pinTableCellName, { flex: 2 }]} numberOfLines={2}>{item.razao_social}</Text>
-                <Text style={[styles.pinTableCell, { flex: 1 }]}>
-                  {Number(item.quantidade_tokens_total_usuario || 0).toLocaleString("pt-BR")}
-                </Text>
-                <Text style={[styles.pinTableCell, { flex: 1 }]}>
-                  {moneyTrunc2(item.rendimento_token_total_usuario)}
-                </Text>
-                <Text style={[styles.pinTableCell, { flex: 1 }]}>{item.juros_a_a}%</Text>
-                <Text style={[styles.pinTableCell, { flex: 1 }]}>{item.risco}</Text>
+          <>
+            <View style={[styles.carteiraSecao, { paddingVertical: 10, marginBottom: 8 }]}>
+              <View style={{
+                flexDirection: "row", alignItems: "center",
+                borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 10,
+                paddingHorizontal: 10, paddingVertical: 7, backgroundColor: colors.background,
+              }}>
+                <Text style={{ color: colors.textTertiary, marginRight: 6, fontSize: 13 }}>🔍</Text>
+                <TextInput
+                  style={{ flex: 1, fontSize: 13, color: colors.textPrimary, padding: 0 }}
+                  placeholder="Filtrar por empresa..."
+                  placeholderTextColor={colors.textTertiary}
+                  value={filtroEmpresa}
+                  onChangeText={setFiltroEmpresa}
+                />
+                {filtroEmpresa.length > 0 && (
+                  <TouchableOpacity onPress={() => setFiltroEmpresa("")}>
+                    <Text style={{ color: colors.textTertiary, fontSize: 16, paddingLeft: 6 }}>✕</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            ))}
-          </View>
+            </View>
+            <View style={styles.pinTableContainer}>
+              <View style={styles.pinTableHeaderRow}>
+                <Text style={[styles.pinTableHeaderCell, { flex: 2, textAlign: "left" }]}>EMPRESA</Text>
+                <Text style={[styles.pinTableHeaderCell, { flex: 1 }]}>PINS</Text>
+                <Text style={[styles.pinTableHeaderCell, { flex: 1.3 }]}>REND. DIÁRIO</Text>
+                <Text style={[styles.pinTableHeaderCell, { flex: 1 }]}>JUROS A.A</Text>
+                <Text style={[styles.pinTableHeaderCell, { flex: 1 }]}>RISCO</Text>
+              </View>
+              {pinsFiltrados.length === 0 ? (
+                <View style={{ padding: 16 }}>
+                  <Text style={[styles.pinsEmpty, { marginTop: 0 }]}>Nenhuma empresa encontrada.</Text>
+                </View>
+              ) : (
+                pinsFiltrados.map((item, index) => (
+                  <View
+                    key={item.id_resultado}
+                    style={[styles.pinTableRow, index === pinsFiltrados.length - 1 && { borderBottomWidth: 0 }]}
+                  >
+                    <Text style={[styles.pinTableCellName, { flex: 2 }]} numberOfLines={2}>{item.razao_social}</Text>
+                    <Text style={[styles.pinTableCell, { flex: 1 }]}>
+                      {Number(item.quantidade_tokens_total_usuario || 0).toLocaleString("pt-BR")}
+                    </Text>
+                    <Text style={[styles.pinTableCell, { flex: 1.3 }]}>
+                      {moneyTrunc8(item.rendimento_token_total_usuario)}
+                    </Text>
+                    <Text style={[styles.pinTableCell, { flex: 1 }]}>{item.juros_a_a}%</Text>
+                    <Text style={[styles.pinTableCell, { flex: 1 }]}>{item.risco}</Text>
+                  </View>
+                ))
+              )}
+            </View>
+          </>
         )}
       </ScrollView>
     </SwipeTabsWrapper>

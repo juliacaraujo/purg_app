@@ -234,19 +234,34 @@ function AnimatedTabIconImage({ source, size, focused, color }: { source: any; s
    Stack de autenticação
 ────────────────────────────────────────────── */
 function AuthStack() {
+  const { colors } = useTheme();
+
+  const backOptions = ({ navigation }: { navigation: any }) => ({
+    headerShown: true,
+    title: "",
+    headerStyle: { backgroundColor: colors.header, elevation: 0, shadowOpacity: 0 },
+    headerShadowVisible: false,
+    headerTintColor: colors.textPrimary,
+    headerLeft: () => (
+      <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 14 }}>
+        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
+      </TouchableOpacity>
+    ),
+  });
+
   return (
     <AuthStackNav.Navigator
       initialRouteName="Login"
-      screenOptions={{ headerShown: false, animation: "fade" }}
+      screenOptions={{ headerShown: false, animation: "slide_from_right" }}
     >
       <AuthStackNav.Screen name="Login" component={LoginScreen} />
-      <AuthStackNav.Screen name="LoginPassword" component={LoginPassword} />
-      <AuthStackNav.Screen name="LoginBiometria" component={LoginBiometria} />
-      <AuthStackNav.Screen name="Signup" component={Signup} />
-      <AuthStackNav.Screen name="RecoverAccount" component={RecoverAccount} />
-      <AuthStackNav.Screen name="CodeValidation" component={CodeValidation} />
-      <AuthStackNav.Screen name="NewPassword" component={NewPassword} />
-      <AuthStackNav.Screen name="Terms" component={Terms} />
+      <AuthStackNav.Screen name="LoginPassword" component={LoginPassword} options={backOptions} />
+      <AuthStackNav.Screen name="LoginBiometria" component={LoginBiometria} options={backOptions} />
+      <AuthStackNav.Screen name="Signup" component={Signup} options={backOptions} />
+      <AuthStackNav.Screen name="RecoverAccount" component={RecoverAccount} options={backOptions} />
+      <AuthStackNav.Screen name="CodeValidation" component={CodeValidation} options={backOptions} />
+      <AuthStackNav.Screen name="NewPassword" component={NewPassword} options={backOptions} />
+      <AuthStackNav.Screen name="Terms" component={Terms} options={backOptions} />
       <AuthStackNav.Screen
         name="SetupPinCadastro"
         component={SetupPinCadastro}
@@ -417,7 +432,22 @@ function RootNavigator() {
         {user ? (
         <>
           <RootStack.Screen name="AppTabs" component={AppTabs} />
-          <RootStack.Screen name="MolduraPreview" component={MolduraPreview} options={{ headerShown: false }} />
+          <RootStack.Screen
+            name="MolduraPreview"
+            component={MolduraPreview}
+            options={({ navigation }) => ({
+              headerShown: true,
+              title: "",
+              headerStyle: { backgroundColor: colors.header, elevation: 0, shadowOpacity: 0 },
+              headerShadowVisible: false,
+              headerTintColor: colors.textPrimary,
+              headerLeft: () => (
+                <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 14 }}>
+                  <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
+                </TouchableOpacity>
+              ),
+            })}
+          />
           <RootStack.Screen
             name="Withdraw"
             component={Withdraw}
@@ -428,6 +458,7 @@ function RootNavigator() {
               headerStyle: { backgroundColor: colors.header, elevation: 0, shadowOpacity: 0 },
               headerShadowVisible: false,
               headerTintColor: colors.textPrimary,
+              contentStyle: { backgroundColor: colors.backgroundSecondary },
               headerLeft: () => (
                 <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 14 }}>
                   <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
@@ -445,6 +476,7 @@ function RootNavigator() {
               headerStyle: { backgroundColor: colors.header, elevation: 0, shadowOpacity: 0 },
               headerShadowVisible: false,
               headerTintColor: colors.textPrimary,
+              contentStyle: { backgroundColor: colors.backgroundSecondary },
               headerLeft: () => (
                 <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 14 }}>
                   <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
@@ -462,6 +494,7 @@ function RootNavigator() {
               headerStyle: { backgroundColor: colors.header, elevation: 0, shadowOpacity: 0 },
               headerShadowVisible: false,
               headerTintColor: colors.textPrimary,
+              contentStyle: { backgroundColor: colors.backgroundSecondary },
               headerLeft: () => (
                 <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 14 }}>
                   <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
@@ -473,7 +506,22 @@ function RootNavigator() {
       ) : (
         <RootStack.Screen name="AuthStack" component={AuthStack} />
       )}
-          <RootStack.Screen name="PinRecuperacao" component={PinRecuperacao} options={{ headerShown: false }} />
+          <RootStack.Screen
+            name="PinRecuperacao"
+            component={PinRecuperacao}
+            options={({ navigation }) => ({
+              headerShown: true,
+              title: "",
+              headerStyle: { backgroundColor: colors.header, elevation: 0, shadowOpacity: 0 },
+              headerShadowVisible: false,
+              headerTintColor: colors.textPrimary,
+              headerLeft: () => (
+                <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 14 }}>
+                  <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
+                </TouchableOpacity>
+              ),
+            })}
+          />
       </RootStack.Navigator>
       </>
     );

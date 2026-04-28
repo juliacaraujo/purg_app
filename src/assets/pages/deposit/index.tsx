@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,12 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { styles } from "./styles";
+
+import { makeDepositStyles } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
+import { useTheme } from "../../../context/ThemeContext";
 import { getHistoricoDepositos, getBuscarDepositosPendentes, cancelarDeposito, solicitarDeposito } from "../../../services/api";
+import { AppBottomBar } from "../../components/AppBottomBar";
 
 // Trunca para 2 casas decimais SEM arredondar (vírgula)
 const moneyTrunc = (v: any) => {
@@ -51,6 +54,8 @@ function formatData(val: string) {
 
 export default function Deposit({ navigation }: any) {
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeDepositStyles(colors), [colors]);
 
   const [valor, setValor] = useState("");
   const [historico, setHistorico] = useState<any[]>([]);
@@ -139,7 +144,8 @@ export default function Deposit({ navigation }: any) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>Depósito</Text>
 
       {/* Input de valor */}
@@ -226,5 +232,7 @@ export default function Deposit({ navigation }: any) {
         })
       )}
     </ScrollView>
+    <AppBottomBar />
+    </View>
   );
 }

@@ -42,7 +42,7 @@ function calcIntervalo(total: number): number {
   return 12;
 }
 
-function SegmentedBar({ completas, total, cor, metas }: { completas: number; total: number; cor: string; metas?: MetaDetalhe[] }) {
+function SegmentedBar({ completas, total, cor, bgColor, metas }: { completas: number; total: number; cor: string; bgColor: string; metas?: MetaDetalhe[] }) {
   const n = Math.max(1, total);
   const intervalo = calcIntervalo(n);
   return (
@@ -55,7 +55,7 @@ function SegmentedBar({ completas, total, cor, metas }: { completas: number; tot
             <View
               style={[
                 s.segItem,
-                { backgroundColor: i < completas ? cor : "#e0e0e0" },
+                { backgroundColor: i < completas ? cor : bgColor },
                 i === 0 && s.segFirst,
                 i === n - 1 && s.segLast,
               ]}
@@ -115,23 +115,23 @@ function CardObjetivo({ item, metas, onCancelar, colors }: {
           <Text style={[s.barLabel, { color: colors.textSecondary }]}>Progressão Financeira</Text>
           <Text style={[s.pct, { color: corFin, marginBottom: 0 }]}>{pctFinanceiro.toFixed(2)}%</Text>
         </View>
-        <View style={s.barBg}>
+        <View style={[s.barBg, { backgroundColor: colors.border }]}>
           <View style={[s.barFill, { width: `${pctFinanceiro}%` as any, backgroundColor: colors.primary }]} />
         </View>
         <Text style={[s.metas, { color: colors.textTertiary, marginTop: 6 }]}>Alocado: {moeda(item.saldo_alocado_total)}</Text>
       </View>
 
-      <View style={s.separador} />
+      <View style={[s.separador, { backgroundColor: colors.borderLight }]} />
 
       <View style={s.secaoBloco}>
         <View style={s.secaoBlocoHeader}>
           <Text style={[s.barLabel, { color: colors.textSecondary }]}>Progressão das Metas</Text>
           <Text style={[s.pct, { color: cor, marginBottom: 0 }]}>{pct.toFixed(2)}%</Text>
         </View>
-        <SegmentedBar completas={item.metas_completas} total={item.metas_total} cor={colors.primary} metas={metas} />
+        <SegmentedBar completas={item.metas_completas} total={item.metas_total} cor={colors.primary} bgColor={colors.border} metas={metas} />
       </View>
 
-      <View style={s.separador} />
+      <View style={[s.separador, { backgroundColor: colors.borderLight }]} />
       <View style={s.rodapeRow}>
         <View style={s.rodapeCol}>
           <Text style={[s.label, { color: colors.textTertiary }]}>Metas</Text>
@@ -139,12 +139,12 @@ function CardObjetivo({ item, metas, onCancelar, colors }: {
         </View>
         {metas && metas.length > 0 && (
           <>
-            <View style={s.rodapeDivisor} />
+            <View style={[s.rodapeDivisor, { backgroundColor: colors.border }]} />
             <View style={s.rodapeCol}>
               <Text style={[s.label, { color: colors.textTertiary }]}>Aporte</Text>
               <Text style={[s.metas, { color: colors.textPrimary }]}>{moeda(metas[0].valor_alvo)}</Text>
             </View>
-            <View style={s.rodapeDivisor} />
+            <View style={[s.rodapeDivisor, { backgroundColor: colors.border }]} />
             <View style={s.rodapeCol}>
               <Text style={[s.label, { color: colors.textTertiary }]}>Parcela</Text>
               <Text style={[s.metas, { color: colors.textPrimary }]}>{moeda(metas.length > 1 ? metas[1].valor_alvo : metas[0].valor_alvo)}</Text>
@@ -166,13 +166,13 @@ function CardObjetivo({ item, metas, onCancelar, colors }: {
           : "—";
         return (
           <>
-            <View style={s.separador} />
+            <View style={[s.separador, { backgroundColor: colors.borderLight }]} />
             <View style={s.rodapeRow}>
               <View style={s.rodapeCol}>
                 <Text style={[s.label, { color: colors.textTertiary }]}>Pontos por meta</Text>
                 <Text style={[s.metas, { color: colors.textPrimary }]}>{pontosPorMeta} pontos</Text>
               </View>
-              <View style={s.rodapeDivisor} />
+              <View style={[s.rodapeDivisor, { backgroundColor: colors.border }]} />
               <View style={[s.rodapeCol, { position: "relative" }]}>
                 <Text style={[s.label, { color: colors.textTertiary }]}>Pontos a cada R$ 1,00</Text>
                 <Text style={[s.metas, { color: colors.textPrimary }]}>{pontosPorReal} pontos</Text>
@@ -417,7 +417,7 @@ export default function Objetivos() {
               </View>
 
               {/* Barra de progressão */}
-              <View style={s.barBg}>
+              <View style={[s.barBg, { backgroundColor: colors.border }]}>
                 <View style={[s.barFill, { width: `${pctLiga}%` as any, backgroundColor: ligaCores?.bg ?? colors.primary }]} />
               </View>
 
@@ -429,7 +429,7 @@ export default function Objetivos() {
                 </View>
                 {ligaCores && ligaAtual && (
                   <>
-                    <View style={s.rodapeDivisor} />
+                    <View style={[s.rodapeDivisor, { backgroundColor: colors.border }]} />
                     <View style={s.rodapeCol}>
                       <Text style={[s.label, { color: colors.textTertiary }]}>Liga Atual</Text>
                       <View style={{ backgroundColor: ligaCores.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, marginTop: 2 }}>
@@ -440,7 +440,7 @@ export default function Objetivos() {
                 )}
                 {proxCores && proximaLiga && (
                   <>
-                    <View style={s.rodapeDivisor} />
+                    <View style={[s.rodapeDivisor, { backgroundColor: colors.border }]} />
                     <View style={s.rodapeCol}>
                       <Text style={[s.label, { color: colors.textTertiary }]}>Próxima</Text>
                       <View style={{ backgroundColor: proxCores.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, marginTop: 2 }}>

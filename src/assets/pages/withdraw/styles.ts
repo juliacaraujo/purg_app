@@ -1,45 +1,55 @@
 import { StyleSheet } from "react-native";
+import type { ThemeColors } from "../../../context/ThemeContext";
 
-export const styles = StyleSheet.create({
+export const makeWithdrawStyles = (c: ThemeColors) => StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: "#fff",
+    backgroundColor: c.backgroundSecondary,
     padding: 20,
+    paddingBottom: 36,
   },
 
   title: {
     fontSize: 26,
     fontWeight: "900",
-    color: "#0f172a",
+    color: c.textPrimary,
     marginBottom: 20,
+    marginTop: 4,
   },
 
   infoBox: {
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: c.border,
     borderRadius: 14,
     padding: 16,
     marginBottom: 16,
+    backgroundColor: c.card,
   },
   infoLabel: {
     fontWeight: "800",
-    color: "#64748b",
+    color: c.textSecondary,
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
   infoValue: {
     fontSize: 22,
     fontWeight: "900",
-    marginTop: 6,
-    color: "#0f172a",
+    marginTop: 2,
+    color: c.textPrimary,
   },
 
   input: {
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: c.inputBorder,
     borderRadius: 14,
     padding: 14,
     marginBottom: 14,
     fontWeight: "800",
-    color: "#0f172a",
+    color: c.textPrimary,
+    backgroundColor: c.card,
+    fontSize: 16,
   },
 
   pixBox: {
@@ -49,29 +59,36 @@ export const styles = StyleSheet.create({
   pixLabel: {
     fontWeight: "900",
     marginBottom: 8,
-    color: "#0f172a",
+    color: c.textPrimary,
+    fontSize: 14,
   },
   pixOption: {
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: c.border,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
+    backgroundColor: c.card,
   },
   pixOptionActive: {
-    borderColor: "#14532d",
-    backgroundColor: "#dcfce7",
+    borderColor: c.primary,
+    backgroundColor: c.primary + "22",
   },
   pixText: {
     fontWeight: "800",
-    color: "#0f172a",
+    color: c.textPrimary,
   },
 
   sacarBtn: {
-    backgroundColor: "#14532d",
+    backgroundColor: c.primary,
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: "center",
+    shadowColor: c.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 5,
   },
   sacarText: {
     color: "#fff",
@@ -82,12 +99,13 @@ export const styles = StyleSheet.create({
   pendenteBox: {
     marginTop: 24,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: c.border,
     borderRadius: 14,
     padding: 14,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: c.card,
   },
   pendenteInfo: {
     flexDirection: "row",
@@ -97,7 +115,7 @@ export const styles = StyleSheet.create({
   },
   pendenteText: {
     fontWeight: "900",
-    color: "#0f172a",
+    color: c.textPrimary,
   },
 
   statusBadge: {
@@ -125,16 +143,17 @@ export const styles = StyleSheet.create({
   historicoTitle: {
     fontSize: 16,
     fontWeight: "900",
-    color: "#0f172a",
+    color: c.textPrimary,
     marginTop: 32,
     marginBottom: 12,
   },
   historicoBox: {
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: c.border,
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
+    backgroundColor: c.card,
   },
   historicoRow: {
     flexDirection: "row",
@@ -143,16 +162,16 @@ export const styles = StyleSheet.create({
     marginBottom: 6,
   },
   historicoLabel: {
-    color: "#64748b",
+    color: c.textSecondary,
     fontWeight: "700",
   },
   historicoValor: {
     fontWeight: "900",
-    color: "#0f172a",
+    color: c.textPrimary,
   },
   historicoStatus: {
     fontWeight: "800",
-    color: "#64748b",
+    color: c.textSecondary,
   },
   historicoObs: {
     fontSize: 12,
