@@ -483,6 +483,7 @@ export default function Objetivos() {
                   cor="#4BC0C0"
                   altura={160}
                   mostrarPontos
+                  suavizar={false}
                   formatarValor={(v) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 />
               </View>
@@ -496,6 +497,7 @@ export default function Objetivos() {
                   cor="#A0D47C"
                   altura={160}
                   mostrarPontos
+                  suavizar={false}
                   formatarValor={(v) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`}
                 />
               </View>

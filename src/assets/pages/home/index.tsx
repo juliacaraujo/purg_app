@@ -130,6 +130,12 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
           items.map((item) => ({ data: item.data, valor: Number(item.carteira_dia) || 0 }))
         );
       }
+      if (histRend.status === "fulfilled") {
+        const items = Array.isArray(histRend.value?.historico) ? histRend.value.historico : [];
+        setHistoricoRendimentos(
+          items.map((item) => ({ data: item.data, valor: Number(item.rendimento_dia) || 0 }))
+        );
+      }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         Alert.alert("Erro", err.message || "Falha ao carregar dados.");
@@ -274,16 +280,29 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
           <Text style={style.btnPrimaryText}>Depositar</Text>
         </TouchableOpacity>
 
-        {/* Gráfico de crescimento */}
-        {historicoPatrimonio.length >= 2 && (
+        {/* Gráficos de crescimento */}
+        {(historicoPatrimonio.length >= 2 || historicoRendimentos.length >= 2) && (
           <View style={style.chartCard}>
-            <GraficoLinha
-              pontos={historicoPatrimonio}
-              cor={colors.primary}
-              titulo="Crescimento do Patrimônio"
-              altura={140}
-              formatarValor={moneyTrunc}
-            />
+            {historicoPatrimonio.length >= 2 && (
+              <GraficoLinha
+                pontos={historicoPatrimonio}
+                cor="#4BC0C0"
+                titulo="CRESCIMENTO DE PATRIMÔNIO"
+                altura={140}
+                formatarValor={moneyTrunc}
+              />
+            )}
+            {historicoRendimentos.length >= 2 && (
+              <View style={historicoPatrimonio.length >= 2 ? { marginTop: 20 } : undefined}>
+                <GraficoLinha
+                  pontos={historicoRendimentos}
+                  cor="#A0D47C"
+                  titulo="CRESCIMENTO DOS RENDIMENTOS"
+                  altura={140}
+                  formatarValor={(v) => `R$ ${v.toFixed(8).replace(".", ",")}`}
+                />
+              </View>
+            )}
           </View>
         )}
       </ScrollView>

@@ -18,6 +18,7 @@ interface Props {
   formatarValor?: (v: number) => string;
   titulo?: string;
   mostrarPontos?: boolean;
+  suavizar?: boolean;
 }
 
 function abrevia(iso: string): string {
@@ -37,7 +38,7 @@ function abreviaEixo(v: number): string {
   return `R$${v.toFixed(0)}`;
 }
 
-export default function GraficoLinha({ pontos, cor = "#34C759", altura = 160, formatarValor, titulo, mostrarPontos }: Props) {
+export default function GraficoLinha({ pontos, cor = "#34C759", altura = 160, formatarValor, titulo, mostrarPontos, suavizar = true }: Props) {
   const { colors } = useTheme();
 
   const largura = 320;
@@ -77,8 +78,12 @@ export default function GraficoLinha({ pontos, cor = "#34C759", altura = 160, fo
     for (let i = 0; i < valores.length - 1; i++) {
       const x0 = toX(i), y0 = toY(valores[i]);
       const x1 = toX(i + 1), y1 = toY(valores[i + 1]);
-      const cx = (x0 + x1) / 2;
-      d += ` C ${cx} ${y0}, ${cx} ${y1}, ${x1} ${y1}`;
+      if (suavizar) {
+        const cx = (x0 + x1) / 2;
+        d += ` C ${cx} ${y0}, ${cx} ${y1}, ${x1} ${y1}`;
+      } else {
+        d += ` L ${x1} ${y1}`;
+      }
     }
 
     const fill = d
@@ -102,7 +107,7 @@ export default function GraficoLinha({ pontos, cor = "#34C759", altura = 160, fo
     const dots = pontos.map((_, i) => ({ cx: toX(i), cy: toY(valores[i]) }));
 
     return { path: d, fillPath: fill, labelX, yLabels, dots };
-  }, [pontos, areaW, areaH]);
+  }, [pontos, areaW, areaH, suavizar]);
 
   function getIdxFromX(px: number): number {
     const { toX, valores } = computedRef.current;
