@@ -224,7 +224,7 @@ export default function Signup({ navigation }) {
     navigation.navigate("Terms", {
       nome: nomeFinal,
       nome_da_mae: titleCaseName(nomeMae),
-      cpf: cpf,
+      cpf: cpfDigits,
       celular: celularDigits,
       email,
       senha,

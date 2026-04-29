@@ -38,13 +38,24 @@ function saqueCancelavel(status: string): boolean {
   return !["Executado", "Cancelado", "Rejeitado"].includes(status);
 }
 
-function saqueStatusInfo(status: string): { label: string; cor: string; bg: string; obs?: string } {
+function saqueStatusInfo(status: string): { label: string; cor: string; bg: string } {
   switch (status) {
-    case "Executado":  return { label: "Executado",   cor: "#166534", bg: "#dcfce7" };
-    case "Processando":return { label: "Processando", cor: "#854d0e", bg: "#fef9c3" };
-    case "Rejeitado":  return { label: "Rejeitado",   cor: "#991b1b", bg: "#fee2e2" };
-    case "Cancelado":  return { label: "Cancelado",   cor: "#475569", bg: "#f1f5f9" };
-    default:           return { label: status ?? "—", cor: "#475569", bg: "#f1f5f9" };
+    case "Executado":   return { label: "Executado",   cor: "#166534", bg: "#dcfce7" };
+    case "Processando": return { label: "Processando", cor: "#854d0e", bg: "#fef9c3" };
+    case "Rejeitado":   return { label: "Rejeitado",   cor: "#991b1b", bg: "#fee2e2" };
+    case "Cancelado":   return { label: "Cancelado",   cor: "#475569", bg: "#f1f5f9" };
+    default:            return { label: status ?? "—", cor: "#475569", bg: "#f1f5f9" };
+  }
+}
+
+function formatData(val: string) {
+  if (!val) return "";
+  try {
+    return new Date(val).toLocaleDateString("pt-BR", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+    });
+  } catch {
+    return val;
   }
 }
 
@@ -67,19 +78,16 @@ export default function Withdraw() {
   const [dadosCadastro, setDadosCadastro] = useState<any>(null);
   const [pixSelecionado, setPixSelecionado] = useState<PixKeyName | null>(null);
 
-  // Senha de Negociação
   const [pinCadastrado, setPinCadastrado] = useState<boolean | null>(null);
   const [pinInput, setPinInput] = useState("");
   const [pinErro, setPinErro] = useState<string | null>(null);
 
-  // Modal: criar Senha de Negociação
   const [modalCriarPin, setModalCriarPin] = useState(false);
   const [pinNovo, setPinNovo] = useState("");
   const [pinNovoConf, setPinNovoConf] = useState("");
   const [erroCriarPin, setErroCriarPin] = useState<string | null>(null);
   const [criandoPin, setCriandoPin] = useState(false);
 
-  // Modal: esqueci minha senha
   const [modalEsqueciPin, setModalEsqueciPin] = useState(false);
   const [senhaLoginRecup, setSenhaLoginRecup] = useState("");
   const [erroRecupPin, setErroRecupPin] = useState<string | null>(null);
@@ -238,142 +246,138 @@ export default function Withdraw() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Saque</Text>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>Saque</Text>
 
-      {/* Saldo disponível */}
-      <View style={styles.infoBox}>
-        <Text style={styles.infoLabel}>Disponível para saque</Text>
-        <Text style={styles.infoValue}>{moneyTrunc(totalDisponivel)}</Text>
-      </View>
-
-      {/* Carregando status inicial */}
-      {loading && pinCadastrado === null && (
-        <ActivityIndicator style={{ marginTop: 16 }} />
-      )}
-
-      {/* Sem Senha de Negociação: banner de aviso */}
-      {!loading && pinCadastrado === false && (
-        <View style={ps.aviso}>
-          <Text style={ps.avisoTitulo}>Senha de Negociação necessária</Text>
-          <Text style={ps.avisoText}>
-            Para realizar saques, você precisa criar uma senha de 4 dígitos que protege suas transações financeiras.
-          </Text>
-          <TouchableOpacity
-            style={ps.criarPinBtn}
-            onPress={() => {
-              setPinNovo(""); setPinNovoConf(""); setErroCriarPin(null);
-              setModalCriarPin(true);
-            }}
-          >
-            <Text style={ps.criarPinText}>Criar Senha de Negociação</Text>
-          </TouchableOpacity>
+        {/* Saldo disponível */}
+        <View style={styles.infoBox}>
+          <Text style={styles.infoLabel}>Disponível para saque</Text>
+          <Text style={styles.infoValue}>{moneyTrunc(totalDisponivel)}</Text>
         </View>
-      )}
 
-      {/* Formulário de saque — apenas quando Senha de Negociação cadastrada */}
-      {pinCadastrado === true && (
-        <>
-          <TextInput
-            style={styles.input}
-            placeholder="Valor do saque"
-            placeholderTextColor="#94a3b8"
-            keyboardType="decimal-pad"
-            value={valor}
-            onChangeText={setValor}
-          />
+        {loading && pinCadastrado === null && (
+          <ActivityIndicator style={{ marginTop: 16 }} />
+        )}
 
-          {/* Seleção PIX */}
-          <View style={styles.pixBox}>
-            <Text style={styles.pixLabel}>Selecionar PIX</Text>
-            {pixDisponiveis.map((p) => (
-              <TouchableOpacity
-                key={p.key}
-                style={[styles.pixOption, pixSelecionado === p.key && styles.pixOptionActive]}
-                onPress={() => setPixSelecionado(p.key)}
-              >
-                <Text style={styles.pixText}>{p.label}</Text>
-              </TouchableOpacity>
-            ))}
+        {/* Sem Senha de Negociação */}
+        {!loading && pinCadastrado === false && (
+          <View style={ps.aviso}>
+            <Text style={ps.avisoTitulo}>Senha de Negociação necessária</Text>
+            <Text style={ps.avisoText}>
+              Para realizar saques, você precisa criar uma senha de 4 dígitos que protege suas transações financeiras.
+            </Text>
+            <TouchableOpacity
+              style={ps.criarPinBtn}
+              onPress={() => { setPinNovo(""); setPinNovoConf(""); setErroCriarPin(null); setModalCriarPin(true); }}
+            >
+              <Text style={ps.criarPinText}>Criar Senha de Negociação</Text>
+            </TouchableOpacity>
           </View>
+        )}
 
-          {/* Senha de Negociação */}
-          <View style={ps.pinSection}>
-            <View style={ps.pinLabelRow}>
-              <Text style={ps.pinLabel}>Senha de Negociação</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setSenhaLoginRecup(""); setErroRecupPin(null);
-                  setRecuperacaoEnviada(false); setModalEsqueciPin(true);
-                }}
-              >
-                <Text style={ps.esqueciLink}>Esqueci minha senha</Text>
-              </TouchableOpacity>
-            </View>
+        {/* Formulário de saque */}
+        {pinCadastrado === true && (
+          <>
             <TextInput
-              style={[ps.pinInput, pinErro ? ps.pinInputErro : undefined]}
-              placeholder="••••"
-              placeholderTextColor="#94a3b8"
-              keyboardType="number-pad"
-              secureTextEntry
-              maxLength={4}
-              value={pinInput}
-              onChangeText={(v) => { setPinInput(v); setPinErro(null); }}
+              style={styles.input}
+              placeholder="Valor do saque (ex: 100,00)"
+              placeholderTextColor="#999"
+              keyboardType="decimal-pad"
+              value={valor}
+              onChangeText={setValor}
             />
-            {pinErro && <Text style={ps.pinErroText}>{pinErro}</Text>}
-          </View>
 
-          {loading ? (
-            <ActivityIndicator style={{ marginTop: 16 }} />
-          ) : (
-            <TouchableOpacity style={styles.sacarBtn} onPress={handleSacar}>
-              <Text style={styles.sacarText}>Sacar</Text>
-            </TouchableOpacity>
-          )}
-        </>
-      )}
-
-      {/* Saques pendentes */}
-      {saquesPendentes.map((s, i) => {
-        const st = saqueStatusInfo(s.status_saque);
-        return (
-          <View key={s.id ?? i} style={styles.pendenteBox}>
-            <View style={styles.pendenteInfo}>
-              <Text style={styles.pendenteText}>{moneyTrunc(s.valor_saque)}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: st.bg }]}>
-                <Text style={[styles.statusBadgeText, { color: st.cor }]}>{st.label}</Text>
-              </View>
+            <View style={styles.pixBox}>
+              <Text style={styles.pixLabel}>Selecionar PIX</Text>
+              {pixDisponiveis.map((p) => (
+                <TouchableOpacity
+                  key={p.key}
+                  style={[styles.pixOption, pixSelecionado === p.key && styles.pixOptionActive]}
+                  onPress={() => setPixSelecionado(p.key)}
+                >
+                  <Text style={styles.pixText}>{p.label}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
-            <TouchableOpacity style={styles.cancelarBtn} onPress={() => handleCancelar(s.id)}>
-              <Text style={styles.cancelarText}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        );
-      })}
 
-      {/* Histórico de saques */}
-      {historicoSaques.length > 0 && (
-        <>
-          <Text style={styles.historicoTitle}>Histórico de saques</Text>
-          {historicoSaques.map((s, i) => {
+            <View style={ps.pinSection}>
+              <View style={ps.pinLabelRow}>
+                <Text style={ps.pinLabel}>Senha de Negociação</Text>
+                <TouchableOpacity
+                  onPress={() => { setSenhaLoginRecup(""); setErroRecupPin(null); setRecuperacaoEnviada(false); setModalEsqueciPin(true); }}
+                >
+                  <Text style={ps.esqueciLink}>Esqueci minha senha</Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                style={[ps.pinInput, pinErro ? ps.pinInputErro : undefined]}
+                placeholder="••••"
+                placeholderTextColor="#94a3b8"
+                keyboardType="number-pad"
+                secureTextEntry
+                maxLength={4}
+                value={pinInput}
+                onChangeText={(v) => { setPinInput(v); setPinErro(null); }}
+              />
+              {pinErro && <Text style={ps.pinErroText}>{pinErro}</Text>}
+            </View>
+
+            {loading ? (
+              <ActivityIndicator style={{ marginTop: 16 }} />
+            ) : (
+              <TouchableOpacity style={styles.sacarBtn} onPress={handleSacar}>
+                <Text style={styles.sacarText}>Sacar</Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+
+        {/* Saques pendentes */}
+        {saquesPendentes.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Saques pendentes</Text>
+            {saquesPendentes.map((s, i) => {
+              const st = saqueStatusInfo(s.status_saque);
+              return (
+                <View key={s.id ?? i} style={styles.historicoItem}>
+                  <View style={styles.historicoRow}>
+                    <Text style={styles.historicoValor}>{moneyTrunc(s.valor_saque)}</Text>
+                    <View style={[styles.historicoBadge, { backgroundColor: st.bg }]}>
+                      <Text style={[styles.historicoBadgeText, { color: st.cor }]}>{st.label}</Text>
+                    </View>
+                  </View>
+                  {s.data_criacao && (
+                    <Text style={styles.historicoData}>{formatData(s.data_criacao)}</Text>
+                  )}
+                  <TouchableOpacity style={styles.cancelarBtn} onPress={() => handleCancelar(s.id)}>
+                    <Text style={styles.cancelarText}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </>
+        )}
+
+        {/* Histórico de saques */}
+        <Text style={styles.sectionTitle}>Histórico de saques</Text>
+        {loading ? (
+          <ActivityIndicator />
+        ) : historicoSaques.length === 0 ? (
+          <Text style={styles.emptyText}>Nenhum saque encontrado.</Text>
+        ) : (
+          historicoSaques.map((s, i) => {
             const st = saqueStatusInfo(s.status_saque);
             return (
-              <View key={s.id ?? i} style={styles.historicoBox}>
+              <View key={s.id ?? i} style={styles.historicoItem}>
                 <View style={styles.historicoRow}>
-                  <Text style={styles.historicoLabel}>Valor</Text>
                   <Text style={styles.historicoValor}>{moneyTrunc(s.valor_saque)}</Text>
-                </View>
-                <View style={styles.historicoRow}>
-                  <Text style={styles.historicoLabel}>Status</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: st.bg }]}>
-                    <Text style={[styles.statusBadgeText, { color: st.cor }]}>{st.label}</Text>
+                  <View style={[styles.historicoBadge, { backgroundColor: st.bg }]}>
+                    <Text style={[styles.historicoBadgeText, { color: st.cor }]}>{st.label}</Text>
                   </View>
                 </View>
-                {st.obs && <Text style={styles.historicoObs}>{st.obs}</Text>}
-                <View style={styles.historicoRow}>
-                  <Text style={styles.historicoLabel}>Data</Text>
-                  <Text style={styles.historicoStatus}>{new Date(s.data_criacao).toLocaleDateString("pt-BR")}</Text>
-                </View>
+                {s.data_criacao && (
+                  <Text style={styles.historicoData}>{formatData(s.data_criacao)}</Text>
+                )}
                 {saqueCancelavel(s.status_saque) && s.id != null && (
                   <TouchableOpacity style={styles.cancelarBtn} onPress={() => handleCancelar(s.id)}>
                     <Text style={styles.cancelarText}>Cancelar</Text>
@@ -381,111 +385,110 @@ export default function Withdraw() {
                 )}
               </View>
             );
-          })}
-        </>
-      )}
+          })
+        )}
 
-      {/* ── Modal: Criar Senha de Negociação ── */}
-      <Modal visible={modalCriarPin} animationType="slide" transparent>
-        <View style={ps.overlay}>
-          <View style={ps.modal}>
-            <Text style={ps.modalTitulo}>Criar Senha de Negociação</Text>
-            <Text style={ps.modalDesc}>
-              Escolha uma senha de 4 dígitos numéricos (sem sequências repetidas como 1111) para proteger seus saques.
-            </Text>
-            <Text style={ps.inputLabel}>Senha</Text>
-            <TextInput
-              style={ps.modalInput}
-              placeholder="••••"
-              placeholderTextColor="#94a3b8"
-              keyboardType="number-pad"
-              secureTextEntry
-              maxLength={4}
-              value={pinNovo}
-              onChangeText={(v) => { setPinNovo(v); setErroCriarPin(null); }}
-            />
-            <Text style={ps.inputLabel}>Confirmar Senha</Text>
-            <TextInput
-              style={ps.modalInput}
-              placeholder="••••"
-              placeholderTextColor="#94a3b8"
-              keyboardType="number-pad"
-              secureTextEntry
-              maxLength={4}
-              value={pinNovoConf}
-              onChangeText={(v) => { setPinNovoConf(v); setErroCriarPin(null); }}
-            />
-            {erroCriarPin && <Text style={ps.erroText}>{erroCriarPin}</Text>}
-            <View style={ps.modalBtns}>
-              <TouchableOpacity style={ps.btnCancelar} onPress={() => setModalCriarPin(false)}>
-                <Text style={ps.btnCancelarText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[ps.btnSalvar, criandoPin && { opacity: 0.6 }]}
-                onPress={handleCriarPin}
-                disabled={criandoPin}
-              >
-                {criandoPin
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={ps.btnSalvarText}>Criar Senha</Text>
-                }
-              </TouchableOpacity>
+        {/* Modal: Criar Senha de Negociação */}
+        <Modal visible={modalCriarPin} animationType="slide" transparent>
+          <View style={ps.overlay}>
+            <View style={ps.modal}>
+              <Text style={ps.modalTitulo}>Criar Senha de Negociação</Text>
+              <Text style={ps.modalDesc}>
+                Escolha uma senha de 4 dígitos numéricos (sem sequências repetidas como 1111) para proteger seus saques.
+              </Text>
+              <Text style={ps.inputLabel}>Senha</Text>
+              <TextInput
+                style={ps.modalInput}
+                placeholder="••••"
+                placeholderTextColor="#94a3b8"
+                keyboardType="number-pad"
+                secureTextEntry
+                maxLength={4}
+                value={pinNovo}
+                onChangeText={(v) => { setPinNovo(v); setErroCriarPin(null); }}
+              />
+              <Text style={ps.inputLabel}>Confirmar Senha</Text>
+              <TextInput
+                style={ps.modalInput}
+                placeholder="••••"
+                placeholderTextColor="#94a3b8"
+                keyboardType="number-pad"
+                secureTextEntry
+                maxLength={4}
+                value={pinNovoConf}
+                onChangeText={(v) => { setPinNovoConf(v); setErroCriarPin(null); }}
+              />
+              {erroCriarPin && <Text style={ps.erroText}>{erroCriarPin}</Text>}
+              <View style={ps.modalBtns}>
+                <TouchableOpacity style={ps.btnCancelar} onPress={() => setModalCriarPin(false)}>
+                  <Text style={ps.btnCancelarText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[ps.btnSalvar, criandoPin && { opacity: 0.6 }]}
+                  onPress={handleCriarPin}
+                  disabled={criandoPin}
+                >
+                  {criandoPin
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={ps.btnSalvarText}>Criar Senha</Text>
+                  }
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      {/* ── Modal: Esqueci minha senha ── */}
-      <Modal visible={modalEsqueciPin} animationType="slide" transparent>
-        <View style={ps.overlay}>
-          <View style={ps.modal}>
-            <Text style={ps.modalTitulo}>Recuperar Senha de Negociação</Text>
-            {recuperacaoEnviada ? (
-              <>
-                <Text style={[ps.modalDesc, { color: "#166534" }]}>
-                  E-mail enviado com sucesso! Verifique sua caixa de entrada para redefinir a senha. O link expira em 15 minutos.
-                </Text>
-                <TouchableOpacity style={[ps.btnSalvar, { marginTop: 8 }]} onPress={() => setModalEsqueciPin(false)}>
-                  <Text style={ps.btnSalvarText}>Fechar</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <Text style={ps.modalDesc}>
-                  Informe a senha do seu login para confirmar sua identidade. Enviaremos um e-mail com o link de recuperação da senha.
-                </Text>
-                <Text style={ps.inputLabel}>Senha de Login</Text>
-                <TextInput
-                  style={ps.modalInput}
-                  placeholder="Sua senha de acesso"
-                  placeholderTextColor="#94a3b8"
-                  secureTextEntry
-                  value={senhaLoginRecup}
-                  onChangeText={(v) => { setSenhaLoginRecup(v); setErroRecupPin(null); }}
-                />
-                {erroRecupPin && <Text style={ps.erroText}>{erroRecupPin}</Text>}
-                <View style={ps.modalBtns}>
-                  <TouchableOpacity style={ps.btnCancelar} onPress={() => setModalEsqueciPin(false)}>
-                    <Text style={ps.btnCancelarText}>Cancelar</Text>
+        {/* Modal: Esqueci minha senha */}
+        <Modal visible={modalEsqueciPin} animationType="slide" transparent>
+          <View style={ps.overlay}>
+            <View style={ps.modal}>
+              <Text style={ps.modalTitulo}>Recuperar Senha de Negociação</Text>
+              {recuperacaoEnviada ? (
+                <>
+                  <Text style={[ps.modalDesc, { color: "#166534" }]}>
+                    E-mail enviado com sucesso! Verifique sua caixa de entrada para redefinir a senha. O link expira em 15 minutos.
+                  </Text>
+                  <TouchableOpacity style={[ps.btnSalvar, { marginTop: 8 }]} onPress={() => setModalEsqueciPin(false)}>
+                    <Text style={ps.btnSalvarText}>Fechar</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[ps.btnSalvar, recuperando && { opacity: 0.6 }]}
-                    onPress={handleRecuperarPin}
-                    disabled={recuperando}
-                  >
-                    {recuperando
-                      ? <ActivityIndicator color="#fff" />
-                      : <Text style={ps.btnSalvarText}>Enviar e-mail</Text>
-                    }
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
+                </>
+              ) : (
+                <>
+                  <Text style={ps.modalDesc}>
+                    Informe a senha do seu login para confirmar sua identidade. Enviaremos um e-mail com o link de recuperação da senha.
+                  </Text>
+                  <Text style={ps.inputLabel}>Senha de Login</Text>
+                  <TextInput
+                    style={ps.modalInput}
+                    placeholder="Sua senha de acesso"
+                    placeholderTextColor="#94a3b8"
+                    secureTextEntry
+                    value={senhaLoginRecup}
+                    onChangeText={(v) => { setSenhaLoginRecup(v); setErroRecupPin(null); }}
+                  />
+                  {erroRecupPin && <Text style={ps.erroText}>{erroRecupPin}</Text>}
+                  <View style={ps.modalBtns}>
+                    <TouchableOpacity style={ps.btnCancelar} onPress={() => setModalEsqueciPin(false)}>
+                      <Text style={ps.btnCancelarText}>Cancelar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[ps.btnSalvar, recuperando && { opacity: 0.6 }]}
+                      onPress={handleRecuperarPin}
+                      disabled={recuperando}
+                    >
+                      {recuperando
+                        ? <ActivityIndicator color="#fff" />
+                        : <Text style={ps.btnSalvarText}>Enviar e-mail</Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
           </View>
-        </View>
-      </Modal>
-    </ScrollView>
-    <AppBottomBar />
+        </Modal>
+      </ScrollView>
+      <AppBottomBar />
     </View>
   );
 }
@@ -496,25 +499,25 @@ function makePinStyles(c: ThemeColors) {
       backgroundColor: "#fff7ed",
       borderWidth: 1,
       borderColor: "#f97316",
-      borderRadius: 14,
+      borderRadius: 12,
       padding: 16,
       marginBottom: 20,
     },
-    avisoTitulo: { fontSize: 14, fontWeight: "800", color: "#7c2d12", marginBottom: 6 },
-    avisoText: { fontSize: 13, color: "#7c2d12", fontWeight: "600", marginBottom: 14, lineHeight: 19 },
+    avisoTitulo: { fontSize: 14, fontWeight: "bold", color: "#7c2d12", marginBottom: 6 },
+    avisoText: { fontSize: 13, color: "#7c2d12", marginBottom: 14, lineHeight: 19 },
     criarPinBtn: { backgroundColor: c.primary, paddingVertical: 13, borderRadius: 12, alignItems: "center" },
-    criarPinText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+    criarPinText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
 
     pinSection: { marginBottom: 16 },
     pinLabelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-    pinLabel: { fontWeight: "900", color: c.textPrimary },
-    esqueciLink: { fontSize: 13, fontWeight: "700", color: c.primary },
+    pinLabel: { fontWeight: "bold", color: c.textPrimary },
+    esqueciLink: { fontSize: 13, fontWeight: "bold", color: c.primary },
     pinInput: {
       borderWidth: 1,
       borderColor: c.inputBorder,
-      borderRadius: 14,
+      borderRadius: 12,
       padding: 14,
-      fontWeight: "800",
+      fontWeight: "bold",
       color: c.textPrimary,
       fontSize: 20,
       letterSpacing: 10,
@@ -522,7 +525,7 @@ function makePinStyles(c: ThemeColors) {
       backgroundColor: c.card,
     },
     pinInputErro: { borderColor: "#ef4444" },
-    pinErroText: { color: "#ef4444", fontSize: 13, fontWeight: "700", marginTop: 6 },
+    pinErroText: { color: "#ef4444", fontSize: 13, fontWeight: "bold", marginTop: 6 },
 
     overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
     modal: {
@@ -532,9 +535,9 @@ function makePinStyles(c: ThemeColors) {
       padding: 24,
       paddingBottom: 40,
     },
-    modalTitulo: { fontSize: 18, fontWeight: "700", color: c.textPrimary, marginBottom: 8 },
+    modalTitulo: { fontSize: 18, fontWeight: "bold", color: c.textPrimary, marginBottom: 8 },
     modalDesc: { fontSize: 14, color: c.textSecondary, marginBottom: 20, lineHeight: 20 },
-    inputLabel: { fontSize: 12, fontWeight: "600", color: c.textSecondary, marginBottom: 4 },
+    inputLabel: { fontSize: 12, fontWeight: "bold", color: c.textSecondary, marginBottom: 4 },
     modalInput: {
       borderWidth: 1,
       borderColor: c.inputBorder,
@@ -546,11 +549,11 @@ function makePinStyles(c: ThemeColors) {
       marginBottom: 14,
       backgroundColor: c.backgroundSecondary,
     },
-    erroText: { color: "#ef4444", fontSize: 13, fontWeight: "600", marginBottom: 10, textAlign: "center" },
+    erroText: { color: "#ef4444", fontSize: 13, fontWeight: "bold", marginBottom: 10, textAlign: "center" },
     modalBtns: { flexDirection: "row", gap: 12, marginTop: 4 },
     btnCancelar: { flex: 1, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
-    btnCancelarText: { color: c.textSecondary, fontWeight: "600" },
+    btnCancelarText: { color: c.textSecondary, fontWeight: "bold" },
     btnSalvar: { flex: 1, backgroundColor: c.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
-    btnSalvarText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+    btnSalvarText: { color: "#fff", fontWeight: "bold", fontSize: 15 },
   });
 }

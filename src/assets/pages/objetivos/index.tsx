@@ -207,20 +207,30 @@ function calcMeses(ano: number, mes: number): number {
   return Math.max(1, meses);
 }
 
+function formatarMoeda(text: string): string {
+  const digits = text.replace(/\D/g, "");
+  if (!digits) return "";
+  return "R$ " + parseInt(digits, 10).toLocaleString("pt-BR");
+}
+
+function parseMoeda(formatted: string): number {
+  return parseInt(formatted.replace(/\D/g, ""), 10) || 0;
+}
+
 function ModalNovoObjetivo({ visible, onClose, onSalvar, loading, colors }: {
   visible: boolean; onClose: () => void;
-  onSalvar: (dados: { descricao: string; valor_alvo: number; prazo: number; pontos_total: number }) => void;
+  onSalvar: (dados: { descricao: string; valor_alvo: number; aporte_inicial: number; prazo: number; pontos_total: number }) => void;
   loading: boolean;
   colors: ReturnType<typeof import("../../../context/ThemeContext").useTheme>["colors"];
 }) {
   const agora = new Date();
-  const [descricao, setDescricao] = useState("");
   const [valorAlvo, setValorAlvo] = useState("");
+  const [aporteInicial, setAporteInicial] = useState("");
   const [mesSel, setMesSel] = useState(agora.getMonth() + 1);
   const [anoSel, setAnoSel] = useState(agora.getFullYear() + 1);
 
   function limpar() {
-    setDescricao(""); setValorAlvo("");
+    setValorAlvo(""); setAporteInicial("");
     setMesSel(new Date().getMonth() + 1);
     setAnoSel(new Date().getFullYear() + 1);
   }
@@ -233,12 +243,13 @@ function ModalNovoObjetivo({ visible, onClose, onSalvar, loading, colors }: {
   }
 
   function handleSalvar() {
-    const valor = Number(valorAlvo.replace(",", "."));
-    if (!descricao.trim()) { Alert.alert("Atenção", "Informe uma descrição."); return; }
+    const valor = parseMoeda(valorAlvo);
+    const aporte = parseMoeda(aporteInicial);
     if (!valor || valor <= 0) { Alert.alert("Atenção", "Informe um valor alvo válido."); return; }
+    if (!aporte || aporte <= 0) { Alert.alert("Atenção", "Informe um aporte inicial válido."); return; }
     const meses = calcMeses(anoSel, mesSel);
     if (meses < 1) { Alert.alert("Atenção", "A data alvo deve ser no futuro."); return; }
-    onSalvar({ descricao: descricao.trim(), valor_alvo: valor, prazo: meses, pontos_total: meses * 40 });
+    onSalvar({ descricao: "Patrimônio", valor_alvo: valor, aporte_inicial: aporte, prazo: meses, pontos_total: meses * 40 });
   }
 
   function handleClose() { limpar(); onClose(); }
@@ -252,10 +263,29 @@ function ModalNovoObjetivo({ visible, onClose, onSalvar, loading, colors }: {
           <Text style={[s.modalTitulo, { color: colors.textPrimary }]}>Novo Objetivo</Text>
 
           <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Descrição</Text>
-          <TextInput style={[s.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.backgroundSecondary }]} placeholder="Ex: Comprar um carro" placeholderTextColor="#bbb" value={descricao} onChangeText={setDescricao} />
+          <View style={[s.input, s.inputFixo, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}>
+            <Text style={{ fontSize: 15, color: colors.textPrimary }}>Patrimônio</Text>
+          </View>
 
           <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Valor alvo (R$)</Text>
-          <TextInput style={[s.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.backgroundSecondary }]} placeholder="Ex: 15000" placeholderTextColor="#bbb" keyboardType="decimal-pad" value={valorAlvo} onChangeText={setValorAlvo} />
+          <TextInput
+            style={[s.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.backgroundSecondary }]}
+            placeholder="R$ 5.000"
+            placeholderTextColor="#bbb"
+            keyboardType="number-pad"
+            value={valorAlvo}
+            onChangeText={(t) => setValorAlvo(formatarMoeda(t))}
+          />
+
+          <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Aporte Inicial (R$)</Text>
+          <TextInput
+            style={[s.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.backgroundSecondary }]}
+            placeholder="R$ 1.000"
+            placeholderTextColor="#bbb"
+            keyboardType="number-pad"
+            value={aporteInicial}
+            onChangeText={(t) => setAporteInicial(formatarMoeda(t))}
+          />
 
           <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Prazo — {prazoLabel}</Text>
           <View style={dp.row}>
@@ -295,6 +325,7 @@ export default function Objetivos() {
   const [metasDetalhe, setMetasDetalhe] = useState<Record<number, MetaDetalhe[]>>({});
   const [pontos, setPontos] = useState<PontosInfo | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [tooltipNovoVisible, setTooltipNovoVisible] = useState(false);
   const [ligas, setLigas] = useState<LigaItem[]>([]);
   const [projecaoPatrimonio, setProjecaoPatrimonio] = useState<ProjecaoItem[]>([]);
   const [projecaoRendimento, setProjecaoRendimento] = useState<ProjecaoItem[]>([]);
@@ -344,13 +375,14 @@ export default function Objetivos() {
 
   const onRefresh = () => { setRefreshing(true); carregar(); };
 
-  async function handleCriar(dados: { descricao: string; valor_alvo: number; prazo: number; pontos_total: number }) {
+  async function handleCriar(dados: { descricao: string; valor_alvo: number; aporte_inicial: number; prazo: number; pontos_total: number }) {
     if (!user?.id) return;
     try {
       setSalvando(true);
       await criarObjetivo(user.id, dados);
       setModalVisible(false);
       carregar();
+      Alert.alert("Sucesso", "Objetivo criado com sucesso.");
     } catch (e: any) {
       Alert.alert("Erro", e?.message || "Não foi possível criar o objetivo.");
     } finally { setSalvando(false); }
@@ -456,10 +488,32 @@ export default function Objetivos() {
 
         <View style={s.secaoHeader}>
           <Text style={[s.secaoTitulo, { color: colors.textPrimary }]}>Meus Objetivos</Text>
-          <TouchableOpacity style={[s.novoBtn, { backgroundColor: colors.primary }]} onPress={() => setModalVisible(true)}>
-            <Text style={s.novoBtnText}>+ Novo</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TouchableOpacity
+              style={[s.novoBtn, { backgroundColor: colors.primary }, objetivos.some((o) => o.status_ativo && !o.objetivo_completo) && { opacity: 0.4 }]}
+              onPress={() => setModalVisible(true)}
+              disabled={objetivos.some((o) => o.status_ativo && !o.objetivo_completo)}
+            >
+              <Text style={s.novoBtnText}>Nova Meta</Text>
+            </TouchableOpacity>
+            {objetivos.some((o) => o.status_ativo && !o.objetivo_completo) && (
+              <TouchableOpacity
+                onPress={() => setTooltipNovoVisible((v) => !v)}
+                style={[s.tooltipBtn, { borderColor: colors.textTertiary }]}
+                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              >
+                <Text style={[s.tooltipBtnText, { color: colors.textTertiary }]}>?</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
+        {tooltipNovoVisible && objetivos.some((o) => o.status_ativo && !o.objetivo_completo) && (
+          <View style={[s.tooltip, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, marginBottom: 12 }]}>
+            <Text style={[s.tooltipText, { color: colors.textSecondary }]}>
+              Atualmente só é permitido ter 1 meta ativa por usuário.
+            </Text>
+          </View>
+        )}
 
         {objetivos.length === 0 ? (
           <Text style={[s.vazio, { color: colors.textTertiary }]}>Nenhum objetivo cadastrado ainda.</Text>
@@ -572,6 +626,7 @@ const s = StyleSheet.create({
   modalTitulo: { fontSize: 18, fontWeight: "700", marginBottom: 20 },
   inputLabel: { fontSize: 12, fontWeight: "600", marginBottom: 4 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, marginBottom: 14 },
+  inputFixo: { justifyContent: "center" },
   modalBtns: { flexDirection: "row", gap: 12, marginTop: 4 },
   btnCancelar: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   btnCancelarText: { fontWeight: "600" },

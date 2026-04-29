@@ -508,7 +508,7 @@ export async function getObjetivoDetalhe(usuarioId: number, objetivoId: number):
 
 export async function criarObjetivo(
   usuarioId: number,
-  dados: { descricao: string; valor_alvo: number; prazo: number; pontos_total: number }
+  dados: { descricao: string; valor_alvo: number; aporte_inicial: number; prazo: number; pontos_total: number }
 ) {
   const response = await apiFetch(`/api/v1/objetivos/${usuarioId}`, {
     method: "POST",

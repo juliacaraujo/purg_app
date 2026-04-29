@@ -10,57 +10,61 @@ export const makeWithdrawStyles = (c: ThemeColors) => StyleSheet.create({
   },
 
   title: {
-    fontSize: 26,
-    fontWeight: "900",
+    fontSize: 22,
+    fontWeight: "bold",
     color: c.textPrimary,
+    marginTop: 20,
     marginBottom: 20,
-    marginTop: 4,
   },
 
   infoBox: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
     backgroundColor: c.card,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   infoLabel: {
-    fontWeight: "800",
-    color: c.textSecondary,
     fontSize: 12,
+    fontWeight: "bold",
+    color: c.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   infoValue: {
-    fontSize: 22,
-    fontWeight: "900",
-    marginTop: 2,
+    fontSize: 20,
+    fontWeight: "bold",
     color: c.textPrimary,
   },
 
   input: {
+    backgroundColor: c.card,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    fontSize: 16,
+    color: c.textPrimary,
     borderWidth: 1,
     borderColor: c.inputBorder,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 14,
-    fontWeight: "800",
-    color: c.textPrimary,
-    backgroundColor: c.card,
-    fontSize: 16,
   },
 
   pixBox: {
-    marginTop: 6,
     marginBottom: 16,
   },
   pixLabel: {
-    fontWeight: "900",
+    fontSize: 13,
+    fontWeight: "bold",
+    color: c.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
     marginBottom: 8,
-    color: c.textPrimary,
-    fontSize: 14,
   },
   pixOption: {
     borderWidth: 1,
@@ -75,15 +79,16 @@ export const makeWithdrawStyles = (c: ThemeColors) => StyleSheet.create({
     backgroundColor: c.primary + "22",
   },
   pixText: {
-    fontWeight: "800",
+    fontWeight: "bold",
     color: c.textPrimary,
   },
 
   sacarBtn: {
     backgroundColor: c.primary,
-    paddingVertical: 16,
-    borderRadius: 14,
+    paddingVertical: 15,
+    borderRadius: 12,
     alignItems: "center",
+    marginBottom: 28,
     shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
@@ -92,92 +97,81 @@ export const makeWithdrawStyles = (c: ThemeColors) => StyleSheet.create({
   },
   sacarText: {
     color: "#fff",
-    fontWeight: "900",
+    fontWeight: "bold",
     fontSize: 16,
   },
 
-  pendenteBox: {
-    marginTop: 24,
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 14,
-    padding: 14,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: c.card,
-  },
-  pendenteInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  pendenteText: {
-    fontWeight: "900",
-    color: c.textPrimary,
-  },
-
-  statusBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-
-  cancelarBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#ef4444",
-  },
-  cancelarText: {
-    fontWeight: "900",
-    color: "#ef4444",
-  },
-
-  historicoTitle: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: c.textPrimary,
-    marginTop: 32,
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: c.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
     marginBottom: 12,
   },
-  historicoBox: {
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: 14,
+
+  historicoItem: {
+    backgroundColor: c.card,
+    borderRadius: 12,
     padding: 14,
     marginBottom: 10,
-    backgroundColor: c.card,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
+
   historicoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
   },
-  historicoLabel: {
-    color: c.textSecondary,
-    fontWeight: "700",
-  },
+
   historicoValor: {
-    fontWeight: "900",
+    fontSize: 15,
+    fontWeight: "bold",
     color: c.textPrimary,
   },
-  historicoStatus: {
-    fontWeight: "800",
-    color: c.textSecondary,
+
+  historicoBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
-  historicoObs: {
+
+  historicoBadgeText: {
+    fontSize: 11,
+    fontWeight: "bold",
+  },
+
+  historicoData: {
     fontSize: 12,
-    color: "#991b1b",
-    fontWeight: "600",
-    marginBottom: 6,
-    lineHeight: 18,
+    color: c.textSecondary,
+    marginTop: 4,
+  },
+
+  emptyText: {
+    fontSize: 13,
+    color: c.textSecondary,
+    textAlign: "center",
+    paddingVertical: 20,
+  },
+
+  cancelarBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#ef4444",
+    marginTop: 8,
+    alignSelf: "flex-end",
+  },
+  cancelarText: {
+    fontWeight: "900",
+    color: "#ef4444",
+    fontSize: 12,
   },
 });

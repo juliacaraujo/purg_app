@@ -28,12 +28,32 @@ export const makeDepositStyles = (c: ThemeColors) => StyleSheet.create({
     borderColor: c.inputBorder,
   },
 
+  botoesRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 28,
+  },
+
+  parcelaBtn: {
+    flex: 1,
+    backgroundColor: "#e2e8f0",
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+
+  parcelaBtnText: {
+    color: "#475569",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+
   depositBtn: {
+    flex: 1,
     backgroundColor: c.primary,
     paddingVertical: 15,
     borderRadius: 12,
     alignItems: "center",
-    marginBottom: 28,
     shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,

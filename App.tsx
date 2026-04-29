@@ -353,8 +353,8 @@ function AppTabs() {
       <Tab.Screen name="Ranking" component={Ranking} options={{
         tabBarIcon: ({ size, focused, color }) => <AnimatedTabIconImage source={imgRanking} size={size} focused={focused} color={color} />,
       }} />
-      <Tab.Screen name="Profile" component={Profile} options={{ headerShown: false, tabBarButton: () => null }} />
-      <Tab.Screen name="Chat" component={ChatScreen} options={{ headerShown: false, tabBarButton: () => null }} />
+      <Tab.Screen name="Profile" component={Profile} options={{ tabBarButton: () => null }} />
+      <Tab.Screen name="Chat" component={ChatScreen} options={{ tabBarButton: () => null }} />
     </Tab.Navigator>
   );
 }
@@ -374,7 +374,7 @@ function ThemeSync() {
 
 function RootNavigator() {
   const { user, isLoading, freshLogin, clearFreshLogin } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [verificando, setVerificando] = useState(true);
   const [precisaApelido, setPrecisaApelido] = useState(false);
   const [precisaPin, setPrecisaPin] = useState(false);
@@ -438,15 +438,22 @@ function RootNavigator() {
             options={({ navigation }) => ({
               animation: "slide_from_bottom",
               headerShown: true,
-              title: "Sacar",
               headerStyle: { backgroundColor: colors.header, elevation: 0, shadowOpacity: 0 },
               headerShadowVisible: false,
-              headerTintColor: colors.textPrimary,
               contentStyle: { backgroundColor: colors.backgroundSecondary },
-              headerLeft: () => (
-                <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 14 }}>
-                  <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
-                </TouchableOpacity>
+              headerTitle: () => (
+                <Image source={Logo} style={{ width: 80, height: 36, resizeMode: "contain", tintColor: isDark ? "#ffffff" : undefined }} />
+              ),
+              headerLeft: () => null,
+              headerRight: () => (
+                <View style={{ flexDirection: "row", alignItems: "center", marginRight: 14, gap: 16 }}>
+                  <TouchableOpacity onPress={() => navigation.navigate("AppTabs", { screen: "Chat" })} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Image source={imgChat} style={{ width: 26, height: 26, tintColor: colors.textTertiary }} resizeMode="contain" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => navigation.navigate("AppTabs", { screen: "Profile" })} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Image source={imgPerfil} style={{ width: 28, height: 28, tintColor: colors.textTertiary }} resizeMode="contain" />
+                  </TouchableOpacity>
+                </View>
               ),
             })}
           />
@@ -456,15 +463,22 @@ function RootNavigator() {
             options={({ navigation }) => ({
               animation: "slide_from_bottom",
               headerShown: true,
-              title: "Depositar",
               headerStyle: { backgroundColor: colors.header, elevation: 0, shadowOpacity: 0 },
               headerShadowVisible: false,
-              headerTintColor: colors.textPrimary,
               contentStyle: { backgroundColor: colors.backgroundSecondary },
-              headerLeft: () => (
-                <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 14 }}>
-                  <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
-                </TouchableOpacity>
+              headerTitle: () => (
+                <Image source={Logo} style={{ width: 80, height: 36, resizeMode: "contain", tintColor: isDark ? "#ffffff" : undefined }} />
+              ),
+              headerLeft: () => null,
+              headerRight: () => (
+                <View style={{ flexDirection: "row", alignItems: "center", marginRight: 14, gap: 16 }}>
+                  <TouchableOpacity onPress={() => navigation.navigate("AppTabs", { screen: "Chat" })} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Image source={imgChat} style={{ width: 26, height: 26, tintColor: colors.textTertiary }} resizeMode="contain" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => navigation.navigate("AppTabs", { screen: "Profile" })} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Image source={imgPerfil} style={{ width: 28, height: 28, tintColor: colors.textTertiary }} resizeMode="contain" />
+                  </TouchableOpacity>
+                </View>
               ),
             })}
           />

@@ -12,7 +12,7 @@ import {
 import { makeDepositStyles } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
-import { getHistoricoDepositos, getBuscarDepositosPendentes, cancelarDeposito, solicitarDeposito } from "../../../services/api";
+import { getHistoricoDepositos, getBuscarDepositosPendentes, cancelarDeposito, solicitarDeposito, getObjetivos } from "../../../services/api";
 import { AppBottomBar } from "../../components/AppBottomBar";
 
 // Trunca para 2 casas decimais SEM arredondar (vírgula)
@@ -61,18 +61,24 @@ export default function Deposit({ navigation }: any) {
   const [historico, setHistorico] = useState<any[]>([]);
   const [pendentes, setPendentes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [parcela, setParcela] = useState<number | null>(null);
 
   const carregarHistorico = useCallback(async () => {
     if (!user?.id) return;
     try {
       setLoading(true);
-      const [hist, pend] = await Promise.all([
+      const [hist, pend, objs] = await Promise.all([
         getHistoricoDepositos(user.id),
         getBuscarDepositosPendentes(user.id),
+        getObjetivos(user.id),
       ]);
       const lista = Array.isArray(hist) ? hist : Array.isArray(hist?.data) ? hist.data : [];
       setHistorico(lista);
       setPendentes(pend);
+      const ativo = objs.objetivos?.find((o) => !o.objetivo_completo);
+      if (ativo && ativo.prazo_total > 0) {
+        setParcela(Math.trunc((ativo.valor_alvo / ativo.prazo_total) * 100) / 100);
+      }
     } catch {
       // histórico opcional — não bloqueia a tela
     } finally {
@@ -158,10 +164,24 @@ export default function Deposit({ navigation }: any) {
         onChangeText={setValor}
       />
 
-      {/* Botão */}
-      <TouchableOpacity style={styles.depositBtn} onPress={handleDepositar}>
-        <Text style={styles.depositBtnText}>Depositar</Text>
-      </TouchableOpacity>
+      {/* Botões */}
+      <View style={styles.botoesRow}>
+        {parcela !== null && (
+          <TouchableOpacity
+            style={styles.parcelaBtn}
+            onPress={() => {
+              const atual = Math.trunc((Number(valor.replace(/\./g, "").replace(",", ".")) || 0) * 100) / 100;
+              const novo = Math.trunc((atual + parcela) * 100) / 100;
+              setValor(novo.toFixed(2).replace(".", ","));
+            }}
+          >
+            <Text style={styles.parcelaBtnText}>Meta: +{moneyTrunc(parcela)}</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity style={styles.depositBtn} onPress={handleDepositar}>
+          <Text style={styles.depositBtnText}>Depositar</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Depósitos pendentes */}
       {pendentes.length > 0 && (

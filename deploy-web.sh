@@ -49,6 +49,7 @@ EOF
 
 
 echo "Publicando em /var/www/purg..."
+rm -rf /var/www/purg/_expo/
 cp -r dist/. /var/www/purg/
 cp assets/purg_video_abertura.mp4 /var/www/purg/abertura.mp4
 

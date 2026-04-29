@@ -1,3 +1,27 @@
+purg-develop-17 — 2026-04-29
+- Chat: histórico de mensagens persistido no localStorage (purg_chat_{uid}), limitado a 20 mensagens; restaurado automaticamente ao reabrir o chat
+- Chat: saudação personalizada com o apelido do usuário via getDadosCadastro; fallback para "Como posso te ajudar?" se apelido indisponível
+- Chat: mensagem de sistema "Mensagens anteriores não estão mais disponíveis" exibida ao topo ao restaurar histórico salvo
+- Chat: timeout de 30 segundos exibe "Espera aí, que eu já te respondo!" enquanto aguarda resposta do webhook
+- Chat: header próprio removido — usa o header do navigator (logo + ícones Chat/Perfil); SafeAreaView ajustada para edges bottom/left/right
+- Chat: TextInput com maxHeight reduzida de 100 para 60; mensagensRef para leitura síncrona do estado nas callbacks assíncronas
+- Depósito: botão "Meta: +valor" exibido ao lado do botão Depositar quando há objetivo ativo, adicionando a parcela mensal (valor_alvo / prazo) ao campo de valor
+- Depósito: objetivos carregados em paralelo com histórico e pendentes via Promise.all
+- Objetivos: campo "Descrição" do modal de novo objetivo fixado como "Patrimônio" (somente leitura)
+- Objetivos: campo "Aporte Inicial" adicionado ao modal de novo objetivo, obrigatório e com máscara monetária
+- Objetivos: inputs de valor alvo e aporte com máscara R$ e separador de milhar via formatarMoeda/parseMoeda
+- Objetivos: botão "Nova Meta" desabilitado quando há objetivo ativo; ícone "?" ao lado exibe tooltip "Atualmente só é permitido ter 1 meta ativa por usuário"
+- Objetivos: alert de sucesso exibido após criação de objetivo
+- Saque: layout refatorado — cards unificados para pendentes e histórico (historicoItem) com sombra suave e bordas consistentes
+- Saque: seção "Saques pendentes" com título exibida apenas quando há itens; histórico sempre visível com estado vazio ("Nenhum saque encontrado.")
+- Saque: data de criação exibida nos cards via formatData com fallback seguro para datas inválidas
+- Saque: placeholder do campo valor alterado para "Valor do saque (ex: 100,00)"; showsVerticalScrollIndicator desativado
+- App: headers de Saque e Depósito padronizados com logo + ícones Chat e Perfil (consistente com demais telas do app logado)
+- App: removido headerShown: false redundante nas tabs Profile e Chat (ocultadas da tab bar via tabBarButton: null)
+- Cadastro: correção — CPF enviado sem formatação (somente dígitos) ao navegar para tela de Termos; máscara xxx.xxx.xxx-xx era rejeitada pelo backend com erro 400
+- API: criarObjetivo atualizado para incluir aporte_inicial no payload
+- deploy-web.sh: limpeza de /var/www/purg/_expo/ antes de publicar para evitar acúmulo de assets antigos
+
 purg-develop-16 — 2026-04-27
 - Chat: nova tela de chat integrada ao webhook n8n (POST /webhook/purg-chat) com sessionId baseado no user.id
 - Chat: indicador animado de "digitando" — três bolinhas com bounce sequencial via Animated.loop enquanto aguarda resposta

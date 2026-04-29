@@ -13,13 +13,38 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
+import { getDadosCadastro } from "../../../services/api";
 
 const WEBHOOK_URL = "https://n8n-n8n.rqkx8g.easypanel.host/webhook/purg-chat";
+const MAX_HISTORICO = 20; // 10 pares usuário/bot
+
+function chatStorageGet(key: string): string | null {
+  try {
+    if (typeof window !== "undefined" && window.localStorage)
+      return window.localStorage.getItem(key);
+  } catch {}
+  return null;
+}
+
+function chatStorageSet(key: string, value: string) {
+  try {
+    if (typeof window !== "undefined" && window.localStorage)
+      window.localStorage.setItem(key, value);
+  } catch {}
+}
+
+function persistirHistorico(msgs: Mensagem[], uid: number | undefined) {
+  if (!uid) return;
+  const toSave = msgs.filter((m) => m.id !== "intro" && m.id !== "aviso_historico");
+  if (toSave.length === 0) return;
+  chatStorageSet(`purg_chat_${uid}`, JSON.stringify(toSave.slice(-MAX_HISTORICO)));
+}
 
 interface Mensagem {
   id: string;
   texto: string;
   doUsuario: boolean;
+  sistema?: boolean;
 }
 
 function DigitandoIndicador({ cor, cardBg }: { cor: string; cardBg: string }) {
@@ -80,12 +105,45 @@ export default function Chat() {
   const { colors } = useTheme();
   const s = makeStyle(colors);
 
-  const [mensagens, setMensagens] = useState<Mensagem[]>([
-    { id: "intro", texto: "Olá! Sou a Purg, sua assistente financeira. Como posso te ajudar?", doUsuario: false },
-  ]);
+  const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [texto, setTexto] = useState("");
   const [carregando, setCarregando] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setMensagens([{ id: "intro", texto: "Como posso te ajudar?", doUsuario: false }]);
+      return;
+    }
+
+    const key = `purg_chat_${user.id}`;
+    const salvo = chatStorageGet(key);
+    if (salvo) {
+      try {
+        const parsed = JSON.parse(salvo) as Mensagem[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMensagens([
+            { id: "aviso_historico", texto: "Mensagens anteriores não estão mais disponíveis.", doUsuario: false, sistema: true },
+            ...parsed,
+          ]);
+          return;
+        }
+      } catch {}
+    }
+
+    getDadosCadastro(user.id)
+      .then((d) => {
+        const apelido = d?.apelido?.trim();
+        const texto = apelido ? `Como posso te ajudar, ${apelido}?` : "Como posso te ajudar?";
+        setMensagens([{ id: "intro", texto, doUsuario: false }]);
+      })
+      .catch(() => {
+        setMensagens([{ id: "intro", texto: "Como posso te ajudar?", doUsuario: false }]);
+      });
+  }, [user?.id]);
+
   const listRef = useRef<FlatList<Mensagem>>(null);
+  const mensagensRef = useRef<Mensagem[]>([]);
+  mensagensRef.current = mensagens;
 
   const enviar = useCallback(async () => {
     const msg = texto.trim();
@@ -94,6 +152,13 @@ export default function Chat() {
     setMensagens((prev) => [...prev, { id: `msg_${Date.now()}_u`, texto: msg, doUsuario: true }]);
     setTexto("");
     setCarregando(true);
+
+    const timeoutId = setTimeout(() => {
+      setMensagens((prev) => [
+        ...prev,
+        { id: `msg_${Date.now()}_wait`, texto: "Espera aí, que eu já te respondo!", doUsuario: false },
+      ]);
+    }, 30000);
 
     try {
       const res = await fetch(WEBHOOK_URL, {
@@ -105,25 +170,32 @@ export default function Chat() {
         }),
       });
 
+      clearTimeout(timeoutId);
       const text = await res.text();
       const data = text.trim() ? JSON.parse(text) : {};
       const resposta = data?.response ?? "Não recebi uma resposta. Tente novamente em instantes.";
 
-      setMensagens((prev) => [
-        ...prev,
-        { id: `msg_${Date.now()}_b`, texto: resposta, doUsuario: false },
-      ]);
+      const next = [...mensagensRef.current, { id: `msg_${Date.now()}_b`, texto: resposta, doUsuario: false }];
+      persistirHistorico(next, user?.id);
+      setMensagens(next);
     } catch {
-      setMensagens((prev) => [
-        ...prev,
-        { id: `msg_${Date.now()}_err`, texto: "Erro ao conectar. Verifique sua conexão e tente novamente.", doUsuario: false },
-      ]);
+      clearTimeout(timeoutId);
+      const next = [...mensagensRef.current, { id: `msg_${Date.now()}_err`, texto: "Erro ao conectar. Verifique sua conexão e tente novamente.", doUsuario: false }];
+      persistirHistorico(next, user?.id);
+      setMensagens(next);
     } finally {
       setCarregando(false);
     }
   }, [texto, carregando, user?.id]);
 
   function renderMensagem({ item }: { item: Mensagem }) {
+    if (item.sistema) {
+      return (
+        <View style={s.avisoSistema}>
+          <Text style={s.avisoSistemaTexto}>{item.texto}</Text>
+        </View>
+      );
+    }
     return (
       <View style={[s.bolha, item.doUsuario ? s.bolhaUsuario : s.bolhaBot]}>
         {!item.doUsuario && <Text style={s.nomeBot}>Purg</Text>}
@@ -135,12 +207,7 @@ export default function Chat() {
   }
 
   return (
-    <SafeAreaView style={[s.safe, { backgroundColor: colors.backgroundSecondary }]}>
-      <View style={[s.header, { backgroundColor: colors.header, borderBottomColor: colors.border }]}>
-        <Text style={[s.headerTitulo, { color: colors.textPrimary }]}>Purg</Text>
-        <Text style={[s.headerSub, { color: colors.textTertiary }]}>Assistente financeira</Text>
-      </View>
-
+    <SafeAreaView edges={["bottom", "left", "right"]} style={[s.safe, { backgroundColor: colors.backgroundSecondary }]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -190,14 +257,6 @@ export default function Chat() {
 function makeStyle(colors: ReturnType<typeof import("../../../context/ThemeContext").useTheme>["colors"]) {
   return StyleSheet.create({
     safe: { flex: 1 },
-    header: {
-      paddingHorizontal: 18,
-      paddingVertical: 14,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      alignItems: "center",
-    },
-    headerTitulo: { fontSize: 16, fontWeight: "700" },
-    headerSub: { fontSize: 12, marginTop: 1 },
     lista: { padding: 14, paddingBottom: 8 },
     bolha: {
       maxWidth: "78%",
@@ -234,7 +293,7 @@ function makeStyle(colors: ReturnType<typeof import("../../../context/ThemeConte
       paddingHorizontal: 14,
       paddingVertical: 10,
       fontSize: 14,
-      maxHeight: 100,
+      maxHeight: 60,
     },
     enviarBtn: {
       width: 40,
@@ -245,5 +304,7 @@ function makeStyle(colors: ReturnType<typeof import("../../../context/ThemeConte
     },
     enviarBtnDisabled: { opacity: 0.4 },
     enviarTexto: { color: "#fff", fontSize: 16 },
+    avisoSistema: { alignSelf: "center", marginBottom: 10, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: colors.backgroundSecondary, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+    avisoSistemaTexto: { fontSize: 11, color: colors.textTertiary, fontStyle: "italic", textAlign: "center" },
   });
 }
