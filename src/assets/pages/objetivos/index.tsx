@@ -381,7 +381,7 @@ export default function Objetivos() {
       setSalvando(true);
       await criarObjetivo(user.id, dados);
       setModalVisible(false);
-      carregar();
+      await carregar();
       Alert.alert("Sucesso", "Objetivo criado com sucesso.");
     } catch (e: any) {
       Alert.alert("Erro", e?.message || "Não foi possível criar o objetivo.");

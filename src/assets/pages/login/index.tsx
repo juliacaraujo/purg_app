@@ -45,6 +45,10 @@ export default function Login({ navigation }: any) {
     try {
       setLoading(true);
       const { tipo } = await tipoAcesso(email.trim());
+      if (tipo !== "senha" && tipo !== "biometria") {
+        Alert.alert("Erro", "Tipo de acesso não reconhecido. Entre em contato com o suporte.");
+        return;
+      }
       setEtapa(tipo);
     } catch (e: any) {
       Alert.alert("Erro", e?.message || "Não foi possível verificar o e-mail.");

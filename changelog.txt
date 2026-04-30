@@ -1,3 +1,34 @@
+purg-develop-18 — 2026-04-30
+- Modo Família: nova funcionalidade completa de vínculo guardião/dependente via convite por e-mail
+- Modo Família: guardião envia convite para e-mail do dependente (POST /api/v1/familia/convidar); validações de e-mail próprio, formato inválido e dependente já vinculado
+- Modo Família: tela AceitarConviteFamilia via deep link purg.com.br/familia/aceitar-convite?token=xxx com botões Aceitar, Rejeitar e Decidir depois
+- Modo Família: ao aceitar o convite, cria vínculo e exibe tela de confirmação; ao rejeitar, notifica o backend (POST /api/v1/familia/rejeitar-convite) e exibe tela de recusa
+- Modo Família: se usuário não estiver logado ao clicar no link, token é salvo e o convite é aceito automaticamente após login
+- Modo Família: guardião pode trocar para conta do dependente via SeletorPerfilModal ou seção Modo Família no perfil; confirmação via Alert antes de trocar
+- Modo Família: banner laranja persistente "Visualizando como [nome]" com botão Voltar enquanto atuando como dependente; erro de retorno exibido inline no banner
+- Modo Família: estado de "atuando como" persistido no localStorage (web) e em memória (nativo) para sobreviver a recarregamentos
+- Modo Família: FamiliaContext com trocarParaTutelado, retornarAoGuardiao, carregarTutelados e salvarConvitePendente
+- Modo Família: modal de permissões por dependente — toggles para depósito, objetivos, perfil, Pix e saque; sub-seleção de chaves Pix autorizadas; revertido otimisticamente em caso de erro
+- Modo Família: revogar vínculo com confirmação de Alert destrutivo
+- Modo Família: seção no perfil com botão "Adicionar dependente" quando não há dependentes; lista de dependentes com cards quando há vínculos
+- Modo Família: feedback visual (Alert) ao processar convite pendente automaticamente após login — sucesso ou erro
+- Modo Família: convite pendente removido do storage somente após aceite confirmado pelo backend; erros de rede mantêm o token para nova tentativa
+- Modo Família: API — 9 funções adicionadas: getFamiliaTutelados, familiaConvidar, familiaAceitarConvite, familiaRejeitarConvite, familiaTrocarPerfil, familiaRetornarPerfil, familiaGetPermissoes, familiaPutPermissoes, familiaRevogar
+- Modo Família: tipos TuteladoItem e PermissoesTutelado adicionados em src/types.ts
+- Modo Família: deep link familia/aceitar-convite configurado no linking do NavigationContainer
+- Modo Família: convite aceito silenciosamente após cadastro quando usuário chegou via link de convite (só executado se login automático pós-cadastro for bem-sucedido)
+- Correções gerais: api.ts — loginUser, validateRecoveryCode, changePassword com .catch(() => ({})) e verificação de response.ok; getBuscarDepositosPendentes com response.ok check
+- Correções gerais: home/index.tsx — loadingRef impede requests paralelos em refreshes rápidos; captura capturedUserId para descartar resultado se usuário mudar durante fetch
+- Correções gerais: setupPinCadastro — guard para userId undefined antes de chamar API; validação de dígitos todos iguais (ex: 1111) implementada
+- Correções gerais: profile/index.tsx — getPinNegociacaoStatus verifica user?.id antes de setar state
+- Correções gerais: login/index.tsx — type guard para tipo inesperado retornado pela API; exibe erro ao usuário ao invés de UI travada
+- Correções gerais: objetivos/index.tsx — await carregar() após criar objetivo garante lista atualizada
+- Correções gerais: App.tsx — handleVoltar no SeletorPerfilModal exibe Alert em caso de erro ao retornar ao perfil guardião
+- Correções gerais: regex de senha expandida de [!@#$%*] para [!@#$%^&*()\-_=+.] em signup e newPassword; mensagens atualizadas
+- Correções gerais: recoverAccount — validação de formato de e-mail antes de chamar API
+- Correções gerais: codeValidation — onChangeText filtra não-numéricos com .replace(/\D/g, "")
+- Correções gerais: ranking — estado de erro separado exibe mensagem específica ao invés de lista vazia silenciosa
+
 purg-develop-17 — 2026-04-29
 - Chat: histórico de mensagens persistido no localStorage (purg_chat_{uid}), limitado a 20 mensagens; restaurado automaticamente ao reabrir o chat
 - Chat: saudação personalizada com o apelido do usuário via getDadosCadastro; fallback para "Como posso te ajudar?" se apelido indisponível

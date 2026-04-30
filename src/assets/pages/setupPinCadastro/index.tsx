@@ -32,8 +32,16 @@ export default function SetupPinCadastro({ onConcluido, route, navigation }: Pro
   const [criando, setCriando] = useState(false);
 
   async function handleCriar() {
+    if (!userId) {
+      setErro("Não foi possível identificar o usuário. Tente fazer login novamente.");
+      return;
+    }
     if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
       setErro("A senha deve ter exatamente 4 dígitos numéricos.");
+      return;
+    }
+    if (/^(\d)\1{3}$/.test(pin)) {
+      setErro("A senha não pode ter todos os dígitos iguais (ex: 1111).");
       return;
     }
     if (pin !== pinConf) {

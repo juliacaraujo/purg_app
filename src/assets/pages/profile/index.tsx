@@ -11,6 +11,8 @@ import {
   StyleSheet,
   Animated,
   Image,
+  Switch,
+  Alert,
 } from "react-native";
 import imgBiometria from "../../../../assets/biometria.png";
 import { makeProfileStyle } from "./styles";
@@ -20,8 +22,10 @@ import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import {
   getDadosCadastro, editarPerfil, editarChavesPix, trocarSenha, putTema, atualizarPreferenciaLogin,
   getPinNegociacaoStatus, criarPinNegociacao, alterarPinNegociacao, recuperarPinSolicitar, verificarSenhaNegociacao,
+  familiaConvidar, familiaGetPermissoes, familiaPutPermissoes, familiaRevogar,
 } from "../../../services/api";
-import type { DadosCadastroResponse } from "../../../types";
+import type { DadosCadastroResponse, TuteladoItem, PermissoesTutelado } from "../../../types";
+import { useFamilia } from "../../../context/FamiliaContext";
 import { cadastrarBiometria, isPasskeySupported } from "../../../services/biometria";
 
 const PREP_MINUSCULA = new Set(["da", "de", "do", "das", "dos", "e", "a", "o", "as", "os"]);
@@ -65,6 +69,88 @@ function formatarCelular(digits: string | null | undefined): string {
   if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
   return digits;
 }
+
+const familiaS = StyleSheet.create({
+  tuteladoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    gap: 10,
+  },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarLetra: { fontSize: 16, fontWeight: "700" },
+  nome: { fontSize: 14, fontWeight: "600" },
+  email: { fontSize: 12, marginTop: 1 },
+  btns: { flexDirection: "row", gap: 6 },
+  btn: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  btnText: { fontSize: 12, fontWeight: "600" },
+  permRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  permLabel: { fontSize: 14, flex: 1, marginRight: 12 },
+  pixSubBox: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  pixSubTitulo: { fontSize: 12, fontWeight: "600", marginBottom: 10 },
+  pixCheckRow: { flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 10 },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pixCheckLabel: { fontSize: 14 },
+  permsNota: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 16,
+    fontStyle: "italic",
+  },
+  seletorItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    gap: 12,
+  },
+  seletorAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  seletorAvatarLetra: { fontSize: 18, fontWeight: "700" },
+  seletorNome: { fontSize: 15, fontWeight: "600" },
+  seletorEmail: { fontSize: 12, marginTop: 2 },
+  seletorAtivo: { fontSize: 12, fontWeight: "700" },
+});
 
 export default function Profile() {
   const { user, logout } = useAuth();
@@ -140,6 +226,24 @@ export default function Profile() {
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Modo Família
+  const { tutelados, atuandoComo, carregarTutelados, trocarParaTutelado } = useFamilia();
+
+  const [modalConvite, setModalConvite] = useState(false);
+  const [emailConvite, setEmailConvite] = useState("");
+  const [erroConvite, setErroConvite] = useState<string | null>(null);
+  const [enviandoConvite, setEnviandoConvite] = useState(false);
+
+  const [modalPermissoes, setModalPermissoes] = useState(false);
+  const [tuteladoSelecionado, setTuteladoSelecionado] = useState<TuteladoItem | null>(null);
+  const [permissoes, setPermissoes] = useState<PermissoesTutelado | null>(null);
+  const [carregandoPerms, setCarregandoPerms] = useState(false);
+  const [salvandoPerms, setSalvandoPerms] = useState(false);
+  const [erroPerms, setErroPerms] = useState<string | null>(null);
+
+  const [modalSeletor, setModalSeletor] = useState(false);
+  const [trocandoPerfil, setTrocandoPerfil] = useState<number | null>(null);
+
   function mostrarToast(msg: string, tipo: "sucesso" | "erro") {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast({ msg, tipo });
@@ -163,9 +267,132 @@ export default function Profile() {
       setRefreshing(false);
     }
     getPinNegociacaoStatus(user.id)
-      .then((s) => setPinCadastrado(s.senha_cadastrada))
-      .catch(() => setPinCadastrado(null));
-  }, [user?.id]);
+      .then((s) => { if (user?.id) setPinCadastrado(s.senha_cadastrada); })
+      .catch(() => { if (user?.id) setPinCadastrado(null); });
+    if (!atuandoComo) carregarTutelados();
+  }, [user?.id, atuandoComo, carregarTutelados]);
+
+  async function handleEnviarConvite() {
+    const emailNorm = emailConvite.trim().toLowerCase();
+
+    if (!emailNorm) { setErroConvite("Informe um e-mail."); return; }
+
+    if (!/@.+\..+/.test(emailNorm)) { setErroConvite("Informe um e-mail válido (ex: nome@email.com)."); return; }
+
+    if (user?.email && emailNorm === user.email.toLowerCase()) {
+      setErroConvite("Você não pode convidar a si mesmo.");
+      return;
+    }
+
+    if (tutelados.some((t) => t.tutelado_email.toLowerCase() === emailNorm)) {
+      setErroConvite("Este e-mail já está vinculado como dependente.");
+      return;
+    }
+
+    try {
+      setEnviandoConvite(true);
+      setErroConvite(null);
+      await familiaConvidar(emailNorm);
+      setModalConvite(false);
+      setEmailConvite("");
+      mostrarToast("Convite enviado com sucesso!", "sucesso");
+      carregarTutelados();
+    } catch (e: any) {
+      setErroConvite(e?.message || "Não foi possível enviar o convite.");
+    } finally {
+      setEnviandoConvite(false);
+    }
+  }
+
+  async function abrirModalPermissoes(t: TuteladoItem) {
+    setTuteladoSelecionado(t);
+    setErroPerms(null);
+    setPermissoes(null);
+    setModalPermissoes(true);
+    try {
+      setCarregandoPerms(true);
+      const p = await familiaGetPermissoes(t.tutelado_id);
+      setPermissoes(p);
+    } catch (e: any) {
+      setErroPerms(e?.message || "Não foi possível carregar as permissões.");
+    } finally {
+      setCarregandoPerms(false);
+    }
+  }
+
+  async function salvarPermissao(campo: keyof Omit<PermissoesTutelado, "tutelado_id" | "atualizado_em" | "chaves_pix_autorizadas">, valor: boolean) {
+    if (!tuteladoSelecionado || !permissoes) return;
+    const novas = { ...permissoes, [campo]: valor };
+    setPermissoes(novas);
+    try {
+      setSalvandoPerms(true);
+      await familiaPutPermissoes(tuteladoSelecionado.tutelado_id, { [campo]: valor });
+    } catch (e: any) {
+      setPermissoes(permissoes); // reverte
+      mostrarToast(e?.message || "Erro ao salvar permissão.", "erro");
+    } finally {
+      setSalvandoPerms(false);
+    }
+  }
+
+  async function salvarChavesPix(chaves: string[]) {
+    if (!tuteladoSelecionado || !permissoes) return;
+    const novas = { ...permissoes, chaves_pix_autorizadas: chaves };
+    setPermissoes(novas);
+    try {
+      await familiaPutPermissoes(tuteladoSelecionado.tutelado_id, { chaves_pix_autorizadas: chaves });
+    } catch (e: any) {
+      setPermissoes(permissoes);
+      mostrarToast(e?.message || "Erro ao salvar chaves Pix.", "erro");
+    }
+  }
+
+  function confirmarRevogar(t: TuteladoItem) {
+    Alert.alert(
+      "Remover vínculo",
+      `Tem certeza que deseja remover ${t.tutelado_nome} como dependente?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Remover",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await familiaRevogar(t.tutelado_id);
+              mostrarToast("Vínculo removido.", "sucesso");
+              carregarTutelados();
+            } catch (e: any) {
+              mostrarToast(e?.message || "Não foi possível remover o vínculo.", "erro");
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  function handleTrocarPerfil(tuteladoId: number, nome: string) {
+    Alert.alert(
+      "Trocar perfil",
+      `Você vai visualizar a conta de ${nome}. Deseja continuar?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Continuar",
+          onPress: async () => {
+            try {
+              setTrocandoPerfil(tuteladoId);
+              await trocarParaTutelado(tuteladoId, nome);
+              setModalSeletor(false);
+            } catch (e: any) {
+              mostrarToast(e?.message || "Não foi possível trocar de perfil.", "erro");
+            } finally {
+              setTrocandoPerfil(null);
+            }
+          },
+        },
+      ]
+    );
+  }
 
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -548,10 +775,252 @@ export default function Profile() {
           )}
         </View>
 
+        {/* Modo Família — Seletor de conta (quando tem tutelados ou está atuando como tutelado) */}
+        {(tutelados.length > 0 || atuandoComo) && (
+          <View style={style.secao}>
+            <Text style={[style.secaoTitulo, { marginBottom: 12 }]}>Perfil ativo</Text>
+            <TouchableOpacity
+              style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }]}
+              onPress={() => setModalSeletor(true)}
+            >
+              <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Alternar conta</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Modo Família — Gerenciar dependentes (só visível quando NÃO estiver atuando como tutelado) */}
+        {!atuandoComo && (
+          <View style={style.secao}>
+            <Text style={style.secaoTitulo}>Modo Família</Text>
+            <Text style={[ms.bioDesc, { color: colors.textSecondary }]}>
+              Vincule dependentes e gerencie o que cada um pode fazer na conta deles.
+            </Text>
+            {tutelados.length === 0 ? (
+              <TouchableOpacity
+                style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }]}
+                onPress={() => { setEmailConvite(""); setErroConvite(null); setModalConvite(true); }}
+              >
+                <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Adicionar dependente</Text>
+              </TouchableOpacity>
+            ) : (
+              tutelados.map((t) => (
+                <View key={t.id} style={[familiaS.tuteladoCard, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+                  <View style={[familiaS.avatar, { backgroundColor: colors.primary + "22" }]}>
+                    <Text style={[familiaS.avatarLetra, { color: colors.primary }]}>{t.tutelado_nome?.[0]?.toUpperCase() ?? "?"}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[familiaS.nome, { color: colors.textPrimary }]}>{t.tutelado_nome}</Text>
+                    <Text style={[familiaS.email, { color: colors.textSecondary }]} numberOfLines={1}>{t.tutelado_email}</Text>
+                  </View>
+                  <View style={familiaS.btns}>
+                    <TouchableOpacity
+                      style={[familiaS.btn, { borderColor: colors.primary }]}
+                      onPress={() => abrirModalPermissoes(t)}
+                    >
+                      <Text style={[familiaS.btnText, { color: colors.primary }]}>Permissões</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[familiaS.btn, { borderColor: "#FF3B30" }]}
+                      onPress={() => confirmarRevogar(t)}
+                    >
+                      <Text style={[familiaS.btnText, { color: "#FF3B30" }]}>Remover</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        )}
+
         <TouchableOpacity style={style.botaoSair} onPress={logout}>
           <Text style={style.botaoSairTexto}>Sair</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Modal — Convidar tutelado */}
+      <Modal visible={modalConvite} animationType="slide" transparent>
+        <View style={ms.overlay}>
+          <View style={ms.modal}>
+            <Text style={ms.modalTitulo}>Convidar dependente</Text>
+            <Text style={[ms.bioDesc, { color: colors.textSecondary }]}>
+              Informe o e-mail do usuário que deseja vincular como dependente. Um e-mail de convite será enviado.
+            </Text>
+            <Text style={ms.inputLabel}>E-mail do dependente</Text>
+            <TextInput
+              style={ms.input}
+              placeholder="email@exemplo.com"
+              placeholderTextColor="#bbb"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={emailConvite}
+              onChangeText={(v) => { setEmailConvite(v); setErroConvite(null); }}
+            />
+            {erroConvite && <View style={ms.modalErro}><Text style={ms.modalErroTexto}>{erroConvite}</Text></View>}
+            <View style={ms.modalBtns}>
+              <TouchableOpacity style={ms.btnCancelar} onPress={() => setModalConvite(false)}>
+                <Text style={ms.btnCancelarText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[ms.btnSalvar, enviandoConvite && { opacity: 0.6 }]}
+                onPress={handleEnviarConvite}
+                disabled={enviandoConvite}
+              >
+                {enviandoConvite ? <ActivityIndicator color="#fff" /> : <Text style={ms.btnSalvarText}>Enviar convite</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal — Permissões do tutelado */}
+      <Modal visible={modalPermissoes} animationType="slide" transparent>
+        <View style={ms.overlay}>
+          <View style={[ms.modal, { maxHeight: "90%" as any }]}>
+            <Text style={ms.modalTitulo}>Permissões — {tuteladoSelecionado?.tutelado_nome}</Text>
+            {carregandoPerms ? (
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: 24 }} />
+            ) : erroPerms ? (
+              <View style={ms.modalErro}><Text style={ms.modalErroTexto}>{erroPerms}</Text></View>
+            ) : permissoes ? (
+              <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+                <Text style={[familiaS.permsNota, { color: colors.textTertiary }]}>
+                  Estas configurações são compartilhadas entre todos os responsáveis deste usuário.
+                </Text>
+                {([
+                  { campo: "pode_depositar" as const, label: "Pode realizar depósitos" },
+                  { campo: "pode_criar_objetivos" as const, label: "Pode criar objetivos" },
+                  { campo: "pode_alterar_perfil" as const, label: "Pode alterar dados de perfil" },
+                  { campo: "pode_alterar_pix" as const, label: "Pode alterar chaves Pix" },
+                ] as const).map(({ campo, label }) => (
+                  <View key={campo} style={[familiaS.permRow, { borderBottomColor: colors.border }]}>
+                    <Text style={[familiaS.permLabel, { color: colors.textPrimary }]}>{label}</Text>
+                    <Switch
+                      value={permissoes[campo]}
+                      onValueChange={(v) => salvarPermissao(campo, v)}
+                      trackColor={{ false: colors.border, true: colors.primary }}
+                      thumbColor="#fff"
+                      disabled={salvandoPerms}
+                    />
+                  </View>
+                ))}
+                {/* Pode sacar (com sub-seleção de chaves Pix) */}
+                <View style={[familiaS.permRow, { borderBottomColor: colors.border }]}>
+                  <Text style={[familiaS.permLabel, { color: colors.textPrimary }]}>Pode realizar saques</Text>
+                  <Switch
+                    value={permissoes.pode_sacar}
+                    onValueChange={(v) => salvarPermissao("pode_sacar", v)}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                    thumbColor="#fff"
+                    disabled={salvandoPerms}
+                  />
+                </View>
+                {permissoes.pode_sacar && (
+                  <View style={[familiaS.pixSubBox, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+                    <Text style={[familiaS.pixSubTitulo, { color: colors.textSecondary }]}>Chaves Pix autorizadas para saque:</Text>
+                    {([
+                      { key: "pix_cpf", label: "CPF" },
+                      { key: "pix_celular", label: "Celular" },
+                      { key: "pix_email", label: "E-mail" },
+                      { key: "pix_chave", label: "Chave aleatória" },
+                    ]).map(({ key, label }) => {
+                      const ativa = permissoes.chaves_pix_autorizadas.includes(key);
+                      return (
+                        <TouchableOpacity
+                          key={key}
+                          style={familiaS.pixCheckRow}
+                          onPress={() => {
+                            const novas = ativa
+                              ? permissoes.chaves_pix_autorizadas.filter((c) => c !== key)
+                              : [...permissoes.chaves_pix_autorizadas, key];
+                            salvarChavesPix(novas);
+                          }}
+                        >
+                          <View style={[familiaS.checkbox, { borderColor: ativa ? colors.primary : colors.border, backgroundColor: ativa ? colors.primary : "transparent" }]}>
+                            {ativa && <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>✓</Text>}
+                          </View>
+                          <Text style={[familiaS.pixCheckLabel, { color: colors.textPrimary }]}>{label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </ScrollView>
+            ) : null}
+            <TouchableOpacity style={[ms.btnSalvar, { marginTop: 16 }]} onPress={() => setModalPermissoes(false)}>
+              <Text style={ms.btnSalvarText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal — Seletor de perfil */}
+      <Modal visible={modalSeletor} animationType="slide" transparent>
+        <View style={ms.overlay}>
+          <View style={ms.modal}>
+            <Text style={ms.modalTitulo}>Escolher perfil</Text>
+            {/* Minha conta */}
+            <TouchableOpacity
+              style={[familiaS.seletorItem, {
+                borderColor: !atuandoComo ? colors.primary : colors.border,
+                backgroundColor: !atuandoComo ? colors.primary + "11" : colors.backgroundSecondary,
+              }]}
+              onPress={() => {
+                if (!atuandoComo) { setModalSeletor(false); return; }
+                setModalSeletor(false);
+              }}
+              disabled={!atuandoComo}
+            >
+              <View style={[familiaS.seletorAvatar, { backgroundColor: colors.primary + "33" }]}>
+                <Text style={[familiaS.seletorAvatarLetra, { color: colors.primary }]}>
+                  {dados?.nome_completo?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? "?"}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[familiaS.seletorNome, { color: colors.textPrimary }]}>
+                  {dados?.apelido || dados?.nome_completo || "Minha conta"}
+                </Text>
+                <Text style={[familiaS.seletorEmail, { color: colors.textSecondary }]}>Conta principal</Text>
+              </View>
+              {!atuandoComo && <Text style={[familiaS.seletorAtivo, { color: colors.primary }]}>Ativo</Text>}
+            </TouchableOpacity>
+            {/* Tutelados */}
+            {tutelados.map((t) => {
+              const isAtivo = atuandoComo?.id === t.tutelado_id;
+              return (
+                <TouchableOpacity
+                  key={t.id}
+                  style={[familiaS.seletorItem, {
+                    borderColor: isAtivo ? colors.primary : colors.border,
+                    backgroundColor: isAtivo ? colors.primary + "11" : colors.backgroundSecondary,
+                    opacity: trocandoPerfil === t.tutelado_id ? 0.6 : 1,
+                  }]}
+                  onPress={() => handleTrocarPerfil(t.tutelado_id, t.tutelado_nome)}
+                  disabled={!!trocandoPerfil || isAtivo}
+                >
+                  <View style={[familiaS.seletorAvatar, { backgroundColor: "#E0700011" }]}>
+                    <Text style={[familiaS.seletorAvatarLetra, { color: "#E07000" }]}>
+                      {t.tutelado_nome?.[0]?.toUpperCase() ?? "?"}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[familiaS.seletorNome, { color: colors.textPrimary }]}>{t.tutelado_nome}</Text>
+                    <Text style={[familiaS.seletorEmail, { color: colors.textSecondary }]} numberOfLines={1}>{t.tutelado_email}</Text>
+                  </View>
+                  {trocandoPerfil === t.tutelado_id
+                    ? <ActivityIndicator color={colors.primary} size="small" />
+                    : isAtivo
+                      ? <Text style={[familiaS.seletorAtivo, { color: colors.primary }]}>Ativo</Text>
+                      : null
+                  }
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity style={[ms.btnCancelar, { marginTop: 16 }]} onPress={() => setModalSeletor(false)}>
+              <Text style={ms.btnCancelarText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Modal — Dados pessoais */}
       <ModalEdicao visible={modalDados} titulo="Editar Dados" onClose={() => setModalDados(false)} onSalvar={salvarDados} loading={salvando} erro={erroDados} ms={ms}>

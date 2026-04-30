@@ -14,8 +14,12 @@ export default function RecoverAccount({ navigation }: any) {
   const [loading, setLoading] = useState(false);
 
   const handleRecover = async () => {
-    if (!email) {
+    if (!email.trim()) {
       Alert.alert("Atenção", "Informe o e-mail.");
+      return;
+    }
+    if (!/@.+\..+/.test(email.trim())) {
+      Alert.alert("Atenção", "Informe um e-mail válido (ex: nome@email.com).");
       return;
     }
 

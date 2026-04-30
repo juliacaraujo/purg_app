@@ -68,7 +68,7 @@ export default function CodeValidation({ route, navigation }) {
         placeholder="Código de validação"
         keyboardType="number-pad"
         value={code}
-        onChangeText={setCode}
+        onChangeText={(v) => setCode(v.replace(/\D/g, ""))}
         maxLength={6}
       />
 

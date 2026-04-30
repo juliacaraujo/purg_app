@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { style } from "./styles";
-import { criarConta, loginUser } from "../../../services/api";
+import { criarConta, loginUser, familiaAceitarConvite } from "../../../services/api";
 
 // -----------------------------------------------
 // Conteúdo de cada termo
@@ -195,6 +195,7 @@ const TODOS_TERMOS = TEXTO_USO + "\n\n──────────────
 // -----------------------------------------------
 export default function Terms({ navigation, route }: any) {
   const dadosCadastro = route?.params ?? {};
+  const conviteToken: string = dadosCadastro.convite ?? "";
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
 
   const [acceptedUso, setAcceptedUso] = useState(false);
@@ -254,7 +255,13 @@ export default function Terms({ navigation, route }: any) {
       }
 
       // Faz login automático para estabelecer sessão (necessário para criar o PIN)
-      try { await loginUser(email, senha); } catch {}
+      let loginOk = false;
+      try { await loginUser(email, senha); loginOk = true; } catch {}
+
+      // Aceita convite de responsável somente se o login estabeleceu sessão
+      if (conviteToken && loginOk) {
+        try { await familiaAceitarConvite(conviteToken); } catch {}
+      }
 
       navigation.navigate("SetupPinCadastro", { userId: result.userId });
     } catch (e: any) {

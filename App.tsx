@@ -13,6 +13,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Modal,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import imgHome from "./assets/home.png";
@@ -26,6 +29,9 @@ import { isWeb, MAX_WIDTH } from "./src/assets/global/responsive";
 
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { ThemeProvider, useTheme, lightColors } from "./src/context/ThemeContext";
+import { FamiliaProvider, useFamilia } from "./src/context/FamiliaContext";
+import { BannerAtuandoComo } from "./src/assets/components/BannerAtuandoComo";
+import AceitarConviteFamilia from "./src/assets/pages/familia/aceitarConvite";
 import { makeLoginStyle } from "./src/assets/pages/login/styles";
 import { getTema } from "./src/services/api";
 
@@ -163,13 +169,169 @@ function LoginScreen({ navigation }: any) {
 }
 
 
+/* Exibe Alert após auto-aceite de convite pendente (pós-login) */
+function ConvitePendenteAlerta() {
+  const { convitePendenteResultado, limparConvitePendenteResultado } = useFamilia();
+
+  useEffect(() => {
+    if (!convitePendenteResultado) return;
+    if (convitePendenteResultado === "aceito") {
+      Alert.alert("Convite aceito!", "Você agora tem um responsável vinculado à sua conta.");
+    } else {
+      Alert.alert("Convite pendente", "Não foi possível processar o convite automaticamente. Verifique o link e tente novamente.");
+    }
+    limparConvitePendenteResultado();
+  }, [convitePendenteResultado]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+}
+
 /* ──────────────────────────────────────────────
    Ícones do header (Perfil + Chat)
 ────────────────────────────────────────────── */
+function SeletorPerfilModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const { colors } = useTheme();
+  const { tutelados, atuandoComo, trocarParaTutelado, retornarAoGuardiao } = useFamilia();
+  const { user } = useAuth();
+  const [trocando, setTrocando] = useState<number | "guardiao" | null>(null);
+
+  const handleTrocar = (tuteladoId: number, nome: string) => {
+    Alert.alert(
+      "Trocar perfil",
+      `Você vai visualizar a conta de ${nome}. Deseja continuar?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Continuar",
+          onPress: async () => {
+            try {
+              setTrocando(tuteladoId);
+              await trocarParaTutelado(tuteladoId, nome);
+              onClose();
+            } catch { /* ignored */ } finally { setTrocando(null); }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleVoltar = async () => {
+    try {
+      setTrocando("guardiao");
+      await retornarAoGuardiao();
+      onClose();
+    } catch {
+      Alert.alert("Erro", "Não foi possível voltar ao seu perfil. Tente novamente.");
+    } finally { setTrocando(null); }
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <TouchableOpacity style={seletorS.overlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={[seletorS.sheet, { backgroundColor: colors.background }]}>
+          <Text style={[seletorS.titulo, { color: colors.textPrimary }]}>Escolher perfil</Text>
+
+          {/* Conta própria */}
+          <TouchableOpacity
+            style={[seletorS.item, {
+              borderColor: !atuandoComo ? colors.primary : colors.border,
+              backgroundColor: !atuandoComo ? colors.primary + "11" : colors.backgroundSecondary,
+            }]}
+            onPress={() => { if (atuandoComo) handleVoltar(); else onClose(); }}
+            disabled={!atuandoComo || trocando === "guardiao"}
+          >
+            <View style={[seletorS.avatar, { backgroundColor: colors.primary + "33" }]}>
+              <Text style={[seletorS.avatarLetra, { color: colors.primary }]}>
+                {user?.email?.[0]?.toUpperCase() ?? "G"}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[seletorS.nome, { color: colors.textPrimary }]}>Minha conta</Text>
+              <Text style={[seletorS.sub, { color: colors.textSecondary }]}>Conta principal</Text>
+            </View>
+            {trocando === "guardiao"
+              ? <ActivityIndicator color={colors.primary} size="small" />
+              : !atuandoComo
+                ? <Text style={[seletorS.ativo, { color: colors.primary }]}>Ativo</Text>
+                : null
+            }
+          </TouchableOpacity>
+
+          {/* Tutelados */}
+          {tutelados.map((t) => {
+            const isAtivo = atuandoComo?.id === t.tutelado_id;
+            return (
+              <TouchableOpacity
+                key={t.id}
+                style={[seletorS.item, {
+                  borderColor: isAtivo ? colors.primary : colors.border,
+                  backgroundColor: isAtivo ? colors.primary + "11" : colors.backgroundSecondary,
+                  opacity: trocando !== null || isAtivo ? 0.7 : 1,
+                }]}
+                onPress={() => handleTrocar(t.tutelado_id, t.tutelado_nome)}
+                disabled={!!trocando || isAtivo}
+              >
+                <View style={[seletorS.avatar, { backgroundColor: "#E0700022" }]}>
+                  <Text style={[seletorS.avatarLetra, { color: "#E07000" }]}>
+                    {t.tutelado_nome?.[0]?.toUpperCase() ?? "?"}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[seletorS.nome, { color: colors.textPrimary }]}>{t.tutelado_nome}</Text>
+                  <Text style={[seletorS.sub, { color: colors.textSecondary }]} numberOfLines={1}>{t.tutelado_email}</Text>
+                </View>
+                {trocando === t.tutelado_id
+                  ? <ActivityIndicator color={colors.primary} size="small" />
+                  : isAtivo
+                    ? <Text style={[seletorS.ativo, { color: colors.primary }]}>Ativo</Text>
+                    : null
+                }
+              </TouchableOpacity>
+            );
+          })}
+
+          <TouchableOpacity
+            style={[seletorS.btnFechar, { borderColor: colors.border }]}
+            onPress={onClose}
+          >
+            <Text style={[seletorS.btnFecharText, { color: colors.textSecondary }]}>Fechar</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+const seletorS = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  titulo: { fontSize: 17, fontWeight: "700", marginBottom: 18 },
+  item: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 10, gap: 12 },
+  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  avatarLetra: { fontSize: 17, fontWeight: "700" },
+  nome: { fontSize: 15, fontWeight: "600" },
+  sub: { fontSize: 12, marginTop: 2 },
+  ativo: { fontSize: 12, fontWeight: "700" },
+  btnFechar: { borderWidth: 1, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },
+  btnFecharText: { fontWeight: "600", fontSize: 15 },
+});
+
 function HeaderRight({ navigation }: { navigation: any }) {
   const { colors } = useTheme();
+  const { temTutelados, atuandoComo } = useFamilia();
+  const [seletorVisivel, setSeletorVisivel] = useState(false);
+  const mostraSeletor = temTutelados || atuandoComo !== null;
+
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginRight: 14, gap: 16 }}>
+      {mostraSeletor && (
+        <TouchableOpacity
+          onPress={() => setSeletorVisivel(true)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons name="account-switch-outline" size={26} color={atuandoComo ? "#E07000" : colors.textTertiary} />
+        </TouchableOpacity>
+      )}
       <TouchableOpacity
         onPress={() => navigation.navigate("Chat")}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -182,6 +344,7 @@ function HeaderRight({ navigation }: { navigation: any }) {
       >
         <Image source={imgPerfil} style={{ width: 28, height: 28, tintColor: colors.textTertiary }} resizeMode="contain" />
       </TouchableOpacity>
+      <SeletorPerfilModal visible={seletorVisivel} onClose={() => setSeletorVisivel(false)} />
     </View>
   );
 }
@@ -520,6 +683,22 @@ function RootNavigator() {
               ),
             })}
           />
+          <RootStack.Screen
+            name="AceitarConviteFamilia"
+            component={AceitarConviteFamilia}
+            options={({ navigation }) => ({
+              headerShown: true,
+              title: "",
+              headerStyle: { backgroundColor: colors.header, elevation: 0, shadowOpacity: 0 },
+              headerShadowVisible: false,
+              headerTintColor: colors.textPrimary,
+              headerLeft: () => (
+                <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 14 }}>
+                  <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
+                </TouchableOpacity>
+              ),
+            })}
+          />
       </RootStack.Navigator>
       </>
     );
@@ -559,6 +738,7 @@ const linking: LinkingOptions<any> = {
       Withdraw: "sacar", Deposit: "depositar", PixInfo: "pix",
       MolduraPreview: "preview-molduras",
       PinRecuperacao: "pin-recuperacao",
+      AceitarConviteFamilia: "familia/aceitar-convite",
     },
   },
 };
@@ -568,18 +748,25 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
-          <NavigationContainer linking={linking} documentTitle={{ formatter: () => "Purg" }}>
-            <StatusBar style="auto" />
-            {isWeb ? (
-              <View style={appStyles.webOuter}>
-                <View style={appStyles.webInner}>
-                  <RootNavigator />
+          <FamiliaProvider>
+            <ConvitePendenteAlerta />
+            <NavigationContainer linking={linking} documentTitle={{ formatter: () => "Purg" }}>
+              <StatusBar style="auto" />
+              {isWeb ? (
+                <View style={appStyles.webOuter}>
+                  <View style={appStyles.webInner}>
+                    <BannerAtuandoComo />
+                    <RootNavigator />
+                  </View>
                 </View>
-              </View>
-            ) : (
-              <RootNavigator />
-            )}
-          </NavigationContainer>
+              ) : (
+                <>
+                  <BannerAtuandoComo />
+                  <RootNavigator />
+                </>
+              )}
+            </NavigationContainer>
+          </FamiliaProvider>
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>

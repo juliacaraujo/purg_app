@@ -60,7 +60,9 @@ export async function loginUser(email: string, senha: string) {
     body: JSON.stringify({ email, password: senha }),
   });
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) throw new ApiError(data?.message || "Erro ao fazer login.", response.status);
 
   return {
     success: !!data?.success,
@@ -169,7 +171,7 @@ export async function solicitarSaque(usuarioId: number, valor: number, chavePix?
     const msg =
       data?.codigo === "OBJETIVOS_NAO_CONFIGURADOS"
         ? "Configure um objetivo antes do primeiro saque."
-        : data?.message || "Ação não permitida.";
+        : data?.error || data?.message || "Ação não permitida.";
     throw new ApiError(msg, 403);
   }
 
@@ -322,7 +324,9 @@ export async function validateRecoveryCode(email: string, code: string) {
     body: JSON.stringify({ email, codigo: code }),
   });
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) throw new ApiError(data?.message || "Erro ao validar código.", response.status);
 
   return {
     success: !!data?.success,
@@ -336,7 +340,9 @@ export async function changePassword(email: string, novaSenha: string) {
     body: JSON.stringify({ email, nova_senha: novaSenha }),
   });
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) throw new ApiError(data?.message || "Erro ao alterar senha.", response.status);
 
   return {
     success: !!data?.success,
@@ -402,7 +408,7 @@ export async function solicitarDeposito(usuarioId: number, amount: number) {
     const msg =
       data?.codigo === "OBJETIVOS_NAO_CONFIGURADOS"
         ? "Configure um objetivo antes do primeiro depósito."
-        : data?.message || "Ação não permitida.";
+        : data?.error || data?.message || "Ação não permitida.";
     throw new ApiError(msg, 403);
   }
 
@@ -445,7 +451,9 @@ export async function cancelarDeposito(depositoId: number) {
 export async function getBuscarDepositosPendentes(usuarioId: number) {
   const response = await apiFetch(`/api/v1/buscar-depositos-pendentes/${usuarioId}`);
 
-  const data = await response.json();
+  if (!response.ok) throw new ApiError("Erro ao buscar depósitos pendentes", response.status);
+
+  const data = await response.json().catch(() => ({}));
 
   return Array.isArray(data) ? data : [];
 }
@@ -807,4 +815,83 @@ export async function getProjecaoRendimento(usuarioId: number): Promise<import("
    ====================================================== */
 export function getTotalPinsFromPins(pins: PinUsuario[]): number {
   return pins.length;
+}
+
+/* ======================================================
+   MODO FAMÍLIA
+   ====================================================== */
+
+export async function getFamiliaTutelados(): Promise<import("../types").TuteladoItem[]> {
+  const response = await apiFetch("/api/v1/familia/tutelados");
+  if (!response.ok) throw new ApiError("Erro ao buscar tutelados", response.status);
+  const data = await response.json();
+  return data.tutelados ?? [];
+}
+
+export async function familiaConvidar(email: string): Promise<{ message: string }> {
+  const response = await apiFetch("/api/v1/familia/convidar", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao enviar convite.", response.status);
+  return data;
+}
+
+export async function familiaAceitarConvite(token: string): Promise<{ message: string }> {
+  const response = await apiFetch("/api/v1/familia/aceitar-convite", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao aceitar convite.", response.status);
+  return data;
+}
+
+export async function familiaTrocarPerfil(tuteladoId: number): Promise<{ tutelado: { id: number; nome: string } }> {
+  const response = await apiFetch(`/api/v1/familia/trocar-perfil/${tuteladoId}`, { method: "POST" });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao trocar perfil.", response.status);
+  return data;
+}
+
+export async function familiaRetornarPerfil(): Promise<{ guardiao: { id: number; nome: string } }> {
+  const response = await apiFetch("/api/v1/familia/retornar-perfil", { method: "POST" });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao retornar ao perfil.", response.status);
+  return data;
+}
+
+export async function familiaGetPermissoes(tuteladoId: number): Promise<import("../types").PermissoesTutelado> {
+  const response = await apiFetch(`/api/v1/familia/permissoes/${tuteladoId}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao buscar permissões.", response.status);
+  return data.permissoes;
+}
+
+export async function familiaPutPermissoes(
+  tuteladoId: number,
+  permissoes: Partial<Omit<import("../types").PermissoesTutelado, "tutelado_id" | "atualizado_em">>
+): Promise<void> {
+  const response = await apiFetch(`/api/v1/familia/permissoes/${tuteladoId}`, {
+    method: "PUT",
+    body: JSON.stringify(permissoes),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao atualizar permissões.", response.status);
+}
+
+export async function familiaRevogar(tuteladoId: number): Promise<void> {
+  const response = await apiFetch(`/api/v1/familia/revogar/${tuteladoId}`, { method: "DELETE" });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao revogar vínculo.", response.status);
+}
+
+export async function familiaRejeitarConvite(token: string): Promise<void> {
+  const response = await apiFetch("/api/v1/familia/rejeitar-convite", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao rejeitar convite.", response.status);
 }

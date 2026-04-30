@@ -24,11 +24,11 @@ export default function NewPassword({ route, navigation }) {
     if (
       newPassword.length < 8 ||
       !/[A-Z]/.test(newPassword) ||
-      !/[!@#$%*]/.test(newPassword)
+      !/[!@#$%^&*()\-_=+.]/.test(newPassword)
     ) {
       Alert.alert(
         "Senha inválida",
-        "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula e um caractere especial (! @ # $ % *)."
+        "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula e um caractere especial (! @ # $ % ^ & * - _ = + .)."
       );
       return;
     }

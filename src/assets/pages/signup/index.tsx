@@ -24,7 +24,8 @@ import {
 } from "react-native";
 import { style } from "./styles";
 
-export default function Signup({ navigation }) {
+export default function Signup({ navigation, route }: any) {
+  const conviteToken: string = route?.params?.convite ?? "";
   const [nome, setNome] = useState("");
   const [nomeMae, setNomeMae] = useState("");
   const [cpf, setCpf] = useState("");
@@ -148,7 +149,7 @@ export default function Signup({ navigation }) {
   const criterios = {
     tamanho: senha.length >= 8,
     maiuscula: /[A-Z]/.test(senha),
-    especial: /[!@#$%*]/.test(senha),
+    especial: /[!@#$%^&*()\-_=+.]/.test(senha),
   };
   const senhaValida = criterios.tamanho && criterios.maiuscula && criterios.especial;
 
@@ -216,7 +217,7 @@ export default function Signup({ navigation }) {
     if (!senhaValida) {
       Alert.alert(
         "Senha inválida",
-        "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula e um caractere especial."
+        "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula e um caractere especial (! @ # $ % ^ & * - _ = + .)."
       );
       return;
     }
@@ -230,6 +231,7 @@ export default function Signup({ navigation }) {
       senha,
       data_nascimento: dataNascParaISO(dataNasc),
       genero,
+      convite: conviteToken || undefined,
     });
   };
 
@@ -337,7 +339,7 @@ export default function Signup({ navigation }) {
         </View>
         <View style={style.criterioRow}>
           <Text style={[style.criterioIcon, criterios.especial && style.criterioOk]}>●</Text>
-          <Text style={[style.criterioTexto, criterios.especial && style.criterioOk]}>No mínimo 1 caractere especial (! @ # $ % *)</Text>
+          <Text style={[style.criterioTexto, criterios.especial && style.criterioOk]}>No mínimo 1 caractere especial (! @ # $ % ^ & * - _ = + .)</Text>
         </View>
       </View>
 

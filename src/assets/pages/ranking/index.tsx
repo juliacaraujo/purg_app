@@ -23,13 +23,16 @@ export default function Ranking() {
   const [items, setItems] = useState<RankingItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [erro, setErro] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
       setLoading(true);
+      setErro(false);
       const data = await getRanking();
       setItems(Array.isArray(data) ? data : []);
     } catch {
+      setErro(true);
       setItems([]);
     } finally {
       setLoading(false);
@@ -53,7 +56,13 @@ export default function Ranking() {
 
         {loading && <ActivityIndicator style={{ marginTop: 20 }} color={colors.primary} />}
 
-        {!loading && items.length === 0 && (
+        {!loading && erro && (
+          <View style={s.empty}>
+            <Text style={s.emptyText}>Não foi possível carregar o ranking. Puxe para atualizar.</Text>
+          </View>
+        )}
+
+        {!loading && !erro && items.length === 0 && (
           <View style={s.empty}>
             <Text style={s.emptyText}>Nenhum dado disponível</Text>
           </View>

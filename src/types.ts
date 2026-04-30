@@ -128,3 +128,22 @@ export interface RankingItem {
   pontos: number;
   liga: string;
 }
+
+export interface TuteladoItem {
+  id: number;
+  tutelado_id: number;
+  tutelado_nome: string;
+  tutelado_email: string;
+  criado_em: string;
+}
+
+export interface PermissoesTutelado {
+  tutelado_id: number;
+  pode_sacar: boolean;
+  chaves_pix_autorizadas: string[];
+  pode_depositar: boolean;
+  pode_criar_objetivos: boolean;
+  pode_alterar_perfil: boolean;
+  pode_alterar_pix: boolean;
+  atualizado_em: string;
+}

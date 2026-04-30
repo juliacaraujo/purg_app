@@ -16,6 +16,7 @@ type AuthContextType = {
   user: User | null;
   login: (user: User) => void;
   logout: () => void;
+  updateUser: (user: User) => void;
   isLoading: boolean;
   freshLogin: boolean;
   clearFreshLogin: () => void;
@@ -81,6 +82,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     webStorage.set(STORAGE_ID_KEY, String(u.id));
     if (u.email) webStorage.set(STORAGE_EMAIL_KEY, u.email);
     webStorage.remove(STORAGE_HIDDEN_AT_KEY);
+  }, []);
+
+  const updateUser = useCallback((u: User) => {
+    setUser(u);
+    webStorage.set(STORAGE_ID_KEY, String(u.id));
+    if (u.email) webStorage.set(STORAGE_EMAIL_KEY, u.email);
+    else webStorage.remove(STORAGE_EMAIL_KEY);
   }, []);
 
   // Ao montar: tenta restaurar sessão salva (corrige bug de reload no web)
@@ -177,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, logout]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading, freshLogin, clearFreshLogin }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading, freshLogin, clearFreshLogin }}>
       {children}
     </AuthContext.Provider>
   );

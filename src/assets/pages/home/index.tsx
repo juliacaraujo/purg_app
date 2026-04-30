@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -68,6 +68,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
   const [hidden, setHidden] = useState(false);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const loadingRef = useRef(false);
 
   const [nome, setNome] = useState("");
   const [assinatura, setAssinatura] = useState<string | boolean | null>(null);
@@ -102,15 +103,21 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
 
   const carregar = useCallback(async () => {
     if (!user?.id) return;
+    // Evita requests paralelos em caso de refreshes rápidos
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    const capturedUserId = user.id;
     try {
       setLoading(true);
       const [cad, cart, rend, hist, histRend] = await Promise.allSettled([
-        getDadosCadastro(user.id),
-        getCarteira(user.id),
-        getRendimentosUsuario(user.id),
-        getHistoricoPatrimonio(user.id),
-        getHistoricoRendimentos(user.id),
+        getDadosCadastro(capturedUserId),
+        getCarteira(capturedUserId),
+        getRendimentosUsuario(capturedUserId),
+        getHistoricoPatrimonio(capturedUserId),
+        getHistoricoRendimentos(capturedUserId),
       ]);
+      // Se o usuário mudou durante o fetch (logout/troca), descarta resultado
+      if (user?.id !== capturedUserId) return;
       if (cad.status === "fulfilled") {
         setNome(cad.value?.apelido ?? "");
         setAssinatura(cad.value?.assinatura ?? null);
@@ -143,6 +150,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
         Alert.alert("Erro", "Não foi possível carregar a Home.");
       }
     } finally {
+      loadingRef.current = false;
       setLoading(false);
       setRefreshing(false);
     }
