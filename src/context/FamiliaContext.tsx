@@ -83,6 +83,19 @@ export function FamiliaProvider({ children }: { children: ReactNode }) {
   const restoredForUserRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (user?.id) return;
+    // Logout: limpa estado e storage para não restaurar sessão de dependente no próximo login
+    webStorage.remove(STORAGE_GUARDIAO_ID);
+    webStorage.remove(STORAGE_GUARDIAO_EMAIL);
+    webStorage.remove(STORAGE_GUARDIAO_AVATAR);
+    webStorage.remove(STORAGE_ATUANDO_NOME);
+    setAtuandoComo(null);
+    setGuardiaoOriginal(null);
+    setTutelados([]);
+    restoredForUserRef.current = null;
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     if (!user?.id || restoredForUserRef.current === user.id) return;
     restoredForUserRef.current = user.id;
 

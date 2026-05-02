@@ -1,3 +1,9 @@
+purg-develop-21 — 2026-05-02
+- Ranking: avatar do usuário exibido entre a posição e o nome em cada card; fallback com círculo + inicial do apelido quando avatar_id não está mapeado
+- Ranking: campo avatar_id adicionado ao tipo RankingItem em types.ts
+- Modo Família: correção — ao fazer logout estando na conta de um dependente, o estado "atuando como" não era limpo; ao logar novamente o app restaurava erroneamente a sessão do dependente; corrigido com useEffect que limpa estado e localStorage ao detectar user tornando-se null
+- Perfil: checklist de validações de senha movido para abaixo do campo "Confirmar nova senha" na modal de troca de senha de acesso
+
 purg-develop-20 — 2026-05-02
 - Avatares: sistema completo de seleção e exibição de avatar pessoal; toque no círculo do perfil (tela Home e tela Perfil) abre ModalSelecionarAvatar com grade de opções
 - Avatares: avatarMap.ts — registro estático de avatar_id → require() para 8 imagens (IDs 1, 5–11) em assets/avatar/

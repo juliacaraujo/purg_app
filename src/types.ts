@@ -127,6 +127,7 @@ export interface RankingItem {
   apelido: string;
   pontos: number;
   liga: string;
+  avatar_id?: number | null;
 }
 
 export interface TuteladoItem {

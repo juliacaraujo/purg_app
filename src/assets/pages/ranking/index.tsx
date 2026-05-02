@@ -6,7 +6,9 @@ import {
   RefreshControl,
   ActivityIndicator,
   StyleSheet,
+  Image,
 } from "react-native";
+import avatarMap from "../../avatarMap";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import { useTheme } from "../../../context/ThemeContext";
 import type { ThemeColors } from "../../../context/ThemeContext";
@@ -75,6 +77,13 @@ export default function Ranking() {
               <View style={s.posicaoBox}>
                 <Text style={[s.posicao, isMe && s.posicaoMe]}>{item.posicao}º</Text>
               </View>
+              {item.avatar_id && avatarMap[item.avatar_id] ? (
+                <Image source={avatarMap[item.avatar_id]} style={s.avatar} />
+              ) : (
+                <View style={[s.avatar, s.avatarPlaceholder]}>
+                  <Text style={s.avatarLetra}>{item.apelido?.[0]?.toUpperCase() || "?"}</Text>
+                </View>
+              )}
               <View style={s.info}>
                 <Text style={[s.apelido, isMe && s.apelidoMe]} numberOfLines={1}>
                   {item.apelido}
@@ -140,6 +149,22 @@ const makeStyle = (c: ThemeColors) =>
     posicaoBox: {
       width: 40,
       alignItems: "center",
+    },
+    avatar: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      marginLeft: 8,
+    },
+    avatarPlaceholder: {
+      backgroundColor: c.backgroundSecondary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    avatarLetra: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: c.textSecondary,
     },
     posicao: {
       fontSize: 15,

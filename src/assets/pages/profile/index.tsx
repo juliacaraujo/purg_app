@@ -1172,6 +1172,7 @@ export default function Profile() {
       <ModalEdicao visible={modalSenha} titulo="Trocar Senha" onClose={() => setModalSenha(false)} onSalvar={salvarSenha} loading={salvando} erro={erroSenha} ms={ms}>
         <Campo ms={ms} label="Senha atual" value={senhaAtual} onChangeText={setSenhaAtual} placeholder="••••••" secureTextEntry />
         <Campo ms={ms} label="Nova senha" value={novaSenha} onChangeText={setNovaSenha} placeholder="Mínimo 8 caracteres" secureTextEntry />
+        <Campo ms={ms} label="Confirmar nova senha" value={confirmarSenha} onChangeText={setConfirmarSenha} placeholder="Repita a nova senha" secureTextEntry />
         <View style={{ marginBottom: 14 }}>
           {([
             { ok: novaSenha.length >= 8, texto: "No mínimo 8 caracteres" },
@@ -1184,7 +1185,6 @@ export default function Profile() {
             </View>
           ))}
         </View>
-        <Campo ms={ms} label="Confirmar nova senha" value={confirmarSenha} onChangeText={setConfirmarSenha} placeholder="Repita a nova senha" secureTextEntry />
       </ModalEdicao>
 
       {/* Modal — Criar Senha de Negociação */}
