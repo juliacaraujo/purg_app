@@ -1,3 +1,17 @@
+purg-develop-19 — 2026-05-02
+- Modo Família: SeletorPerfilModal extraído como componente compartilhado em src/assets/components/SeletorPerfilModal.tsx; usado na Home e eliminando duplicação
+- Modo Família: botão ícone família adicionado ao header da Home — cor laranja (#E07000) quando atuando como dependente, cinza quando na conta principal
+- Modo Família: label "Dependentes ou Tutelados" adicionada antes da lista de dependentes no modal de seleção de perfil
+- Modo Família: botão "Acessar" exibido nos cards de dependentes não ativos no SeletorPerfilModal
+- Modo Família: botão "Fechar" do SeletorPerfilModal alterado para cor primária (verde) com texto branco
+- Modo Família: corrigido bug — ao retornar à conta do guardião, o spinner do botão ficava travado e só sumia com refresh manual; causa raiz era o RootNavigator triggering verificando=true em toda troca de user.id; corrigido com prevUserIdRef para ignorar trocas de perfil familiar (null→id apenas); useEffect de reset de trocando adicionado como proteção secundária no modal
+- Modo Família: removida confirmação Alert ao trocar para conta de dependente (fluxo mais fluido)
+- Perfil: validação do algoritmo verificador de dígitos do CPF no modal de edição de chaves Pix
+- Perfil: regras de força de senha (mín. 8 chars, 1 maiúscula, 1 caractere especial) com checklist visual animado ao trocar a senha de acesso
+- API: getRendimentosUsuario, getHistoricoPatrimonio e getHistoricoRendimentos agora tratam 404 do backend como resposta vazia (estrutura zerada) em vez de erro; evita falha ao acessar conta de dependente sem histórico
+- Objetivos: botão "Nova Meta" renomeado para "Novo Objetivo"
+- Objetivos: campo "Parcela mensal prevista" adicionado no modal de novo objetivo, abaixo dos seletores de data; calculado como (valor_alvo − aporte_inicial) / número_de_parcelas; exibe "—" quando os valores ainda não estão preenchidos ou quando aporte ≥ valor
+
 purg-develop-18 — 2026-04-30
 - Modo Família: nova funcionalidade completa de vínculo guardião/dependente via convite por e-mail
 - Modo Família: guardião envia convite para e-mail do dependente (POST /api/v1/familia/convidar); validações de e-mail próprio, formato inválido e dependente já vinculado

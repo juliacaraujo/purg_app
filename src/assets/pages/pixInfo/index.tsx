@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
@@ -28,7 +27,6 @@ export default function PixInfo({ route, navigation }: any) {
   const {
     valor = 0,
     pix_copia_cola,
-    qr_code,
     expiracao_min = 60,
   } = route?.params ?? {};
 
@@ -101,7 +99,7 @@ export default function PixInfo({ route, navigation }: any) {
     return (
       <View style={styles.fullCenter}>
         <Text style={styles.expiredIcon}>⏱</Text>
-        <Text style={styles.expiredTitle}>QR Code expirado</Text>
+        <Text style={styles.expiredTitle}>Código expirado</Text>
         <Text style={styles.expiredSubtitle}>
           O tempo para pagamento se encerrou. Solicite um novo depósito.
         </Text>
@@ -126,12 +124,6 @@ export default function PixInfo({ route, navigation }: any) {
           <Text style={styles.valorText}>{moneyFmt(valor)}</Text>
         </View>
       )}
-
-      {qr_code ? (
-        <View style={styles.qrCard}>
-          <Image source={{ uri: qr_code }} style={styles.qrImage} resizeMode="contain" />
-        </View>
-      ) : null}
 
       <View style={styles.countdownRow}>
         <Text style={styles.countdownLabel}>Expira em</Text>

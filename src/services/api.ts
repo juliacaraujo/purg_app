@@ -114,11 +114,8 @@ export async function getCarteira(usuarioId: number): Promise<CarteiraResponse> 
    ====================================================== */
 export async function getRendimentosUsuario(usuarioId: number): Promise<RendimentosResponse> {
   const response = await apiFetch(`/api/v1/rendimentos-usuario/${usuarioId}`);
-
-  if (!response.ok) {
-    throw new ApiError("Erro ao buscar rendimentos do usuário", response.status);
-  }
-
+  if (response.status === 404) return { rendimento_total: 0, ultimo_rendimento: 0 };
+  if (!response.ok) throw new ApiError("Erro ao buscar rendimentos do usuário", response.status);
   return response.json() as Promise<RendimentosResponse>;
 }
 
@@ -710,9 +707,8 @@ export async function trocarSenha(
    ====================================================== */
 export async function getHistoricoPatrimonio(usuarioId: number): Promise<HistoricoPatrimonioResponse> {
   const response = await apiFetch(`/api/v1/historico-patrimonio/${usuarioId}`);
-  if (!response.ok) {
-    throw new ApiError("Erro ao buscar histórico de patrimônio", response.status);
-  }
+  if (response.status === 404) return { success: false, historico: [] };
+  if (!response.ok) throw new ApiError("Erro ao buscar histórico de patrimônio", response.status);
   return response.json() as Promise<HistoricoPatrimonioResponse>;
 }
 
@@ -721,9 +717,8 @@ export async function getHistoricoPatrimonio(usuarioId: number): Promise<Histori
    ====================================================== */
 export async function getHistoricoRendimentos(usuarioId: number): Promise<HistoricoRendimentosResponse> {
   const response = await apiFetch(`/api/v1/historico-rendimentos/${usuarioId}`);
-  if (!response.ok) {
-    throw new ApiError("Erro ao buscar histórico de rendimentos", response.status);
-  }
+  if (response.status === 404) return { success: false, historico: [] };
+  if (!response.ok) throw new ApiError("Erro ao buscar histórico de rendimentos", response.status);
   return response.json() as Promise<HistoricoRendimentosResponse>;
 }
 
@@ -885,6 +880,20 @@ export async function familiaRevogar(tuteladoId: number): Promise<void> {
   const response = await apiFetch(`/api/v1/familia/revogar/${tuteladoId}`, { method: "DELETE" });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao revogar vínculo.", response.status);
+}
+
+export async function familiaGetGuardioes(): Promise<import("../types").GuardiaoItem[]> {
+  const response = await apiFetch("/api/v1/familia/guardioes");
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao buscar guardiões.", response.status);
+  return data.guardioes ?? [];
+}
+
+export async function familiaGetConvitesPendentes(): Promise<import("../types").ConvitePendenteItem[]> {
+  const response = await apiFetch("/api/v1/familia/convites-pendentes");
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao buscar convites pendentes.", response.status);
+  return data.convites ?? [];
 }
 
 export async function familiaRejeitarConvite(token: string): Promise<void> {

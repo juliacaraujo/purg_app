@@ -12,7 +12,7 @@ import {
 import { makeDepositStyles } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
-import { getHistoricoDepositos, getBuscarDepositosPendentes, cancelarDeposito, solicitarDeposito, getObjetivos } from "../../../services/api";
+import { getHistoricoDepositos, getBuscarDepositosPendentes, cancelarDeposito, solicitarDeposito, getObjetivos, getObjetivoDetalhe } from "../../../services/api";
 import { AppBottomBar } from "../../components/AppBottomBar";
 
 // Trunca para 2 casas decimais SEM arredondar (vírgula)
@@ -76,8 +76,17 @@ export default function Deposit({ navigation }: any) {
       setHistorico(lista);
       setPendentes(pend);
       const ativo = objs.objetivos?.find((o) => !o.objetivo_completo);
-      if (ativo && ativo.prazo_total > 0) {
-        setParcela(Math.trunc((ativo.valor_alvo / ativo.prazo_total) * 100) / 100);
+      if (ativo) {
+        try {
+          const detalhe = await getObjetivoDetalhe(user.id, ativo.objetivo_id);
+          const metas = detalhe.metas ?? [];
+          if (metas.length > 0) {
+            const valorParcela = metas.length > 1 ? metas[1].valor_alvo : metas[0].valor_alvo;
+            setParcela(Math.trunc(Number(valorParcela) * 100) / 100);
+          }
+        } catch {
+          // parcela opcional — não bloqueia a tela
+        }
       }
     } catch {
       // histórico opcional — não bloqueia a tela

@@ -301,6 +301,24 @@ function ModalNovoObjetivo({ visible, onClose, onSalvar, loading, colors }: {
             </View>
           </View>
 
+          {(() => {
+            const valor = parseMoeda(valorAlvo);
+            const aporte = parseMoeda(aporteInicial);
+            const meses = calcMeses(anoSel, mesSel);
+            const restante = valor - aporte;
+            const parcela = restante > 0 && meses > 0 ? restante / meses : null;
+            return (
+              <>
+                <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Parcela mensal prevista</Text>
+                <View style={[s.input, s.inputFixo, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}>
+                  <Text style={{ fontSize: 15, color: parcela !== null ? colors.textPrimary : colors.textTertiary }}>
+                    {parcela !== null ? moeda(parcela) : "—"}
+                  </Text>
+                </View>
+              </>
+            );
+          })()}
+
           <View style={s.modalBtns}>
             <TouchableOpacity style={[s.btnCancelar, { borderColor: colors.border }]} onPress={handleClose}>
               <Text style={[s.btnCancelarText, { color: colors.textSecondary }]}>Cancelar</Text>
@@ -494,7 +512,7 @@ export default function Objetivos() {
               onPress={() => setModalVisible(true)}
               disabled={objetivos.some((o) => o.status_ativo && !o.objetivo_completo)}
             >
-              <Text style={s.novoBtnText}>Nova Meta</Text>
+              <Text style={s.novoBtnText}>Novo Objetivo</Text>
             </TouchableOpacity>
             {objetivos.some((o) => o.status_ativo && !o.objetivo_completo) && (
               <TouchableOpacity

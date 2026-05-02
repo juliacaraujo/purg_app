@@ -13,11 +13,14 @@ import imgOlhoAberto from "../../../../assets/olho_aberto.png";
 import imgOlhoFechado from "../../../../assets/olho_fechado.png";
 import imgChat from "../../../../assets/chat.png";
 import imgPerfil from "../../../../assets/perfil.png";
+import imgFamilia from "../../../../assets/familia.png";
 import { makeHomeStyle } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
+import { useFamilia } from "../../../context/FamiliaContext";
 import { useFocusEffect } from "@react-navigation/native";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
+import { SeletorPerfilModal } from "../../components/SeletorPerfilModal";
 import {
   ApiError,
   getCarteira,
@@ -63,7 +66,9 @@ function moneyTrunc(value: number | string | null | undefined) {
 export default function Home({ navigation }: { navigation: { navigate: (route: string) => void; setOptions: (opts: any) => void } }) {
   const { user, logout } = useAuth();
   const { colors } = useTheme();
+  const { atuandoComo } = useFamilia();
   const style = useMemo(() => makeHomeStyle(colors), [colors]);
+  const [seletorVisivel, setSeletorVisivel] = useState(false);
 
   const [hidden, setHidden] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -169,6 +174,13 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
               resizeMode="contain"
             />
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => setSeletorVisivel(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Image
+              source={imgFamilia}
+              style={{ width: 26, height: 26, tintColor: atuandoComo ? "#E07000" : colors.textTertiary }}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate("Chat")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Image source={imgChat} style={{ width: 26, height: 26, tintColor: colors.textTertiary }} resizeMode="contain" />
           </TouchableOpacity>
@@ -178,7 +190,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
         </View>
       ),
     });
-  }, [hidden, colors]);
+  }, [hidden, colors, atuandoComo]);
 
   const onRefresh = () => { setRefreshing(true); carregar(); };
 
@@ -202,6 +214,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
 
   return (
     <SwipeTabsWrapper currentTab="Home">
+      <SeletorPerfilModal visible={seletorVisivel} onClose={() => setSeletorVisivel(false)} />
       <ScrollView
         contentContainerStyle={style.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

@@ -120,7 +120,7 @@ export default function Login({ navigation }: any) {
           <>
             <TextInput
               style={style.input}
-              placeholder="e-mail@dominio.com"
+              placeholder="e-mail@exemplo.com"
               placeholderTextColor={colors.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"

@@ -137,6 +137,18 @@ export interface TuteladoItem {
   criado_em: string;
 }
 
+export interface GuardiaoItem {
+  id: number;
+  nome_completo: string;
+}
+
+export interface ConvitePendenteItem {
+  id: number;
+  email_convidado: string;
+  expira_em: string;
+  criado_em: string;
+}
+
 export interface PermissoesTutelado {
   tutelado_id: number;
   pode_sacar: boolean;

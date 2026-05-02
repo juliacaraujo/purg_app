@@ -318,6 +318,7 @@ export default function Signup({ navigation, route }: any) {
         placeholder="Senha"
         value={senha}
         onChangeText={setSenha}
+        secureTextEntry
       />
 
       <TextInput
@@ -325,6 +326,7 @@ export default function Signup({ navigation, route }: any) {
         placeholder="Confirmar senha"
         value={confirmSenha}
         onChangeText={setConfirmSenha}
+        secureTextEntry
       />
 
       <View style={style.criteriosContainer}>
