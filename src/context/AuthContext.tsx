@@ -10,7 +10,7 @@ import React, {
 import { AppState, AppStateStatus } from "react-native";
 import { logoutUser, checkSession } from "../services/api";
 
-export type User = { id: number; email?: string };
+export type User = { id: number; email?: string; avatarId?: number | null };
 
 type AuthContextType = {
   user: User | null;
@@ -27,6 +27,7 @@ const TIMEOUT_MS = 3 * 60 * 1000;
 
 const STORAGE_ID_KEY = "purg_uid";
 const STORAGE_EMAIL_KEY = "purg_email";
+const STORAGE_AVATAR_KEY = "purg_avatar_id";
 const STORAGE_HIDDEN_AT_KEY = "purg_hidden_at";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFreshLogin(false);
     webStorage.remove(STORAGE_ID_KEY);
     webStorage.remove(STORAGE_EMAIL_KEY);
+    webStorage.remove(STORAGE_AVATAR_KEY);
     webStorage.remove(STORAGE_HIDDEN_AT_KEY);
   }, []);
 
@@ -81,6 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFreshLogin(true);
     webStorage.set(STORAGE_ID_KEY, String(u.id));
     if (u.email) webStorage.set(STORAGE_EMAIL_KEY, u.email);
+    if (u.avatarId != null) webStorage.set(STORAGE_AVATAR_KEY, String(u.avatarId));
+    else webStorage.remove(STORAGE_AVATAR_KEY);
     webStorage.remove(STORAGE_HIDDEN_AT_KEY);
   }, []);
 
@@ -89,6 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     webStorage.set(STORAGE_ID_KEY, String(u.id));
     if (u.email) webStorage.set(STORAGE_EMAIL_KEY, u.email);
     else webStorage.remove(STORAGE_EMAIL_KEY);
+    if (u.avatarId != null) webStorage.set(STORAGE_AVATAR_KEY, String(u.avatarId));
+    else webStorage.remove(STORAGE_AVATAR_KEY);
   }, []);
 
   // Ao montar: tenta restaurar sessão salva (corrige bug de reload no web)
@@ -115,7 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Restaura imediatamente (otimista) para evitar flash de tela de login no reload
     const email = webStorage.get(STORAGE_EMAIL_KEY) ?? undefined;
-    setUser({ id: Number(savedId), email });
+    const savedAvatar = webStorage.get(STORAGE_AVATAR_KEY);
+    setUser({ id: Number(savedId), email, avatarId: savedAvatar ? Number(savedAvatar) : null });
 
     // Valida a sessão no servidor em background
     checkSession(Number(savedId))

@@ -1,3 +1,15 @@
+purg-develop-20 — 2026-05-02
+- Avatares: sistema completo de seleção e exibição de avatar pessoal; toque no círculo do perfil (tela Home e tela Perfil) abre ModalSelecionarAvatar com grade de opções
+- Avatares: avatarMap.ts — registro estático de avatar_id → require() para 8 imagens (IDs 1, 5–11) em assets/avatar/
+- Avatares: API — adicionadas getAvatar (GET /api/v1/avatar/:id) e putAvatar (PUT /api/v1/avatar/:id); avatar_id incluído no retorno de loginUser
+- Avatares: AuthContext — campo avatarId no tipo User; persistido no localStorage (purg_avatar_id); restaurado na re-hidratação da sessão; removido no logout
+- Avatares: login com biometria também retorna e persiste o avatarId
+- Objetivos: validação de valor mínimo R$ 200,00 no modal de novo objetivo — hint "Mínimo R$ 200,00" em vermelho quando valor inválido; botão Salvar desabilitado até os 3 campos preenchidos e valor ≥ 200
+- Visualização de valores: preferência do olhinho (ocultar/exibir saldos) salva no backend — GET /api/v1/visualizacao-valores/:id carregado na Home; PUT /api/v1/visualizacao-valores/:id chamado a cada toggle
+- Feedback de ações: Alert de sucesso adicionado em 7 ações sem resposta ao usuário — copiar PIX (pixInfo), finalizar setup de apelido (setupApelido), criar PIN de negociação (withdraw), erro ao salvar tema revertido com toast (profile), sucesso ao salvar permissões de dependente com toast (profile), sucesso ao salvar chaves Pix com toast (profile)
+- Correção: avatar perdido ao retornar do perfil do dependente — FamiliaContext não persistia avatarId do guardião; corrigido adicionando STORAGE_GUARDIAO_AVATAR e propagando avatarId por toda a lógica de save/restore de GuardiaoOriginal
+- Correção: botão "Voltar" do BannerAtuandoComo travado em loading após retornar ao guardião — setVoltando(false) estava apenas no catch; movido para bloco finally garantindo reset em qualquer cenário
+
 purg-develop-19 — 2026-05-02
 - Modo Família: SeletorPerfilModal extraído como componente compartilhado em src/assets/components/SeletorPerfilModal.tsx; usado na Home e eliminando duplicação
 - Modo Família: botão ícone família adicionado ao header da Home — cor laranja (#E07000) quando atuando como dependente, cinza quando na conta principal

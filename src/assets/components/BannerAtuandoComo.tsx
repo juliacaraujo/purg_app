@@ -16,6 +16,7 @@ export function BannerAtuandoComo() {
       await retornarAoGuardiao();
     } catch {
       setErro("Não foi possível voltar. Tente novamente.");
+    } finally {
       setVoltando(false);
     }
   };

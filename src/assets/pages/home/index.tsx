@@ -15,6 +15,8 @@ import imgChat from "../../../../assets/chat.png";
 import imgPerfil from "../../../../assets/perfil.png";
 import imgFamilia from "../../../../assets/familia.png";
 import { makeHomeStyle } from "./styles";
+import avatarMap from "../../avatarMap";
+import { ModalSelecionarAvatar } from "../../components/ModalSelecionarAvatar";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { useFamilia } from "../../../context/FamiliaContext";
@@ -28,6 +30,9 @@ import {
   getRendimentosUsuario,
   getHistoricoPatrimonio,
   getHistoricoRendimentos,
+  putAvatar,
+  getVisualizacaoValores,
+  putVisualizacaoValores,
 } from "../../../services/api";
 import GraficoLinha from "../../components/GraficoLinha";
 import type { GraficoPoint } from "../../../types";
@@ -64,11 +69,13 @@ function moneyTrunc(value: number | string | null | undefined) {
 }
 
 export default function Home({ navigation }: { navigation: { navigate: (route: string) => void; setOptions: (opts: any) => void } }) {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { colors } = useTheme();
   const { atuandoComo } = useFamilia();
   const style = useMemo(() => makeHomeStyle(colors), [colors]);
   const [seletorVisivel, setSeletorVisivel] = useState(false);
+  const [modalAvatar, setModalAvatar] = useState(false);
+  const [salvandoAvatar, setSalvandoAvatar] = useState(false);
 
   const [hidden, setHidden] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -114,12 +121,13 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
     const capturedUserId = user.id;
     try {
       setLoading(true);
-      const [cad, cart, rend, hist, histRend] = await Promise.allSettled([
+      const [cad, cart, rend, hist, histRend, viz] = await Promise.allSettled([
         getDadosCadastro(capturedUserId),
         getCarteira(capturedUserId),
         getRendimentosUsuario(capturedUserId),
         getHistoricoPatrimonio(capturedUserId),
         getHistoricoRendimentos(capturedUserId),
+        getVisualizacaoValores(capturedUserId),
       ]);
       // Se o usuário mudou durante o fetch (logout/troca), descarta resultado
       if (user?.id !== capturedUserId) return;
@@ -148,6 +156,9 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
           items.map((item) => ({ data: item.data, valor: Number(item.rendimento_dia) || 0 }))
         );
       }
+      if (viz.status === "fulfilled") {
+        setHidden(!viz.value);
+      }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         Alert.alert("Erro", err.message || "Falha ao carregar dados.");
@@ -167,7 +178,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: "row", alignItems: "center", marginRight: 14, gap: 16 }}>
-          <TouchableOpacity onPress={() => setHidden((v) => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={handleToggleHidden} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Image
               source={hidden ? imgOlhoFechado : imgOlhoAberto}
               style={{ width: 28, height: 28, tintColor: colors.textTertiary }}
@@ -194,6 +205,26 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
 
   const onRefresh = () => { setRefreshing(true); carregar(); };
 
+  function handleToggleHidden() {
+    const novoHidden = !hidden;
+    setHidden(novoHidden);
+    if (user?.id) putVisualizacaoValores(user.id, !novoHidden).catch(() => {});
+  }
+
+  async function handleSalvarAvatar(avatarId: number) {
+    if (!user?.id) return;
+    try {
+      setSalvandoAvatar(true);
+      await putAvatar(user.id, avatarId);
+      updateUser({ ...user, avatarId });
+      setModalAvatar(false);
+    } catch (e: any) {
+      Alert.alert("Erro", e?.message || "Não foi possível atualizar o avatar.");
+    } finally {
+      setSalvandoAvatar(false);
+    }
+  }
+
   const handleAssinar = () => {
     Alert.alert("Poppy Pro", "Aqui você liga o fluxo de assinatura quando existir.");
   };
@@ -213,6 +244,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
   }
 
   return (
+    <>
     <SwipeTabsWrapper currentTab="Home">
       <SeletorPerfilModal visible={seletorVisivel} onClose={() => setSeletorVisivel(false)} />
       <ScrollView
@@ -222,11 +254,15 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
       >
         {/* Topo */}
         <View style={style.topRow}>
-          <View style={style.avatar}>
-            <Text style={style.avatarText}>
-              {primeiroNome?.[0]?.toUpperCase() || "P"}
-            </Text>
-          </View>
+          <TouchableOpacity onPress={() => setModalAvatar(true)}>
+            {user?.avatarId && avatarMap[user.avatarId] ? (
+              <Image source={avatarMap[user.avatarId]} style={[style.avatar, { resizeMode: "cover" }]} />
+            ) : (
+              <View style={style.avatar}>
+                <Text style={style.avatarText}>{primeiroNome?.[0]?.toUpperCase() || "P"}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
           <View style={style.greetingBlock}>
             <Text style={style.greeting}>{getGreeting()},</Text>
@@ -328,5 +364,15 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
         )}
       </ScrollView>
     </SwipeTabsWrapper>
+    <ModalSelecionarAvatar
+      visible={modalAvatar}
+      onClose={() => setModalAvatar(false)}
+      avatarAtual={user?.avatarId ?? null}
+      onSalvar={handleSalvarAvatar}
+      loading={salvandoAvatar}
+      colors={colors}
+      nomeInicial={primeiroNome?.[0]?.toUpperCase() || "P"}
+    />
+    </>
   );
 }

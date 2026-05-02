@@ -220,6 +220,7 @@ export default function Withdraw() {
       setPinNovo("");
       setPinNovoConf("");
       setPinCadastrado(true);
+      Alert.alert("Sucesso", "Senha de Negociação criada com sucesso!");
     } catch (e: any) {
       setErroCriarPin(e?.message || "Não foi possível criar a senha.");
     } finally {

@@ -69,7 +69,7 @@ export default function LoginPassword({ navigation, route }: any) {
         mostrarErro(result.message || "E-mail ou senha incorretos.");
         return;
       }
-      const dados = { id: Number(result.userId), email };
+      const dados = { id: Number(result.userId), email, avatarId: result.avatarId };
       if (primeiroAcesso) {
         setDadosLogin(dados);
         setModalBio(true);

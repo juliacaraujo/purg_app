@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { useAuth } from "../../../context/AuthContext";
@@ -75,9 +76,13 @@ export default function PixInfo({ route, navigation }: any) {
 
   const handleCopiar = async () => {
     if (!pix_copia_cola) return;
-    await Clipboard.setStringAsync(pix_copia_cola);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    try {
+      await Clipboard.setStringAsync(pix_copia_cola);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      Alert.alert("Erro", "Não foi possível copiar o código.");
+    }
   };
 
   if (step === "confirmed") {

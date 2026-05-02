@@ -32,7 +32,7 @@ export default function LoginBiometria({ navigation, route }: any) {
       setLoading(true);
       setErro("");
       const resultado = await loginBiometrico(email);
-      login({ id: resultado.id, email: resultado.email });
+      login({ id: resultado.id, email: resultado.email, avatarId: resultado.avatarId });
     } catch (e: any) {
       setErro(e?.message || "Falha na autenticação biométrica.");
     } finally {

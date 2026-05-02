@@ -16,10 +16,11 @@ import {
 import { useAuth } from "./AuthContext";
 import type { TuteladoItem } from "../types";
 
-const STORAGE_GUARDIAO_ID    = "purg_guardiao_id";
-const STORAGE_GUARDIAO_EMAIL = "purg_guardiao_email";
-const STORAGE_ATUANDO_NOME   = "purg_atuando_como_nome";
-const STORAGE_PENDING_INVITE = "purg_pending_invite";
+const STORAGE_GUARDIAO_ID     = "purg_guardiao_id";
+const STORAGE_GUARDIAO_EMAIL  = "purg_guardiao_email";
+const STORAGE_GUARDIAO_AVATAR = "purg_guardiao_avatar_id";
+const STORAGE_ATUANDO_NOME    = "purg_atuando_como_nome";
+const STORAGE_PENDING_INVITE  = "purg_pending_invite";
 
 // Memória em RAM como fallback para plataformas sem localStorage (native)
 const memStorage: Record<string, string> = {};
@@ -53,7 +54,7 @@ const webStorage = {
 };
 
 export type AtuandoComo = { id: number; nome: string };
-type GuardiaoOriginal = { id: number; email?: string };
+type GuardiaoOriginal = { id: number; email?: string; avatarId?: number | null };
 
 type FamiliaContextType = {
   tutelados: TuteladoItem[];
@@ -89,7 +90,8 @@ export function FamiliaProvider({ children }: { children: ReactNode }) {
     const nome = webStorage.get(STORAGE_ATUANDO_NOME);
     if (guardiaoId && nome) {
       setAtuandoComo({ id: user.id, nome });
-      setGuardiaoOriginal({ id: Number(guardiaoId), email: webStorage.get(STORAGE_GUARDIAO_EMAIL) ?? undefined });
+      const savedAvatar = webStorage.get(STORAGE_GUARDIAO_AVATAR);
+      setGuardiaoOriginal({ id: Number(guardiaoId), email: webStorage.get(STORAGE_GUARDIAO_EMAIL) ?? undefined, avatarId: savedAvatar ? Number(savedAvatar) : null });
       return;
     }
 
@@ -131,9 +133,11 @@ export function FamiliaProvider({ children }: { children: ReactNode }) {
 
     webStorage.set(STORAGE_GUARDIAO_ID, String(user.id));
     if (user.email) webStorage.set(STORAGE_GUARDIAO_EMAIL, user.email);
+    if (user.avatarId != null) webStorage.set(STORAGE_GUARDIAO_AVATAR, String(user.avatarId));
+    else webStorage.remove(STORAGE_GUARDIAO_AVATAR);
     webStorage.set(STORAGE_ATUANDO_NOME, nome);
 
-    setGuardiaoOriginal({ id: user.id, email: user.email });
+    setGuardiaoOriginal({ id: user.id, email: user.email, avatarId: user.avatarId });
     setAtuandoComo({ id: novoId, nome });
     setTutelados([]);
     updateUser({ id: novoId });
@@ -146,6 +150,7 @@ export function FamiliaProvider({ children }: { children: ReactNode }) {
     } catch (e: any) {
       webStorage.remove(STORAGE_GUARDIAO_ID);
       webStorage.remove(STORAGE_GUARDIAO_EMAIL);
+      webStorage.remove(STORAGE_GUARDIAO_AVATAR);
       webStorage.remove(STORAGE_ATUANDO_NOME);
       setAtuandoComo(null);
       setGuardiaoOriginal(null);
@@ -155,10 +160,11 @@ export function FamiliaProvider({ children }: { children: ReactNode }) {
 
     webStorage.remove(STORAGE_GUARDIAO_ID);
     webStorage.remove(STORAGE_GUARDIAO_EMAIL);
+    webStorage.remove(STORAGE_GUARDIAO_AVATAR);
     webStorage.remove(STORAGE_ATUANDO_NOME);
     setAtuandoComo(null);
     setGuardiaoOriginal(null);
-    if (original) updateUser({ id: original.id, email: original.email });
+    if (original) updateUser({ id: original.id, email: original.email, avatarId: original.avatarId });
     setTimeout(() => carregarTutelados(), 0);
   }, [guardiaoOriginal, updateUser, logout, carregarTutelados]);
 

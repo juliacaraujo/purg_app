@@ -68,6 +68,7 @@ export async function loginUser(email: string, senha: string) {
     success: !!data?.success,
     message: data?.message,
     userId: data?.usuario_id,
+    avatarId: (data?.avatar_id ?? null) as number | null,
   };
 }
 
@@ -617,7 +618,7 @@ export async function biometriaLoginConcluir(assertion: Record<string, unknown>)
   if (!response.ok) {
     throw new ApiError(data?.message || "Falha na autenticação biométrica", response.status);
   }
-  return data; // { success, usuario_id, nome, email }
+  return data as { success: boolean; usuario_id: number; nome: string; email: string; avatar_id: number | null };
 }
 
 /* ======================================================
@@ -903,4 +904,45 @@ export async function familiaRejeitarConvite(token: string): Promise<void> {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao rejeitar convite.", response.status);
+}
+
+/* ======================================================
+   AVATAR
+   ====================================================== */
+
+export async function getAvatar(usuarioId: number): Promise<number | null> {
+  const response = await apiFetch(`/api/v1/avatar/${usuarioId}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || "Erro ao buscar avatar.", response.status);
+  return data.avatar_id ?? null;
+}
+
+export async function putAvatar(usuarioId: number, avatarId: number): Promise<number> {
+  const response = await apiFetch(`/api/v1/avatar/${usuarioId}`, {
+    method: "PUT",
+    body: JSON.stringify({ avatar_id: avatarId }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || "Erro ao atualizar avatar.", response.status);
+  return data.avatar_id;
+}
+
+/* ======================================================
+   VISUALIZAÇÃO DE VALORES
+   ====================================================== */
+
+export async function getVisualizacaoValores(usuarioId: number): Promise<boolean> {
+  const response = await apiFetch(`/api/v1/visualizacao-valores/${usuarioId}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || "Erro ao buscar preferência.", response.status);
+  return data.visualizacao_valores === 1;
+}
+
+export async function putVisualizacaoValores(usuarioId: number, visivel: boolean): Promise<void> {
+  const response = await apiFetch(`/api/v1/visualizacao-valores/${usuarioId}`, {
+    method: "PUT",
+    body: JSON.stringify({ visualizacao_valores: visivel ? 1 : 0 }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || "Erro ao salvar preferência.", response.status);
 }

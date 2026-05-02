@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   Animated,
+  Alert,
 } from "react-native";
 import { useAuth } from "../../../context/AuthContext";
 import { editarPerfil } from "../../../services/api";
@@ -52,7 +53,7 @@ export default function SetupApelido({ onConcluido }: Props) {
       setLoading(true);
       setErro("");
       await editarPerfil(user!.id, { apelido: valor });
-      onConcluido();
+      Alert.alert("Tudo certo!", "Apelido salvo com sucesso.", [{ text: "Continuar", onPress: onConcluido }]);
     } catch (e: any) {
       mostrarErro(e?.message || "Não foi possível salvar o apelido.");
     } finally {

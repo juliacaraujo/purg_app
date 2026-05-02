@@ -8,7 +8,7 @@ import {
   biometriaLoginConcluir,
 } from "./api";
 
-export type LoginBiometricoResult = { id: number; email: string; nome: string };
+export type LoginBiometricoResult = { id: number; email: string; nome: string; avatarId: number | null };
 
 function traduzirErro(e: any): Error {
   const name = e?.name ?? "";
@@ -65,6 +65,7 @@ export async function loginBiometrico(email: string): Promise<LoginBiometricoRes
       id: Number(resultado.usuario_id),
       email: resultado.email,
       nome: resultado.nome,
+      avatarId: resultado.avatar_id ?? null,
     };
   } catch (e: any) {
     throw traduzirErro(e);

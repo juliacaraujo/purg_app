@@ -8,7 +8,7 @@ import {
   biometriaLoginConcluir,
 } from "./api";
 
-export type LoginBiometricoResult = { id: number; email: string; nome: string };
+export type LoginBiometricoResult = { id: number; email: string; nome: string; avatarId: number | null };
 
 // PasskeyError é uma interface { error: string; message: string } — não é classe,
 // então identificamos o tipo pelo campo .error (duck-typing).
@@ -55,6 +55,7 @@ export async function loginBiometrico(email: string): Promise<LoginBiometricoRes
       id: Number(resultado.usuario_id),
       email: resultado.email,
       nome: resultado.nome,
+      avatarId: resultado.avatar_id ?? null,
     };
   } catch (e: any) {
     throw traduzirErro(e);

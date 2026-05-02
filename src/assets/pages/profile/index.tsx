@@ -24,10 +24,13 @@ import {
   getDadosCadastro, editarPerfil, editarChavesPix, trocarSenha, putTema, atualizarPreferenciaLogin,
   getPinNegociacaoStatus, criarPinNegociacao, alterarPinNegociacao, recuperarPinSolicitar, verificarSenhaNegociacao,
   familiaConvidar, familiaGetPermissoes, familiaPutPermissoes, familiaRevogar, familiaGetConvitesPendentes, familiaGetGuardioes,
+  putAvatar,
 } from "../../../services/api";
+import avatarMap from "../../avatarMap";
 import type { DadosCadastroResponse, TuteladoItem, PermissoesTutelado, ConvitePendenteItem, GuardiaoItem } from "../../../types";
 import { useFamilia } from "../../../context/FamiliaContext";
 import { cadastrarBiometria, isPasskeySupported } from "../../../services/biometria";
+import { ModalSelecionarAvatar } from "../../components/ModalSelecionarAvatar";
 
 const PREP_MINUSCULA = new Set(["da", "de", "do", "das", "dos", "e", "a", "o", "as", "os"]);
 
@@ -192,7 +195,7 @@ const familiaS = StyleSheet.create({
 });
 
 export default function Profile() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { isDark, colors, setDark } = useTheme();
   const style = useMemo(() => makeProfileStyle(colors), [colors]);
 
@@ -279,6 +282,9 @@ export default function Profile() {
   const [carregandoPerms, setCarregandoPerms] = useState(false);
   const [salvandoPerms, setSalvandoPerms] = useState(false);
   const [erroPerms, setErroPerms] = useState<string | null>(null);
+
+  const [modalAvatar, setModalAvatar] = useState(false);
+  const [salvandoAvatar, setSalvandoAvatar] = useState(false);
 
   const [modalSeletor, setModalSeletor] = useState(false);
   const [trocandoPerfil, setTrocandoPerfil] = useState<number | null>(null);
@@ -369,6 +375,21 @@ export default function Profile() {
     }
   }
 
+  async function handleSalvarAvatar(avatarId: number) {
+    if (!user?.id) return;
+    try {
+      setSalvandoAvatar(true);
+      await putAvatar(user.id, avatarId);
+      updateUser({ ...user, avatarId });
+      setModalAvatar(false);
+      mostrarToast("Avatar atualizado!", "sucesso");
+    } catch (e: any) {
+      mostrarToast(e?.message || "Não foi possível atualizar o avatar.", "erro");
+    } finally {
+      setSalvandoAvatar(false);
+    }
+  }
+
   async function salvarPermissao(campo: keyof Omit<PermissoesTutelado, "tutelado_id" | "atualizado_em" | "chaves_pix_autorizadas">, valor: boolean) {
     if (!tuteladoSelecionado || !permissoes) return;
     const novas = { ...permissoes, [campo]: valor };
@@ -376,8 +397,9 @@ export default function Profile() {
     try {
       setSalvandoPerms(true);
       await familiaPutPermissoes(tuteladoSelecionado.tutelado_id, { [campo]: valor });
+      mostrarToast("Permissão atualizada.", "sucesso");
     } catch (e: any) {
-      setPermissoes(permissoes); // reverte
+      setPermissoes(permissoes);
       mostrarToast(e?.message || "Erro ao salvar permissão.", "erro");
     } finally {
       setSalvandoPerms(false);
@@ -390,6 +412,7 @@ export default function Profile() {
     setPermissoes(novas);
     try {
       await familiaPutPermissoes(tuteladoSelecionado.tutelado_id, { chaves_pix_autorizadas: chaves });
+      mostrarToast("Chaves Pix atualizadas.", "sucesso");
     } catch (e: any) {
       setPermissoes(permissoes);
       mostrarToast(e?.message || "Erro ao salvar chaves Pix.", "erro");
@@ -656,6 +679,7 @@ export default function Profile() {
   const temPix = dados?.pix_cpf || dados?.pix_celular || dados?.pix_email || dados?.pix_chave;
 
   return (
+    <>
     <SwipeTabsWrapper currentTab="Patrimônio">
       <ScrollView
         style={style.container}
@@ -664,9 +688,18 @@ export default function Profile() {
       >
         {/* Cabeçalho */}
         <View style={style.header}>
-          <View style={style.avatar}>
-            <Text style={style.avatarLetra}>{dados?.nome_completo?.[0] ?? "?"}</Text>
-          </View>
+          <TouchableOpacity style={style.avatarWrap} onPress={() => setModalAvatar(true)}>
+            {user?.avatarId && avatarMap[user.avatarId] ? (
+              <Image source={avatarMap[user.avatarId]} style={style.avatarImg} />
+            ) : (
+              <View style={style.avatar}>
+                <Text style={style.avatarLetra}>{dados?.nome_completo?.[0] ?? "?"}</Text>
+              </View>
+            )}
+            <View style={style.avatarEditBtn}>
+              <Text style={style.avatarEditBtnText}>✎</Text>
+            </View>
+          </TouchableOpacity>
           <Text style={style.nome}>{dados?.nome_completo ? titleCaseName(dados.nome_completo) : "—"}</Text>
           <View style={style.badges}>
             <View style={[style.badge, { backgroundColor: corStatus + "22", borderColor: corStatus }]}>
@@ -689,13 +722,13 @@ export default function Profile() {
           <View style={style.toggleRow}>
             <TouchableOpacity
               style={[style.toggleBtn, !isDark && style.toggleBtnActive]}
-              onPress={() => { setDark(false); if (user?.id) putTema(user.id, "claro").catch(() => {}); }}
+              onPress={() => { setDark(false); if (user?.id) putTema(user.id, "claro").catch(() => { setDark(true); mostrarToast("Não foi possível salvar a preferência de tema.", "erro"); }); }}
             >
               <Text style={[style.toggleBtnText, !isDark && style.toggleBtnTextActive]}>Claro</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[style.toggleBtn, isDark && style.toggleBtnActive]}
-              onPress={() => { setDark(true); if (user?.id) putTema(user.id, "escuro").catch(() => {}); }}
+              onPress={() => { setDark(true); if (user?.id) putTema(user.id, "escuro").catch(() => { setDark(false); mostrarToast("Não foi possível salvar a preferência de tema.", "erro"); }); }}
             >
               <Text style={[style.toggleBtnText, isDark && style.toggleBtnTextActive]}>Escuro</Text>
             </TouchableOpacity>
@@ -1282,9 +1315,21 @@ export default function Profile() {
           <Text style={ms.toastTexto}>{toast.msg}</Text>
         </Animated.View>
       )}
+
     </SwipeTabsWrapper>
+    <ModalSelecionarAvatar
+      visible={modalAvatar}
+      onClose={() => setModalAvatar(false)}
+      avatarAtual={user?.avatarId ?? null}
+      onSalvar={handleSalvarAvatar}
+      loading={salvandoAvatar}
+      colors={colors}
+      nomeInicial={dados?.nome_completo?.[0] ?? "?"}
+    />
+  </>
   );
 }
+
 
 type ModalStyles = ReturnType<typeof makeModalStyle>;
 

@@ -229,6 +229,11 @@ function ModalNovoObjetivo({ visible, onClose, onSalvar, loading, colors }: {
   const [mesSel, setMesSel] = useState(agora.getMonth() + 1);
   const [anoSel, setAnoSel] = useState(agora.getFullYear() + 1);
 
+  const valorNum = parseMoeda(valorAlvo);
+  const aporteNum = parseMoeda(aporteInicial);
+  const canSave = valorNum >= 200 && aporteNum > 0 && calcMeses(anoSel, mesSel) >= 1;
+  const valorInvalido = valorAlvo !== "" && valorNum < 200;
+
   function limpar() {
     setValorAlvo(""); setAporteInicial("");
     setMesSel(new Date().getMonth() + 1);
@@ -245,7 +250,7 @@ function ModalNovoObjetivo({ visible, onClose, onSalvar, loading, colors }: {
   function handleSalvar() {
     const valor = parseMoeda(valorAlvo);
     const aporte = parseMoeda(aporteInicial);
-    if (!valor || valor <= 0) { Alert.alert("Atenção", "Informe um valor alvo válido."); return; }
+    if (!valor || valor < 200) { Alert.alert("Atenção", "O valor alvo deve ser de no mínimo R$ 200,00."); return; }
     if (!aporte || aporte <= 0) { Alert.alert("Atenção", "Informe um aporte inicial válido."); return; }
     const meses = calcMeses(anoSel, mesSel);
     if (meses < 1) { Alert.alert("Atenção", "A data alvo deve ser no futuro."); return; }
@@ -269,13 +274,16 @@ function ModalNovoObjetivo({ visible, onClose, onSalvar, loading, colors }: {
 
           <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Valor alvo (R$)</Text>
           <TextInput
-            style={[s.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.backgroundSecondary }]}
+            style={[s.input, { borderColor: valorInvalido ? "#FF3B30" : colors.border, color: colors.textPrimary, backgroundColor: colors.backgroundSecondary, marginBottom: 4 }]}
             placeholder="R$ 5.000"
             placeholderTextColor="#bbb"
             keyboardType="number-pad"
             value={valorAlvo}
             onChangeText={(t) => setValorAlvo(formatarMoeda(t))}
           />
+          <Text style={[s.inputHint, { color: valorInvalido ? "#FF3B30" : colors.textTertiary }]}>
+            Mínimo R$ 200,00
+          </Text>
 
           <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Aporte Inicial (R$)</Text>
           <TextInput
@@ -323,7 +331,7 @@ function ModalNovoObjetivo({ visible, onClose, onSalvar, loading, colors }: {
             <TouchableOpacity style={[s.btnCancelar, { borderColor: colors.border }]} onPress={handleClose}>
               <Text style={[s.btnCancelarText, { color: colors.textSecondary }]}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[s.btnSalvar, { backgroundColor: colors.primary }, loading && { opacity: 0.6 }]} onPress={handleSalvar} disabled={loading}>
+            <TouchableOpacity style={[s.btnSalvar, { backgroundColor: colors.primary }, (!canSave || loading) && { opacity: 0.4 }]} onPress={handleSalvar} disabled={!canSave || loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnSalvarText}>Criar</Text>}
             </TouchableOpacity>
           </View>
@@ -410,7 +418,7 @@ export default function Objetivos() {
     Alert.alert("Cancelar objetivo", `Deseja cancelar "${descricao}"? O saldo alocado será zerado.`, [
       { text: "Não", style: "cancel" },
       { text: "Sim, cancelar", style: "destructive", onPress: async () => {
-        try { await cancelarObjetivo(user!.id, objetivoId); carregar(); }
+        try { await cancelarObjetivo(user!.id, objetivoId); carregar(); Alert.alert("Sucesso", "Objetivo cancelado com sucesso."); }
         catch (e: any) { Alert.alert("Erro", e?.message || "Não foi possível cancelar."); }
       }},
     ]);
@@ -508,13 +516,13 @@ export default function Objetivos() {
           <Text style={[s.secaoTitulo, { color: colors.textPrimary }]}>Meus Objetivos</Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TouchableOpacity
-              style={[s.novoBtn, { backgroundColor: colors.primary }, objetivos.some((o) => o.status_ativo && !o.objetivo_completo) && { opacity: 0.4 }]}
+              style={[s.novoBtn, { backgroundColor: colors.primary }, objetivos.some((o) => !o.objetivo_completo) && { opacity: 0.4 }]}
               onPress={() => setModalVisible(true)}
-              disabled={objetivos.some((o) => o.status_ativo && !o.objetivo_completo)}
+              disabled={objetivos.some((o) => !o.objetivo_completo)}
             >
               <Text style={s.novoBtnText}>Novo Objetivo</Text>
             </TouchableOpacity>
-            {objetivos.some((o) => o.status_ativo && !o.objetivo_completo) && (
+            {objetivos.some((o) => !o.objetivo_completo) && (
               <TouchableOpacity
                 onPress={() => setTooltipNovoVisible((v) => !v)}
                 style={[s.tooltipBtn, { borderColor: colors.textTertiary }]}
@@ -525,7 +533,7 @@ export default function Objetivos() {
             )}
           </View>
         </View>
-        {tooltipNovoVisible && objetivos.some((o) => o.status_ativo && !o.objetivo_completo) && (
+        {tooltipNovoVisible && objetivos.some((o) => !o.objetivo_completo) && (
           <View style={[s.tooltip, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border, marginBottom: 12 }]}>
             <Text style={[s.tooltipText, { color: colors.textSecondary }]}>
               Atualmente só é permitido ter 1 meta ativa por usuário.
@@ -650,4 +658,5 @@ const s = StyleSheet.create({
   btnCancelarText: { fontWeight: "600" },
   btnSalvar: { flex: 1, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   btnSalvarText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  inputHint: { fontSize: 11, marginBottom: 10 },
 });
