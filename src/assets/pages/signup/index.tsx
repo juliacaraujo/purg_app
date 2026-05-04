@@ -21,8 +21,11 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
+  Image,
 } from "react-native";
 import { style } from "./styles";
+import imgOlhoAberto from "../../../../assets/olho_aberto.png";
+import imgOlhoFechado from "../../../../assets/olho_fechado.png";
 
 export default function Signup({ navigation, route }: any) {
   const conviteToken: string = route?.params?.convite ?? "";
@@ -33,6 +36,7 @@ export default function Signup({ navigation, route }: any) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmSenha, setConfirmSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   const [dataNasc, setDataNasc] = useState("");
   const [genero, setGenero] = useState("");
@@ -313,21 +317,28 @@ export default function Signup({ navigation, route }: any) {
       />
       {erroEmail ? <Text style={style.erroTexto}>{erroEmail}</Text> : null}
 
-      <TextInput
-        style={style.input}
-        placeholder="Senha"
-        value={senha}
-        onChangeText={setSenha}
-        secureTextEntry
-      />
+      <View style={style.inputSenhaWrap}>
+        <TextInput
+          style={style.inputSenha}
+          placeholder="Senha"
+          value={senha}
+          onChangeText={setSenha}
+          secureTextEntry={!mostrarSenha}
+        />
+        <TouchableOpacity onPress={() => setMostrarSenha((v) => !v)} style={style.olhoBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Image source={mostrarSenha ? imgOlhoAberto : imgOlhoFechado} style={style.olhoIcon} resizeMode="contain" />
+        </TouchableOpacity>
+      </View>
 
-      <TextInput
-        style={style.input}
-        placeholder="Confirmar senha"
-        value={confirmSenha}
-        onChangeText={setConfirmSenha}
-        secureTextEntry
-      />
+      <View style={style.inputSenhaWrap}>
+        <TextInput
+          style={style.inputSenha}
+          placeholder="Confirmar senha"
+          value={confirmSenha}
+          onChangeText={setConfirmSenha}
+          secureTextEntry={!mostrarSenha}
+        />
+      </View>
 
       <View style={style.criteriosContainer}>
         <Text style={style.criteriosTitulo}>A senha deve conter:</Text>

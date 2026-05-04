@@ -15,7 +15,6 @@ import {
   ActivityIndicator,
   StyleSheet,
   Animated,
-  Alert,
 } from "react-native";
 import { useAuth } from "../../../context/AuthContext";
 import { editarPerfil } from "../../../services/api";
@@ -53,7 +52,7 @@ export default function SetupApelido({ onConcluido }: Props) {
       setLoading(true);
       setErro("");
       await editarPerfil(user!.id, { apelido: valor });
-      Alert.alert("Tudo certo!", "Apelido salvo com sucesso.", [{ text: "Continuar", onPress: onConcluido }]);
+      onConcluido();
     } catch (e: any) {
       mostrarErro(e?.message || "Não foi possível salvar o apelido.");
     } finally {
@@ -67,6 +66,11 @@ export default function SetupApelido({ onConcluido }: Props) {
       <Text style={styles.descricao}>
         Seu apelido é como você aparece no ranking e para outros usuários. Escolha um único.
       </Text>
+      <View style={styles.disclaimer}>
+        <Text style={styles.disclaimerTexto}>
+          🔒 Por sua segurança, evite usar partes do seu nome real no apelido.
+        </Text>
+      </View>
 
       <Animated.View style={{ transform: [{ translateX: shakeAnim }], width: "100%" }}>
         <TextInput
@@ -159,5 +163,20 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
+  },
+  disclaimer: {
+    backgroundColor: "#fff8e1",
+    borderLeftWidth: 3,
+    borderLeftColor: "#f59e0b",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 24,
+    width: "100%",
+  },
+  disclaimerTexto: {
+    fontSize: 13,
+    color: "#92400e",
+    lineHeight: 18,
   },
 });

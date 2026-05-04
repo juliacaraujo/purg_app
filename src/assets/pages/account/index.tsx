@@ -13,6 +13,7 @@ import { makeAccountStyles } from "./styles";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
+import { useRestricao } from "../../../context/RestricaoContext";
 import GraficoLinha from "../../components/GraficoLinha";
 import GraficoPizza from "../../components/GraficoPizza";
 import type { FatiaPizza } from "../../components/GraficoPizza";
@@ -38,6 +39,7 @@ const moneyTrunc2 = (v: number | string | null | undefined) => {
 
 export default function Account({ navigation }: { navigation: { navigate: (route: string) => void } }) {
   const { user } = useAuth();
+  const { menorDeIdade, permissoes } = useRestricao();
   const { colors } = useTheme();
   const styles = useMemo(() => makeAccountStyles(colors), [colors]);
 
@@ -184,11 +186,19 @@ export default function Account({ navigation }: { navigation: { navigate: (route
         <View style={styles.tituloRow}>
           <Text style={styles.pageTitle}>Patrimônio</Text>
           <View style={styles.tituloBtns}>
-            <TouchableOpacity style={styles.depositarBtn} onPress={() => go("Deposit")}>
-              <Text style={styles.depositarText}>Depositar</Text>
+            <TouchableOpacity
+              style={[styles.depositarBtn, menorDeIdade && !permissoes.podeDepositar && { opacity: 0.4 }]}
+              onPress={menorDeIdade && !permissoes.podeDepositar ? undefined : () => go("Deposit")}
+              disabled={menorDeIdade && !permissoes.podeDepositar}
+            >
+              <Text style={styles.depositarText}>{menorDeIdade && !permissoes.podeDepositar ? "🔒 Depositar" : "Depositar"}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.sacarBtn} onPress={() => go("Withdraw")}>
-              <Text style={styles.sacarBtnText}>Sacar</Text>
+            <TouchableOpacity
+              style={[styles.sacarBtn, menorDeIdade && !permissoes.podeSacar && { opacity: 0.4 }]}
+              onPress={menorDeIdade && !permissoes.podeSacar ? undefined : () => go("Withdraw")}
+              disabled={menorDeIdade && !permissoes.podeSacar}
+            >
+              <Text style={styles.sacarBtnText}>{menorDeIdade && !permissoes.podeSacar ? "🔒 Sacar" : "Sacar"}</Text>
             </TouchableOpacity>
           </View>
         </View>

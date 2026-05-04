@@ -1,3 +1,21 @@
+purg-develop-22 — 2026-05-03
+- Restrições para menores de idade: novo RestricaoContext detecta se o usuário logado é menor (adulto === 0) e carrega permissões do guardião via GET /api/v1/familia/permissoes-proprias/:id; expõe menorDeIdade e permissoes (podeDepositar, podeSacar, podeAlterarPerfil, podeAlterarPix)
+- Depósito e Saque bloqueados para menores: tela BloqueioTela exibida quando permissão negada; botões Depositar/Sacar na Home e Patrimônio desabilitados com 🔒
+- Perfil: editar dados pessoais, chaves Pix e trocar senha bloqueados com 🔒 para menores sem permissão do guardião
+- Modo Família — Convite de guardião pelo dependente: menor sem guardião vê seção para convidar responsável via e-mail ou busca por apelido (autocomplete com debounce); exibe convites pendentes com badge "Aguardando aceite"
+- Modo Família — Aceite de convite de guardião por link de e-mail: App.tsx captura ?convite_guardiao=TOKEN da URL antes do render e salva no localStorage; FamiliaContext processa o token após login e exibe alerta com resultado
+- Modo Família — Remoção de guardião pelo dependente: botão "Remover" com confirmação inline (Sim/Não) sem Alert nativo; API desvinculaGuardiao (DELETE /api/v1/familia/desvincular-guardiao/:id)
+- Modo Família — Confirmação inline para remover tutelado: substituída Alert.alert por confirmação Não/Sim no card do tutelado no Perfil
+- Modo Família — Exibição de convites pendentes corrigida: ConvitePendenteItem atualizado com nome_tutelado e email_tutelado; novo tipo ConviteGuardiaoPendenteItem em types.ts
+- Sistema de Eventos: novo EventosContext que busca eventos pendentes (GET /api/v1/eventos/pendentes); ModalEventos em App.tsx exibe o primeiro evento pendente como modal com ações Aceitar/Recusar (interativo) ou Entendido (informativo)
+- API: novos endpoints — aceitarConviteGuardiao, familiaRejeitarConviteGuardiao, getPermissoesProprias, getGuardioesElegiveis, convidarGuardiaoPorEmail, desvinculaGuardiao, familiaGetConvitesGuardiaoPendentes, getEventosPendentes, marcarEventoVisto
+- Perfil — Validação de campos obrigatórios nos dados pessoais: todos os campos (nome, apelido, celular, CEP, logradouro, número, bairro, cidade, estado) validados ao salvar; campos inválidos com borda vermelha e animação shake no modal
+- Perfil — Aviso de segurança no apelido: banner amarelo "evite usar partes do seu nome real no apelido" no modal de dados e na tela setup de apelido
+- Cadastro — Toggle exibir/ocultar senha: olhinho nos campos senha/confirmar senha na tela de cadastro
+- Ranking: usuários com menos de 10 pontos ocultados da listagem
+- Setup de apelido: Alert pós-conclusão removido; navega diretamente ao chamar onConcluido()
+- Avatares: 4 novos avatares adicionados — capivara, galo, pinguim e robô (assets/avatar/)
+
 purg-develop-21 — 2026-05-02
 - Ranking: avatar do usuário exibido entre a posição e o nome em cada card; fallback com círculo + inicial do apelido quando avatar_id não está mapeado
 - Ranking: campo avatar_id adicionado ao tipo RankingItem em types.ts

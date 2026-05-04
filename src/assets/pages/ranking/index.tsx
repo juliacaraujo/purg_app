@@ -32,7 +32,7 @@ export default function Ranking() {
       setLoading(true);
       setErro(false);
       const data = await getRanking();
-      setItems(Array.isArray(data) ? data : []);
+      setItems(Array.isArray(data) ? data.filter((i) => i.pontos >= 10) : []);
     } catch {
       setErro(true);
       setItems([]);

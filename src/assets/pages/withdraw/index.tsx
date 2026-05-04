@@ -15,6 +15,8 @@ import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import type { ThemeColors } from "../../../context/ThemeContext";
 import { AppBottomBar } from "../../components/AppBottomBar";
+import { BloqueioTela } from "../../components/BloqueioTela";
+import { useRestricao } from "../../../context/RestricaoContext";
 import {
   getCarteira,
   getDadosCadastro,
@@ -68,6 +70,7 @@ export default function Withdraw() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeWithdrawStyles(colors), [colors]);
   const ps = useMemo(() => makePinStyles(colors), [colors]);
+  const { menorDeIdade, permissoes } = useRestricao();
 
   const [loading, setLoading] = useState(false);
   const [saldo, setSaldo] = useState(0);
@@ -243,6 +246,15 @@ export default function Withdraw() {
     } finally {
       setRecuperando(false);
     }
+  }
+
+  if (menorDeIdade && !permissoes.podeSacar) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
+        <BloqueioTela mensagem="Saques estão bloqueados. Solicite ao seu responsável que habilite esta funcionalidade." />
+        <AppBottomBar />
+      </View>
+    );
   }
 
   return (

@@ -134,6 +134,30 @@ export const style = StyleSheet.create({
     color: "#166534",
   },
 
+  inputSenhaWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    marginBottom: 4,
+  },
+  inputSenha: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  olhoBtn: {
+    paddingHorizontal: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  olhoIcon: {
+    width: 22,
+    height: 22,
+    tintColor: "#999",
+  },
   linkText: {
     color: "#166534",
     fontSize: 14,

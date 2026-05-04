@@ -844,6 +844,16 @@ export async function familiaAceitarConvite(token: string): Promise<{ message: s
   return data;
 }
 
+export async function aceitarConviteGuardiao(token: string): Promise<{ message: string }> {
+  const response = await apiFetch("/api/v1/familia/aceitar-convite-guardiao", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao aceitar convite.", response.status);
+  return data;
+}
+
 export async function familiaTrocarPerfil(tuteladoId: number): Promise<{ tutelado: { id: number; nome: string } }> {
   const response = await apiFetch(`/api/v1/familia/trocar-perfil/${tuteladoId}`, { method: "POST" });
   const data = await response.json().catch(() => ({}));
@@ -856,6 +866,13 @@ export async function familiaRetornarPerfil(): Promise<{ guardiao: { id: number;
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao retornar ao perfil.", response.status);
   return data;
+}
+
+export async function getPermissoesProprias(userId: number): Promise<import("../types").PermissoesTutelado | null> {
+  const response = await apiFetch(`/api/v1/familia/permissoes-proprias/${userId}`);
+  if (!response.ok) return null;
+  const data = await response.json().catch(() => ({}));
+  return data.permissoes ?? null;
 }
 
 export async function familiaGetPermissoes(tuteladoId: number): Promise<import("../types").PermissoesTutelado> {
@@ -883,6 +900,45 @@ export async function familiaRevogar(tuteladoId: number): Promise<void> {
   if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao revogar vínculo.", response.status);
 }
 
+export interface GuardiaoElegivel {
+  usuario_id: number;
+  apelido: string;
+  nome_completo: string;
+  avatar_id: number | null;
+  email: string;
+}
+
+export async function getGuardioesElegiveis(): Promise<GuardiaoElegivel[]> {
+  const response = await apiFetch("/api/v1/familia/guardioes-elegiveis");
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao buscar usuários.", response.status);
+  return Array.isArray(data) ? data : [];
+}
+
+export async function convidarGuardiaoPorEmail(email: string): Promise<void> {
+  const response = await apiFetch("/api/v1/familia/convidar-guardiao", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao enviar convite.", response.status);
+}
+
+export async function convidarGuardiaoPorUsuario(apelido: string): Promise<void> {
+  const response = await apiFetch("/api/v1/familia/convidar-guardiao", {
+    method: "POST",
+    body: JSON.stringify({ apelido }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao enviar convite.", response.status);
+}
+
+export async function desvinculaGuardiao(guardiaoId: number): Promise<void> {
+  const response = await apiFetch(`/api/v1/familia/desvincular-guardiao/${guardiaoId}`, { method: "DELETE" });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao desvincular guardião.", response.status);
+}
+
 export async function familiaGetGuardioes(): Promise<import("../types").GuardiaoItem[]> {
   const response = await apiFetch("/api/v1/familia/guardioes");
   const data = await response.json().catch(() => ({}));
@@ -897,6 +953,13 @@ export async function familiaGetConvitesPendentes(): Promise<import("../types").
   return data.convites ?? [];
 }
 
+export async function familiaGetConvitesGuardiaoPendentes(): Promise<import("../types").ConviteGuardiaoPendenteItem[]> {
+  const response = await apiFetch("/api/v1/familia/convites-guardiao-pendentes");
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao buscar convites de guardião pendentes.", response.status);
+  return data.convites ?? [];
+}
+
 export async function familiaRejeitarConvite(token: string): Promise<void> {
   const response = await apiFetch("/api/v1/familia/rejeitar-convite", {
     method: "POST",
@@ -904,6 +967,43 @@ export async function familiaRejeitarConvite(token: string): Promise<void> {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao rejeitar convite.", response.status);
+}
+
+export async function familiaRejeitarConviteGuardiao(token: string): Promise<void> {
+  const response = await apiFetch("/api/v1/familia/rejeitar-convite-guardiao", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao rejeitar convite.", response.status);
+}
+
+/* ======================================================
+   EVENTOS
+   ====================================================== */
+
+export interface Evento {
+  id: number;
+  tipo: "informativo" | "interativo";
+  titulo: string;
+  mensagem: string;
+  acao?: "convite_tutelado" | "convite_guardiao";
+  payload?: { token?: string; nome_tutelado?: string; [key: string]: unknown };
+  criado_em: string;
+  expira_em?: string;
+}
+
+export async function getEventosPendentes(): Promise<Evento[]> {
+  const response = await apiFetch("/api/v1/eventos/pendentes");
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao buscar eventos.", response.status);
+  return Array.isArray(data.eventos) ? data.eventos : [];
+}
+
+export async function marcarEventoVisto(id: number): Promise<void> {
+  const response = await apiFetch(`/api/v1/eventos/${id}/marcar-visto`, { method: "POST" });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao marcar evento.", response.status);
 }
 
 /* ======================================================

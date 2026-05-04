@@ -14,6 +14,8 @@ import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { getHistoricoDepositos, getBuscarDepositosPendentes, cancelarDeposito, solicitarDeposito, getObjetivos, getObjetivoDetalhe } from "../../../services/api";
 import { AppBottomBar } from "../../components/AppBottomBar";
+import { BloqueioTela } from "../../components/BloqueioTela";
+import { useRestricao } from "../../../context/RestricaoContext";
 
 // Trunca para 2 casas decimais SEM arredondar (vírgula)
 const moneyTrunc = (v: any) => {
@@ -56,6 +58,7 @@ export default function Deposit({ navigation }: any) {
   const { user } = useAuth();
   const { colors } = useTheme();
   const styles = useMemo(() => makeDepositStyles(colors), [colors]);
+  const { menorDeIdade, permissoes } = useRestricao();
 
   const [valor, setValor] = useState("");
   const [historico, setHistorico] = useState<any[]>([]);
@@ -157,6 +160,15 @@ export default function Deposit({ navigation }: any) {
       setLoading(false);
     }
   };
+
+  if (menorDeIdade && !permissoes.podeDepositar) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
+        <BloqueioTela mensagem="Depósitos estão bloqueados. Solicite ao seu responsável que habilite esta funcionalidade." />
+        <AppBottomBar />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>

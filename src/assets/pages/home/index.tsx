@@ -20,6 +20,7 @@ import { ModalSelecionarAvatar } from "../../components/ModalSelecionarAvatar";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { useFamilia } from "../../../context/FamiliaContext";
+import { useRestricao } from "../../../context/RestricaoContext";
 import { useFocusEffect } from "@react-navigation/native";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import { SeletorPerfilModal } from "../../components/SeletorPerfilModal";
@@ -72,6 +73,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
   const { user, logout, updateUser } = useAuth();
   const { colors } = useTheme();
   const { atuandoComo } = useFamilia();
+  const { menorDeIdade, permissoes } = useRestricao();
   const style = useMemo(() => makeHomeStyle(colors), [colors]);
   const [seletorVisivel, setSeletorVisivel] = useState(false);
   const [modalAvatar, setModalAvatar] = useState(false);
@@ -333,8 +335,14 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
         )}
 
         {/* Ações */}
-        <TouchableOpacity style={[style.btn, style.btnPrimary]} onPress={handleDepositar}>
-          <Text style={style.btnPrimaryText}>Depositar</Text>
+        <TouchableOpacity
+          style={[style.btn, style.btnPrimary, menorDeIdade && !permissoes.podeDepositar && { opacity: 0.4 }]}
+          onPress={menorDeIdade && !permissoes.podeDepositar ? undefined : handleDepositar}
+          disabled={menorDeIdade && !permissoes.podeDepositar}
+        >
+          <Text style={style.btnPrimaryText}>
+            {menorDeIdade && !permissoes.podeDepositar ? "🔒 Depositar" : "Depositar"}
+          </Text>
         </TouchableOpacity>
 
         {/* Gráficos de crescimento */}

@@ -206,6 +206,7 @@ export default function Chat() {
     );
   }
 
+
   return (
     <SafeAreaView edges={["bottom", "left", "right"]} style={[s.safe, { backgroundColor: colors.backgroundSecondary }]}>
       <KeyboardAvoidingView

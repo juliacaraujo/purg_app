@@ -13,7 +13,6 @@ import {
   Animated,
   Image,
   Switch,
-  Alert,
 } from "react-native";
 import imgBiometria from "../../../../assets/biometria.png";
 import { makeProfileStyle } from "./styles";
@@ -23,12 +22,15 @@ import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import {
   getDadosCadastro, editarPerfil, editarChavesPix, trocarSenha, putTema, atualizarPreferenciaLogin,
   getPinNegociacaoStatus, criarPinNegociacao, alterarPinNegociacao, recuperarPinSolicitar, verificarSenhaNegociacao,
-  familiaConvidar, familiaGetPermissoes, familiaPutPermissoes, familiaRevogar, familiaGetConvitesPendentes, familiaGetGuardioes,
+  familiaConvidar, familiaGetPermissoes, familiaPutPermissoes, familiaRevogar, familiaGetConvitesPendentes, familiaGetConvitesGuardiaoPendentes, familiaGetGuardioes, desvinculaGuardiao,
+  convidarGuardiaoPorEmail, getGuardioesElegiveis,
   putAvatar,
 } from "../../../services/api";
 import avatarMap from "../../avatarMap";
-import type { DadosCadastroResponse, TuteladoItem, PermissoesTutelado, ConvitePendenteItem, GuardiaoItem } from "../../../types";
+import type { DadosCadastroResponse, TuteladoItem, PermissoesTutelado, ConvitePendenteItem, ConviteGuardiaoPendenteItem, GuardiaoItem } from "../../../types";
+import type { GuardiaoElegivel } from "../../../services/api";
 import { useFamilia } from "../../../context/FamiliaContext";
+import { useRestricao } from "../../../context/RestricaoContext";
 import { cadastrarBiometria, isPasskeySupported } from "../../../services/biometria";
 import { ModalSelecionarAvatar } from "../../components/ModalSelecionarAvatar";
 
@@ -196,6 +198,7 @@ const familiaS = StyleSheet.create({
 
 export default function Profile() {
   const { user, logout, updateUser } = useAuth();
+  const { menorDeIdade, permissoes: restricoes } = useRestricao();
   const { isDark, colors, setDark } = useTheme();
   const style = useMemo(() => makeProfileStyle(colors), [colors]);
 
@@ -208,6 +211,8 @@ export default function Profile() {
   const [modalSenha, setModalSenha] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erroDados, setErroDados] = useState<string | null>(null);
+  const [shakeKeyDados, setShakeKeyDados] = useState(0);
+  const [camposComErroDados, setCamposComErroDados] = useState<Set<string>>(new Set());
   const [erroPix, setErroPix] = useState<string | null>(null);
   const [erroSenha, setErroSenha] = useState<string | null>(null);
 
@@ -289,8 +294,21 @@ export default function Profile() {
   const [modalSeletor, setModalSeletor] = useState(false);
   const [trocandoPerfil, setTrocandoPerfil] = useState<number | null>(null);
   const [convitesPendentes, setConvitesPendentes] = useState<ConvitePendenteItem[]>([]);
+  const [convitesParaGuardiao, setConvitesParaGuardiao] = useState<ConviteGuardiaoPendenteItem[]>([]);
   const [guardioes, setGuardioes] = useState<GuardiaoItem[]>([]);
   const [guardiaoesCarregados, setGuardioesCarregados] = useState(false);
+  const [guardiaoConfirmar, setGuardiaoConfirmar] = useState<number | null>(null);
+  const [tuteladoConfirmar, setTuteladoConfirmar] = useState<number | null>(null);
+  const [secaoAdicionarGuardiao, setSecaoAdicionarGuardiao] = useState(false);
+  const [tipoConviteGuardiao, setTipoConviteGuardiao] = useState<"email" | "usuario" | null>(null);
+  const [inputConviteGuardiao, setInputConviteGuardiao] = useState("");
+  const [erroConviteGuardiao, setErroConviteGuardiao] = useState<string | null>(null);
+  const [enviandoConviteGuardiao, setEnviandoConviteGuardiao] = useState(false);
+  const [sugestoesGuardiao, setSugestoesGuardiao] = useState<GuardiaoElegivel[]>([]);
+  const [buscandoGuardiao, setBuscandoGuardiao] = useState(false);
+  const buscaGuardiaoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [apelidoSelecionado, setApelidoSelecionado] = useState<string | null>(null);
+  const [emailGuardiaoSelecionado, setEmailGuardiaoSelecionado] = useState<string | null>(null);
 
   function mostrarToast(msg: string, tipo: "sucesso" | "erro") {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -323,6 +341,7 @@ export default function Profile() {
         .catch(() => { setGuardioes([]); setGuardioesCarregados(true); });
       carregarTutelados();
       familiaGetConvitesPendentes().then(setConvitesPendentes).catch(() => {});
+      familiaGetConvitesGuardiaoPendentes().then(setConvitesParaGuardiao).catch(() => {});
     }
   }, [user?.id, atuandoComo, carregarTutelados]);
 
@@ -419,36 +438,82 @@ export default function Profile() {
     }
   }
 
-  function confirmarRevogar(t: TuteladoItem) {
-    Alert.alert(
-      "Remover vínculo",
-      `Tem certeza que deseja remover ${t.tutelado_nome} como dependente?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Remover",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await familiaRevogar(t.tutelado_id);
-              mostrarToast("Vínculo removido.", "sucesso");
-              carregarTutelados();
-            } catch (e: any) {
-              mostrarToast(e?.message || "Não foi possível remover o vínculo.", "erro");
-            }
-          },
-        },
-      ]
-    );
+  function abrirConviteViaUsuario() {
+    setTipoConviteGuardiao("usuario");
+    setInputConviteGuardiao("");
+    setApelidoSelecionado(null);
+    setSugestoesGuardiao([]);
+  }
+
+  async function handleEnviarConviteGuardiao() {
+    const valor = inputConviteGuardiao.trim();
+    if (!valor) { setErroConviteGuardiao("Preencha o campo."); return; }
+    if (tipoConviteGuardiao === "email" && !/@.+\..+/.test(valor.toLowerCase())) {
+      setErroConviteGuardiao("Informe um e-mail válido (ex: nome@email.com).");
+      return;
+    }
+    if (tipoConviteGuardiao === "usuario" && !apelidoSelecionado) {
+      setErroConviteGuardiao("Selecione um usuário da lista de sugestões.");
+      return;
+    }
+    try {
+      setEnviandoConviteGuardiao(true);
+      setErroConviteGuardiao(null);
+      if (tipoConviteGuardiao === "email") {
+        await convidarGuardiaoPorEmail(valor.toLowerCase());
+      } else {
+        if (!emailGuardiaoSelecionado) {
+          setErroConviteGuardiao("Não foi possível obter o e-mail do usuário. Tente pelo e-mail.");
+          return;
+        }
+        await convidarGuardiaoPorEmail(emailGuardiaoSelecionado);
+      }
+      setSecaoAdicionarGuardiao(false);
+      setTipoConviteGuardiao(null);
+      setInputConviteGuardiao("");
+      setApelidoSelecionado(null);
+      setEmailGuardiaoSelecionado(null);
+      mostrarToast("Convite enviado com sucesso!", "sucesso");
+      familiaGetConvitesGuardiaoPendentes().then(setConvitesParaGuardiao).catch(() => {});
+    } catch (e: any) {
+      setErroConviteGuardiao(e?.message || "Não foi possível enviar o convite.");
+    } finally {
+      setEnviandoConviteGuardiao(false);
+    }
+  }
+
+  async function executarDesvinculaGuardiao(g: GuardiaoItem) {
+    setGuardiaoConfirmar(null);
+    try {
+      await desvinculaGuardiao(g.id);
+      mostrarToast("Guardião removido com sucesso.", "sucesso");
+      setGuardioes((prev) => prev.filter((x) => x.id !== g.id));
+    } catch (e: any) {
+      mostrarToast(e?.message || "Não foi possível remover o guardião.", "erro");
+    }
+  }
+
+  async function executarRevogar(t: TuteladoItem) {
+    setTuteladoConfirmar(null);
+    try {
+      await familiaRevogar(t.tutelado_id);
+      mostrarToast("Vínculo removido.", "sucesso");
+      carregarTutelados();
+    } catch (e: any) {
+      mostrarToast(e?.message || "Não foi possível remover o vínculo.", "erro");
+    }
   }
 
   async function handleTrocarPerfil(tuteladoId: number, nome: string) {
     setModalSeletor(false);
+    setTrocandoPerfil(tuteladoId);
     mostrarToast(`Entrando na conta de ${nome}...`, "sucesso");
     try {
       await trocarParaTutelado(tuteladoId, nome);
     } catch (e: any) {
       mostrarToast(e?.message || "Não foi possível trocar de perfil.", "erro");
+    } finally {
+      setTrocandoPerfil(null);
     }
   }
 
@@ -488,7 +553,23 @@ export default function Profile() {
   }
 
   function salvarDados() {
-    if (!nomeEdit.trim()) { mostrarToast("Nome não pode ficar em branco.", "erro"); return; }
+    const erros = new Set<string>();
+    if (!nomeEdit.trim()) erros.add("nome");
+    if (!apelidoEdit.trim()) erros.add("apelido");
+    if (!celularEdit.trim()) erros.add("celular");
+    if (!cepEdit.trim()) erros.add("cep");
+    if (!logradouroEdit.trim()) erros.add("logradouro");
+    if (!numeroEdit.trim()) erros.add("numero");
+    if (!bairroEdit.trim()) erros.add("bairro");
+    if (!cidadeEdit.trim()) erros.add("cidade");
+    if (!estadoEdit.trim()) erros.add("estado");
+    if (erros.size > 0) {
+      setCamposComErroDados(erros);
+      setErroDados("Preencha todos os campos obrigatórios.");
+      setShakeKeyDados((k) => k + 1);
+      return;
+    }
+    setCamposComErroDados(new Set());
     setAcaoPendente("dados");
     setSenhaConf("");
     setErroSenhaConf(null);
@@ -739,8 +820,10 @@ export default function Profile() {
         <View style={style.secao}>
           <View style={ms.secaoHeaderRow}>
             <Text style={style.secaoTitulo}>Dados Pessoais</Text>
-            <TouchableOpacity onPress={abrirModalDados}>
-              <Text style={[ms.editarLink, { color: colors.primary }]}>Editar</Text>
+            <TouchableOpacity onPress={abrirModalDados} disabled={menorDeIdade && !restricoes.podeAlterarPerfil}>
+              <Text style={[ms.editarLink, { color: menorDeIdade && !restricoes.podeAlterarPerfil ? colors.textTertiary : colors.primary }]}>
+                {menorDeIdade && !restricoes.podeAlterarPerfil ? "🔒 Editar" : "Editar"}
+              </Text>
             </TouchableOpacity>
           </View>
           <View style={style.linha}><Text style={style.linhaLabel}>Nome completo</Text><Text style={style.linhaValor}>{dados?.nome_completo ? titleCaseName(dados.nome_completo) : "—"}</Text></View>
@@ -763,8 +846,10 @@ export default function Profile() {
         <View style={style.secao}>
           <View style={ms.secaoHeaderRow}>
             <Text style={style.secaoTitulo}>Chaves Pix</Text>
-            <TouchableOpacity onPress={abrirModalPix}>
-              <Text style={[ms.editarLink, { color: colors.primary }]}>Editar</Text>
+            <TouchableOpacity onPress={abrirModalPix} disabled={menorDeIdade && !restricoes.podeAlterarPix}>
+              <Text style={[ms.editarLink, { color: menorDeIdade && !restricoes.podeAlterarPix ? colors.textTertiary : colors.primary }]}>
+                {menorDeIdade && !restricoes.podeAlterarPix ? "🔒 Editar" : "Editar"}
+              </Text>
             </TouchableOpacity>
           </View>
           {temPix ? (
@@ -782,8 +867,14 @@ export default function Profile() {
         {/* Segurança */}
         <View style={style.secao}>
           <Text style={[style.secaoTitulo, { marginBottom: 12 }]}>Segurança</Text>
-          <TouchableOpacity style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }]} onPress={abrirModalSenha}>
-            <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Trocar senha de acesso</Text>
+          <TouchableOpacity
+            style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }, menorDeIdade && !restricoes.podeAlterarPerfil && { opacity: 0.4 }]}
+            onPress={abrirModalSenha}
+            disabled={menorDeIdade && !restricoes.podeAlterarPerfil}
+          >
+            <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>
+              {menorDeIdade && !restricoes.podeAlterarPerfil ? "🔒 Trocar senha de acesso" : "Trocar senha de acesso"}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -880,13 +971,164 @@ export default function Profile() {
                   <Text style={[familiaS.nome, { color: colors.textPrimary }]}>{titleCaseName(g.nome_completo)}</Text>
                   <Text style={[familiaS.email, { color: colors.textSecondary }]}>Guardião</Text>
                 </View>
+                {guardiaoConfirmar === g.id ? (
+                  <View style={{ flexDirection: "row", gap: 6 }}>
+                    <TouchableOpacity style={[familiaS.btn, { borderColor: colors.textTertiary }]} onPress={() => setGuardiaoConfirmar(null)}>
+                      <Text style={[familiaS.btnText, { color: colors.textTertiary }]}>Não</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[familiaS.btn, { borderColor: "#dc2626" }]} onPress={() => executarDesvinculaGuardiao(g)}>
+                      <Text style={[familiaS.btnText, { color: "#dc2626" }]}>Sim</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={[familiaS.btn, { borderColor: "#dc2626" }]} onPress={() => setGuardiaoConfirmar(g.id)}>
+                    <Text style={[familiaS.btnText, { color: "#dc2626" }]}>Remover</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </View>
         )}
 
+        {/* Modo Família — Menor sem guardião: adicionar guardião */}
+        {!atuandoComo && guardiaoesCarregados && menorDeIdade && guardioes.length === 0 && (
+          <View style={style.secao}>
+            <Text style={[style.secaoTitulo, { marginBottom: 8 }]}>Modo Família</Text>
+            <Text style={[ms.bioDesc, { color: colors.textSecondary }]}>
+              {convitesParaGuardiao.length > 0
+                ? "Convite enviado, aguardando o guardião aceitar:"
+                : "Você ainda não possui um responsável vinculado. Convide alguém para gerenciar seu acesso."}
+            </Text>
+            {convitesParaGuardiao.map((c) => {
+              const semConta = c.nome_guardiao === "Sem conta criada";
+              const nomeExibido = semConta ? c.email_guardiao : titleCaseName(c.nome_guardiao);
+              const letra = semConta ? "?" : (c.nome_guardiao?.[0]?.toUpperCase() ?? "?");
+              return (
+                <View key={c.id} style={[familiaS.tuteladoCard, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+                  <View style={[familiaS.avatar, { backgroundColor: colors.primary + "22" }]}>
+                    <Text style={[familiaS.avatarLetra, { color: colors.primary }]}>{letra}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[familiaS.nome, { color: colors.textPrimary }]} numberOfLines={1}>{nomeExibido}</Text>
+                    <Text style={[familiaS.email, { color: colors.textSecondary }]}>Aguardando aceite</Text>
+                  </View>
+                  <View style={[familiaS.pendenteBadge, { backgroundColor: "#F5A62322" }]}>
+                    <Text style={[familiaS.pendenteBadgeText, { color: "#F5A623" }]}>Pendente</Text>
+                  </View>
+                </View>
+              );
+            })}
+            {!secaoAdicionarGuardiao ? (
+              <TouchableOpacity
+                style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }]}
+                onPress={() => { setSecaoAdicionarGuardiao(true); setTipoConviteGuardiao(null); setInputConviteGuardiao(""); setErroConviteGuardiao(null); }}
+              >
+                <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Adicionar guardião</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={{ marginTop: 8 }}>
+                {tipoConviteGuardiao === null ? (
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    <TouchableOpacity
+                      style={[ms.secaoBtn, { flex: 1, backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }]}
+                      onPress={abrirConviteViaUsuario}
+                    >
+                      <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Via usuário</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[ms.secaoBtn, { flex: 1, backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }]}
+                      onPress={() => setTipoConviteGuardiao("email")}
+                    >
+                      <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>Via e-mail</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View>
+                    <Text style={ms.inputLabel}>
+                      {tipoConviteGuardiao === "email" ? "E-mail do guardião" : "Usuário (apelido) do guardião"}
+                    </Text>
+                    <TextInput
+                      style={ms.input}
+                      placeholder={tipoConviteGuardiao === "email" ? "e-mail@exemplo.com" : "apelido do usuário"}
+                      placeholderTextColor="#bbb"
+                      keyboardType={tipoConviteGuardiao === "email" ? "email-address" : "default"}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      value={inputConviteGuardiao}
+                      onChangeText={(v) => {
+                        setInputConviteGuardiao(v);
+                        setErroConviteGuardiao(null);
+                        setApelidoSelecionado(null);
+                        setEmailGuardiaoSelecionado(null);
+                        if (tipoConviteGuardiao === "usuario") {
+                          if (buscaGuardiaoTimer.current) clearTimeout(buscaGuardiaoTimer.current);
+                          const query = v.trim();
+                          if (query.length < 2) { setSugestoesGuardiao([]); return; }
+                          buscaGuardiaoTimer.current = setTimeout(async () => {
+                            try {
+                              setBuscandoGuardiao(true);
+                              const lista = await getGuardioesElegiveis();
+                              setSugestoesGuardiao(lista.filter((e) => e.apelido.toLowerCase().includes(query.toLowerCase())));
+                            } catch {
+                              setSugestoesGuardiao([]);
+                            } finally {
+                              setBuscandoGuardiao(false);
+                            }
+                          }, 350);
+                        }
+                      }}
+                    />
+                    {/* Sugestões de usuário */}
+                    {tipoConviteGuardiao === "usuario" && inputConviteGuardiao.trim().length >= 2 && apelidoSelecionado === null && (
+                      buscandoGuardiao ? (
+                        <View style={{ paddingVertical: 8 }}><ActivityIndicator size="small" color={colors.primary} /></View>
+                      ) : sugestoesGuardiao.length > 0 ? (
+                        <View style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, marginTop: 2, overflow: "hidden" }}>
+                          {sugestoesGuardiao.map((s, i) => (
+                            <TouchableOpacity
+                              key={s.usuario_id}
+                              style={{ paddingHorizontal: 14, paddingVertical: 10, backgroundColor: colors.card, borderTopWidth: i > 0 ? StyleSheet.hairlineWidth : 0, borderColor: colors.border }}
+                              onPress={() => {
+                                setInputConviteGuardiao(s.apelido);
+                                setApelidoSelecionado(s.apelido);
+                                setEmailGuardiaoSelecionado(s.email);
+                                setErroConviteGuardiao(null);
+                                setSugestoesGuardiao([]);
+                              }}
+                            >
+                              <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "600" }}>{s.apelido}</Text>
+                              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{titleCaseName(s.nome_completo)}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      ) : null
+                    )}
+                    {erroConviteGuardiao && (
+                      <View style={ms.modalErro}><Text style={ms.modalErroTexto}>{erroConviteGuardiao}</Text></View>
+                    )}
+                    <View style={[ms.modalBtns, { marginTop: 8 }]}>
+                      <TouchableOpacity style={ms.btnCancelar} onPress={() => setTipoConviteGuardiao(null)}>
+                        <Text style={ms.btnCancelarText}>Voltar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[ms.btnSalvar, enviandoConviteGuardiao && { opacity: 0.6 }]}
+                        onPress={handleEnviarConviteGuardiao}
+                        disabled={enviandoConviteGuardiao}
+                      >
+                        {enviandoConviteGuardiao
+                          ? <ActivityIndicator color="#fff" size="small" />
+                          : <Text style={ms.btnSalvarText}>Enviar convite</Text>}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Modo Família — Guardião: gerenciar dependentes */}
-        {!atuandoComo && guardiaoesCarregados && guardioes.length === 0 && (
+        {!atuandoComo && guardiaoesCarregados && !menorDeIdade && guardioes.length === 0 && (
           <View style={style.secao}>
             <Text style={[style.secaoTitulo, { marginBottom: 8 }]}>Modo Família</Text>
             <Text style={[ms.bioDesc, { color: colors.textSecondary }]}>
@@ -902,18 +1144,25 @@ export default function Profile() {
                   <Text style={[familiaS.email, { color: colors.textSecondary }]} numberOfLines={1}>{t.tutelado_email}</Text>
                 </View>
                 <View style={familiaS.btns}>
-                  <TouchableOpacity
-                    style={[familiaS.btn, { borderColor: colors.primary }]}
-                    onPress={() => abrirModalPermissoes(t)}
-                  >
-                    <Text style={[familiaS.btnText, { color: colors.primary }]}>Permissões</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[familiaS.btn, { borderColor: "#FF3B30" }]}
-                    onPress={() => confirmarRevogar(t)}
-                  >
-                    <Text style={[familiaS.btnText, { color: "#FF3B30" }]}>Remover</Text>
-                  </TouchableOpacity>
+                  {tuteladoConfirmar === t.tutelado_id ? (
+                    <>
+                      <TouchableOpacity style={[familiaS.btn, { borderColor: colors.textTertiary }]} onPress={() => setTuteladoConfirmar(null)}>
+                        <Text style={[familiaS.btnText, { color: colors.textTertiary }]}>Não</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[familiaS.btn, { borderColor: "#FF3B30" }]} onPress={() => executarRevogar(t)}>
+                        <Text style={[familiaS.btnText, { color: "#FF3B30" }]}>Sim</Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <>
+                      <TouchableOpacity style={[familiaS.btn, { borderColor: colors.primary }]} onPress={() => abrirModalPermissoes(t)}>
+                        <Text style={[familiaS.btnText, { color: colors.primary }]}>Permissões</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[familiaS.btn, { borderColor: "#FF3B30" }]} onPress={() => setTuteladoConfirmar(t.tutelado_id)}>
+                        <Text style={[familiaS.btnText, { color: "#FF3B30" }]}>Remover</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
               </View>
             ))}
@@ -929,8 +1178,8 @@ export default function Profile() {
                 {convitesPendentes.map((c) => (
                   <View key={c.id} style={[familiaS.conviteCard, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
                     <View style={{ flex: 1 }}>
-                      <Text style={[familiaS.nome, { color: colors.textPrimary }]}>{c.email_convidado}</Text>
-                      <Text style={[familiaS.email, { color: colors.textSecondary }]}>Expira em {formatDate(c.expira_em)}</Text>
+                      <Text style={[familiaS.nome, { color: colors.textPrimary }]}>{c.nome_tutelado}</Text>
+                      <Text style={[familiaS.email, { color: colors.textSecondary }]}>{c.email_tutelado}</Text>
                     </View>
                     <View style={[familiaS.pendenteBadge, { backgroundColor: "#F5A62322" }]}>
                       <Text style={[familiaS.pendenteBadgeText, { color: "#F5A623" }]}>Pendente</Text>
@@ -1135,9 +1384,12 @@ export default function Profile() {
       </Modal>
 
       {/* Modal — Dados pessoais */}
-      <ModalEdicao visible={modalDados} titulo="Editar Dados" onClose={() => setModalDados(false)} onSalvar={salvarDados} loading={salvando} erro={erroDados} ms={ms}>
-        <Campo ms={ms} label="Nome completo" value={nomeEdit} onChangeText={setNomeEdit} placeholder="Seu nome" />
-        <Campo ms={ms} label="Apelido" value={apelidoEdit} onChangeText={setApelidoEdit} placeholder="Seu apelido" />
+      <ModalEdicao visible={modalDados} titulo="Editar Dados" onClose={() => { setModalDados(false); setErroDados(null); setCamposComErroDados(new Set()); }} onSalvar={salvarDados} loading={salvando} shakeKey={shakeKeyDados} erro={erroDados} ms={ms}>
+        <Campo ms={ms} label="Nome completo" value={nomeEdit} onChangeText={(v) => { setNomeEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("nome"); return n; }); }} placeholder="Seu nome" erro={camposComErroDados.has("nome")} />
+        <Campo ms={ms} label="Apelido" value={apelidoEdit} onChangeText={(v) => { setApelidoEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("apelido"); return n; }); }} placeholder="Seu apelido" erro={camposComErroDados.has("apelido")} />
+        <View style={{ backgroundColor: "#fff8e1", borderLeftWidth: 3, borderLeftColor: "#f59e0b", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, color: "#92400e", lineHeight: 17 }}>🔒 Por sua segurança, evite usar partes do seu nome real no apelido.</Text>
+        </View>
         <Text style={ms.inputLabel}>Gênero</Text>
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
           {(["Masculino", "Feminino", "Outros"] as const).map((op) => (
@@ -1150,14 +1402,14 @@ export default function Profile() {
             </TouchableOpacity>
           ))}
         </View>
-        <Campo ms={ms} label="Celular" value={celularEdit} onChangeText={setCelularEdit} placeholder="(11) 99999-9999" keyboardType="phone-pad" />
-        <Campo ms={ms} label="CEP" value={cepEdit} onChangeText={setCepEdit} placeholder="00000-000" keyboardType="number-pad" />
-        <Campo ms={ms} label="Logradouro" value={logradouroEdit} onChangeText={setLogradouroEdit} placeholder="Rua, Av..." />
-        <Campo ms={ms} label="Número" value={numeroEdit} onChangeText={setNumeroEdit} placeholder="0" keyboardType="number-pad" />
-        <Campo ms={ms} label="Complemento" value={complementoEdit} onChangeText={setComplementoEdit} placeholder="Apto, Bloco..." />
-        <Campo ms={ms} label="Bairro" value={bairroEdit} onChangeText={setBairroEdit} placeholder="Bairro" />
-        <Campo ms={ms} label="Cidade" value={cidadeEdit} onChangeText={setCidadeEdit} placeholder="Cidade" />
-        <Campo ms={ms} label="Estado" value={estadoEdit} onChangeText={setEstadoEdit} placeholder="SP" />
+        <Campo ms={ms} label="Celular" value={celularEdit} onChangeText={(v) => { setCelularEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("celular"); return n; }); }} placeholder="(11) 99999-9999" keyboardType="phone-pad" erro={camposComErroDados.has("celular")} />
+        <Campo ms={ms} label="CEP" value={cepEdit} onChangeText={(v) => { setCepEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("cep"); return n; }); }} placeholder="00000-000" keyboardType="number-pad" erro={camposComErroDados.has("cep")} />
+        <Campo ms={ms} label="Logradouro" value={logradouroEdit} onChangeText={(v) => { setLogradouroEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("logradouro"); return n; }); }} placeholder="Rua, Av..." erro={camposComErroDados.has("logradouro")} />
+        <Campo ms={ms} label="Número" value={numeroEdit} onChangeText={(v) => { setNumeroEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("numero"); return n; }); }} placeholder="0" keyboardType="number-pad" erro={camposComErroDados.has("numero")} />
+        <Campo ms={ms} label="Complemento (opcional)" value={complementoEdit} onChangeText={setComplementoEdit} placeholder="Apto, Bloco..." />
+        <Campo ms={ms} label="Bairro" value={bairroEdit} onChangeText={(v) => { setBairroEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("bairro"); return n; }); }} placeholder="Bairro" erro={camposComErroDados.has("bairro")} />
+        <Campo ms={ms} label="Cidade" value={cidadeEdit} onChangeText={(v) => { setCidadeEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("cidade"); return n; }); }} placeholder="Cidade" erro={camposComErroDados.has("cidade")} />
+        <Campo ms={ms} label="Estado" value={estadoEdit} onChangeText={(v) => { setEstadoEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("estado"); return n; }); }} placeholder="SP" erro={camposComErroDados.has("estado")} />
       </ModalEdicao>
 
       {/* Modal — Chaves Pix */}
@@ -1333,10 +1585,23 @@ export default function Profile() {
 
 type ModalStyles = ReturnType<typeof makeModalStyle>;
 
-function ModalEdicao({ visible, titulo, onClose, onSalvar, loading, erro, ms, children }: {
+function ModalEdicao({ visible, titulo, onClose, onSalvar, loading, shakeKey, erro, ms, children }: {
   visible: boolean; titulo: string; onClose: () => void; onSalvar: () => void;
-  loading: boolean; erro?: string | null; ms: ModalStyles; children: React.ReactNode;
+  loading: boolean; shakeKey?: number; erro?: string | null; ms: ModalStyles; children: React.ReactNode;
 }) {
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!shakeKey) return;
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 8, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 6, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -6, duration: 55, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 55, useNativeDriver: true }),
+    ]).start();
+  }, [shakeKey]);
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={ms.overlay}>
@@ -1345,30 +1610,32 @@ function ModalEdicao({ visible, titulo, onClose, onSalvar, loading, erro, ms, ch
           <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {children}
           </ScrollView>
-          {erro ? <View style={ms.modalErro}><Text style={ms.modalErroTexto}>{erro}</Text></View> : null}
-          <View style={ms.modalBtns}>
-            <TouchableOpacity style={ms.btnCancelar} onPress={onClose}>
-              <Text style={ms.btnCancelarText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[ms.btnSalvar, loading && { opacity: 0.6 }]} onPress={onSalvar} disabled={loading}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={ms.btnSalvarText}>Salvar</Text>}
-            </TouchableOpacity>
-          </View>
+          <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
+            {erro ? <View style={ms.modalErro}><Text style={ms.modalErroTexto}>{erro}</Text></View> : null}
+            <View style={ms.modalBtns}>
+              <TouchableOpacity style={ms.btnCancelar} onPress={onClose}>
+                <Text style={ms.btnCancelarText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[ms.btnSalvar, loading && { opacity: 0.6 }]} onPress={onSalvar} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={ms.btnSalvarText}>Salvar</Text>}
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
         </View>
       </View>
     </Modal>
   );
 }
 
-function Campo({ ms, label, value, onChangeText, placeholder, keyboardType, secureTextEntry }: {
+function Campo({ ms, label, value, onChangeText, placeholder, keyboardType, secureTextEntry, erro }: {
   ms: ModalStyles; label: string; value: string; onChangeText: (v: string) => void;
-  placeholder?: string; keyboardType?: import("react-native").KeyboardTypeOptions; secureTextEntry?: boolean;
+  placeholder?: string; keyboardType?: import("react-native").KeyboardTypeOptions; secureTextEntry?: boolean; erro?: boolean;
 }) {
   return (
     <>
       <Text style={ms.inputLabel}>{label}</Text>
       <TextInput
-        style={ms.input}
+        style={[ms.input, erro && { borderColor: "#FF3B30" }]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder ?? ""}

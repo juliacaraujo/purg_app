@@ -24,6 +24,7 @@ export interface DadosCadastroResponse {
   estado?: string;
   cep?: string;
   data_nascimento?: string;
+  adulto?: 0 | 1;
   genero?: string;
   nome_da_mae?: string;
   created_at?: string;
@@ -145,7 +146,24 @@ export interface GuardiaoItem {
 
 export interface ConvitePendenteItem {
   id: number;
-  email_convidado: string;
+  status: string;
+  guardiao_id: number;
+  nome_guardiao: string;
+  tutelado_id: number;
+  nome_tutelado: string;
+  email_tutelado: string;
+  expira_em: string;
+  criado_em: string;
+}
+
+export interface ConviteGuardiaoPendenteItem {
+  id: number;
+  status: string;
+  tutelado_id: number;
+  nome_tutelado: string;
+  guardiao_id: number | string;
+  nome_guardiao: string;
+  email_guardiao: string;
   expira_em: string;
   criado_em: string;
 }

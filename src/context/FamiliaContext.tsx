@@ -12,15 +12,17 @@ import {
   familiaTrocarPerfil,
   familiaRetornarPerfil,
   familiaAceitarConvite,
+  aceitarConviteGuardiao,
 } from "../services/api";
 import { useAuth } from "./AuthContext";
 import type { TuteladoItem } from "../types";
 
-const STORAGE_GUARDIAO_ID     = "purg_guardiao_id";
-const STORAGE_GUARDIAO_EMAIL  = "purg_guardiao_email";
-const STORAGE_GUARDIAO_AVATAR = "purg_guardiao_avatar_id";
-const STORAGE_ATUANDO_NOME    = "purg_atuando_como_nome";
-const STORAGE_PENDING_INVITE  = "purg_pending_invite";
+const STORAGE_GUARDIAO_ID           = "purg_guardiao_id";
+const STORAGE_GUARDIAO_EMAIL        = "purg_guardiao_email";
+const STORAGE_GUARDIAO_AVATAR       = "purg_guardiao_avatar_id";
+const STORAGE_ATUANDO_NOME          = "purg_atuando_como_nome";
+const STORAGE_PENDING_INVITE        = "purg_pending_invite";
+const STORAGE_PENDING_CONV_GUARDIAO = "purg_pending_convite_guardiao";
 
 // Memória em RAM como fallback para plataformas sem localStorage (native)
 const memStorage: Record<string, string> = {};
@@ -66,6 +68,8 @@ type FamiliaContextType = {
   salvarConvitePendente: (token: string) => void;
   convitePendenteResultado: "aceito" | "erro" | null;
   limparConvitePendenteResultado: () => void;
+  conviteGuardiaoPendenteResultado: "aceito" | "erro" | null;
+  limparConviteGuardiaoPendenteResultado: () => void;
 };
 
 const FamiliaContext = createContext<FamiliaContextType | undefined>(undefined);
@@ -77,14 +81,12 @@ export function FamiliaProvider({ children }: { children: ReactNode }) {
   const [atuandoComo, setAtuandoComo] = useState<AtuandoComo | null>(null);
   const [guardiaoOriginal, setGuardiaoOriginal] = useState<GuardiaoOriginal | null>(null);
   const [convitePendenteResultado, setConvitePendenteResultado] = useState<"aceito" | "erro" | null>(null);
+  const [conviteGuardiaoPendenteResultado, setConviteGuardiaoPendenteResultado] = useState<"aceito" | "erro" | null>(null);
 
-  // Rastreia por qual userId já fizemos o restore, evitando re-execução e
-  // garantindo que funciona corretamente quando outro usuário faz login
   const restoredForUserRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (user?.id) return;
-    // Logout: limpa estado e storage para não restaurar sessão de dependente no próximo login
     webStorage.remove(STORAGE_GUARDIAO_ID);
     webStorage.remove(STORAGE_GUARDIAO_EMAIL);
     webStorage.remove(STORAGE_GUARDIAO_AVATAR);
@@ -108,7 +110,7 @@ export function FamiliaProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Aceita convite pendente salvo antes do login
+    // Fallback de link de e-mail: aceita convite de tutelado salvo na URL
     const pendingToken = webStorage.get(STORAGE_PENDING_INVITE);
     if (pendingToken) {
       familiaAceitarConvite(pendingToken)
@@ -117,11 +119,26 @@ export function FamiliaProvider({ children }: { children: ReactNode }) {
           setConvitePendenteResultado("aceito");
         })
         .catch((e: any) => {
-          // Token expirado ou inválido → descarta. Erro de rede (5xx) → mantém para próxima tentativa
           if (!e?.status || (e.status !== 500 && e.status !== 503)) {
             webStorage.remove(STORAGE_PENDING_INVITE);
           }
           setConvitePendenteResultado("erro");
+        });
+    }
+
+    // Fallback de link de e-mail: aceita convite de guardião salvo na URL
+    const pendingGuardiaoToken = webStorage.get(STORAGE_PENDING_CONV_GUARDIAO);
+    if (pendingGuardiaoToken) {
+      aceitarConviteGuardiao(pendingGuardiaoToken)
+        .then(() => {
+          webStorage.remove(STORAGE_PENDING_CONV_GUARDIAO);
+          setConviteGuardiaoPendenteResultado("aceito");
+        })
+        .catch((e: any) => {
+          if (!e?.status || (e.status !== 500 && e.status !== 503)) {
+            webStorage.remove(STORAGE_PENDING_CONV_GUARDIAO);
+          }
+          setConviteGuardiaoPendenteResultado("erro");
         });
     }
 
@@ -189,6 +206,10 @@ export function FamiliaProvider({ children }: { children: ReactNode }) {
     setConvitePendenteResultado(null);
   }, []);
 
+  const limparConviteGuardiaoPendenteResultado = useCallback(() => {
+    setConviteGuardiaoPendenteResultado(null);
+  }, []);
+
   return (
     <FamiliaContext.Provider value={{
       tutelados,
@@ -200,6 +221,8 @@ export function FamiliaProvider({ children }: { children: ReactNode }) {
       salvarConvitePendente,
       convitePendenteResultado,
       limparConvitePendenteResultado,
+      conviteGuardiaoPendenteResultado,
+      limparConviteGuardiaoPendenteResultado,
     }}>
       {children}
     </FamiliaContext.Provider>

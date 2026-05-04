@@ -31,6 +31,19 @@ import { isWeb, MAX_WIDTH } from "./src/assets/global/responsive";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { ThemeProvider, useTheme, lightColors } from "./src/context/ThemeContext";
 import { FamiliaProvider, useFamilia } from "./src/context/FamiliaContext";
+import { EventosProvider, useEventos, type Evento } from "./src/context/EventosContext";
+import { RestricaoProvider } from "./src/context/RestricaoContext";
+
+// Captura tokens de convite da URL antes de qualquer render (resolve timing com FamiliaContext)
+if (typeof window !== "undefined") {
+  try {
+    const _p = new URLSearchParams(window.location.search);
+    const _cg = _p.get("convite_guardiao");
+    if (_cg) window.localStorage.setItem("purg_pending_convite_guardiao", _cg);
+    const _ct = _p.get("convite");
+    if (_ct) window.localStorage.setItem("purg_pending_invite", _ct);
+  } catch {}
+}
 import { BannerAtuandoComo } from "./src/assets/components/BannerAtuandoComo";
 import { SeletorPerfilModal } from "./src/assets/components/SeletorPerfilModal";
 import AceitarConviteFamilia from "./src/assets/pages/familia/aceitarConvite";
@@ -174,9 +187,10 @@ function LoginScreen({ navigation }: any) {
 /* Exibe Alert após auto-aceite de convite pendente (pós-login) */
 function ConvitePendenteAlerta() {
   const { convitePendenteResultado, limparConvitePendenteResultado } = useFamilia();
+  const { freshLogin } = useAuth();
 
   useEffect(() => {
-    if (!convitePendenteResultado) return;
+    if (!convitePendenteResultado || freshLogin) return;
     if (convitePendenteResultado === "aceito") {
       Alert.alert("Convite aceito!", "Você agora tem um responsável vinculado à sua conta.");
     } else {
@@ -186,6 +200,110 @@ function ConvitePendenteAlerta() {
   }, [convitePendenteResultado]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
+}
+
+/* Alert para fallback de link de e-mail: convite de guardião aceito automaticamente */
+function ConviteGuardiaoPendenteAlerta() {
+  const { conviteGuardiaoPendenteResultado, limparConviteGuardiaoPendenteResultado } = useFamilia();
+  const { freshLogin } = useAuth();
+  useEffect(() => {
+    if (!conviteGuardiaoPendenteResultado || freshLogin) return;
+    if (conviteGuardiaoPendenteResultado === "aceito") {
+      Alert.alert("Vínculo ativado!", "Você agora é responsável por este dependente.");
+    } else {
+      Alert.alert("Convite não processado", "Não foi possível aceitar o convite automaticamente. Tente pelo app.");
+    }
+    limparConviteGuardiaoPendenteResultado();
+  }, [conviteGuardiaoPendenteResultado]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+/* Modal de eventos pendentes (informativos e interativos) */
+function ModalEventos() {
+  const { eventos, dispensarEvento, aceitarEvento, rejeitarEvento } = useEventos();
+  const { freshLogin } = useAuth();
+  const { colors } = useTheme();
+  const [processando, setProcessando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const evento: Evento | undefined = eventos[0];
+  if (!evento || freshLogin) return null;
+
+  const isInterativo = evento.tipo === "interativo";
+
+  const handleAceitar = async () => {
+    try {
+      setProcessando(true);
+      setErro(null);
+      await aceitarEvento(evento);
+    } catch (e: any) {
+      setErro(e?.message || "Não foi possível processar o convite.");
+    } finally {
+      setProcessando(false);
+    }
+  };
+
+  const handleRejeitar = async () => {
+    try {
+      setProcessando(true);
+      setErro(null);
+      await rejeitarEvento(evento);
+    } catch (e: any) {
+      setErro(e?.message || "Não foi possível recusar o convite.");
+    } finally {
+      setProcessando(false);
+    }
+  };
+
+  const handleDispensar = async () => {
+    await dispensarEvento(evento);
+    setErro(null);
+  };
+
+  return (
+    <Modal visible transparent animationType="fade">
+      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", alignItems: "center", padding: 24 }}>
+        <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 24, width: "100%", maxWidth: 360 }}>
+          <Text style={{ fontSize: 17, fontWeight: "700", color: colors.textPrimary, textAlign: "center", marginBottom: 10 }}>
+            {evento.titulo}
+          </Text>
+          <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: "center", lineHeight: 20, marginBottom: erro ? 8 : 20 }}>
+            {evento.mensagem}
+          </Text>
+          {erro && (
+            <Text style={{ fontSize: 13, color: "#FF3B30", textAlign: "center", marginBottom: 12 }}>{erro}</Text>
+          )}
+          {isInterativo ? (
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                style={{ flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: processando ? 0.5 : 1 }}
+                onPress={handleRejeitar}
+                disabled={processando}
+              >
+                <Text style={{ color: colors.textSecondary, fontWeight: "600" }}>Recusar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: processando ? 0.6 : 1 }}
+                onPress={handleAceitar}
+                disabled={processando}
+              >
+                {processando
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={{ color: "#fff", fontWeight: "700" }}>Aceitar</Text>}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
+              onPress={handleDispensar}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700" }}>Entendido</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 /* ──────────────────────────────────────────────
@@ -633,7 +751,11 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <FamiliaProvider>
+            <EventosProvider>
+            <RestricaoProvider>
             <ConvitePendenteAlerta />
+            <ConviteGuardiaoPendenteAlerta />
+            <ModalEventos />
             <NavigationContainer linking={linking} documentTitle={{ formatter: () => "Purg" }}>
               <StatusBar style="auto" />
               {isWeb ? (
@@ -650,6 +772,8 @@ export default function App() {
                 </>
               )}
             </NavigationContainer>
+            </RestricaoProvider>
+            </EventosProvider>
           </FamiliaProvider>
         </AuthProvider>
       </ThemeProvider>
