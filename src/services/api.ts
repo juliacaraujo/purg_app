@@ -774,6 +774,24 @@ export async function getRanking(): Promise<RankingItem[]> {
   return response.json() as Promise<RankingItem[]>;
 }
 
+export interface RankingDados {
+  posicao: number;
+  usuario_id: number;
+  apelido: string;
+  pontos: number;
+  liga: string;
+  avatar_id?: number | null;
+  created_at: string;
+  estado?: string | null;
+}
+
+export async function getRankingDados(usuarioId: number): Promise<RankingDados> {
+  const response = await apiFetch(`/api/v1/ranking/dados/${usuarioId}`);
+  if (!response.ok) throw new ApiError("Erro ao buscar dados do jogador", response.status);
+  const data = await response.json();
+  return data.dados as RankingDados;
+}
+
 /* ======================================================
    PREFERÊNCIA DE LOGIN
    ====================================================== */

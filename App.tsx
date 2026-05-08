@@ -80,6 +80,7 @@ import ChatScreen from "./src/assets/pages/chat";
 import Indicacao from "./src/assets/pages/indicacao";
 import SetupApelido from "./src/assets/pages/setupApelido";
 import MolduraPreview from "./src/assets/pages/moldura-preview";
+import RankingPerfil from "./src/assets/pages/ranking-perfil";
 import SetupPinCadastro from "./src/assets/pages/setupPinCadastro";
 import VideoAbertura from "./src/assets/pages/videoAbertura";
 import PinRecuperacao from "./src/assets/pages/pinRecuperacao";
@@ -523,6 +524,7 @@ function AppTabs() {
       <Tab.Screen name="Ranking" component={Ranking} options={{
         tabBarIcon: ({ size, focused, color }) => <AnimatedTabIconImage source={imgRanking} size={size} focused={focused} color={color} />,
       }} />
+      <Tab.Screen name="RankingPerfil" component={RankingPerfil} options={{ tabBarButton: () => null }} />
       <Tab.Screen name="Profile" component={Profile} options={{ tabBarButton: () => null }} />
       <Tab.Screen name="Chat" component={ChatScreen} options={{ tabBarButton: () => null }} />
       <Tab.Screen name="Indicacao" component={Indicacao} options={{ tabBarButton: () => null }} />
@@ -747,7 +749,8 @@ const linking: LinkingOptions<any> = {
       AppTabs: {
         screens: {
           Home: "home", "Patrimônio": "patrimonio", Objetivos: "objetivos",
-          Ranking: "ranking", Profile: "perfil", Chat: "chat", Indicacao: "indicacao",
+          Ranking: "ranking", RankingPerfil: "ranking/perfil/:usuario_id",
+          Profile: "perfil", Chat: "chat", Indicacao: "indicacao",
         },
       },
       Withdraw: "sacar", Deposit: "depositar", PixInfo: "pix",

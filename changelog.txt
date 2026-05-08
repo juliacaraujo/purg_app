@@ -1,3 +1,16 @@
+purg-develop-24 — 2026-05-08
+- Ranking: redesenho completo dos cards — bordas à esquerda na cor da liga, layout compacto em linha, medalhas dourada/prateada/bronze para top 3, escala 1.2x e título decorativo com diamantes e linhas SVG
+- Ranking: cards clicáveis com chevron › no canto direito indicando navegação para ficha do jogador
+- Ranking: filtro de usuários com menos de 10 pontos
+- Ficha do jogador (RankingPerfil): nova tela acessível pelo Ranking com header e rodapé iguais às demais telas (sem botão voltar); exibe avatar quadrado, apelido, posição, pontos, liga, estado e tempo de membro em cores da liga
+- Ficha do jogador: seção de insígnias com as 5 insígnias do metal atual (conquistadas coloridas, não conquistadas opacas); insígnias clicáveis abrem modal centralizado com a insígnia ampliada e nome; fechar tocando fora
+- Ficha do jogador: comparativo de pontos com o usuário logado ("X pontos à frente / atrás / Empatados")
+- Ficha do jogador: reload na web preserva a tela via deep link ranking/perfil/:usuario_id
+- BordaCobre: novo componente SVG de borda estilo metálico com insignia cobre centralizada no topo e cantos decorativos; usado na moldura da liga Cobre em Objetivos
+- Home: texto do rendimento estimado atualizado — label "Rendimento ao Ano (já Considerando o IR)" e descrição usando taxa da insígnia Emblemas
+- Objetivos: texto "Liga" removido do cabeçalho da seção de liga
+- API: getRankingDados (GET /api/v1/ranking/dados/:usuario_id) — busca posição, pontos, liga, avatar, estado e data de cadastro de um jogador
+
 purg-develop-23 — 2026-05-08
 - Indicações: nova tela de Indicação com código e link exclusivo do usuário, botão Copiar e Compartilhar, lista de indicados com nome e pontos ganhos; acessível pelo ícone de indicação no header de todas as telas
 - Indicações: URL ?ref=CODIGO capturado no localStorage antes do login e enviado automaticamente no cadastro via campo codigo_ref

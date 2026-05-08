@@ -113,6 +113,11 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
     return { rendimentoMensal: mensal, taxaAa: taxaAaPonderada };
   }, [pins, investido]);
 
+  const taxaEmblemas = useMemo(() => {
+    const pin = pins.find((p) => p.razao_social?.toLowerCase().includes("emblema"));
+    return pin ? Number(pin.juros_a_a) : null;
+  }, [pins]);
+
 
   const carregar = useCallback(async () => {
     if (!user?.id) return;
@@ -329,12 +334,14 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
 
           {taxaAa !== null && (
             <View style={style.card}>
-              <Text style={style.cardLabel}>Rendimento Estimado ao Ano</Text>
+              <Text style={style.cardLabel}>Rendimento ao Ano (já Considerando o IR)</Text>
               <Text style={style.cardValueGreen}>
                 {hidden ? "••••••" : `${taxaAa.toFixed(2).replace(".", ",")}%`}
               </Text>
               <Text style={{ fontSize: 10, color: style.cardLabel.color, marginTop: 10, lineHeight: 14 }}>
-                Já considera o IR cobrado sobre cada rendimento.
+                {taxaEmblemas !== null
+                  ? `Um banco que paga 100% do CDI está rendendo ${taxaEmblemas.toFixed(2).replace(".", ",")}% ao pagar o IR.`
+                  : "Um banco que paga 100% do CDI está rendendo menos ao pagar o IR."}
               </Text>
             </View>
           )}

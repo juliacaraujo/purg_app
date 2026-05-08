@@ -1,6 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import Svg, { Path, Polygon, Circle, G } from "react-native-svg";
+import { BordaCobre } from "./BordaCobre";
 
 export const LIGA_CORES: Record<string, { bg: string; text: string }> = {
   Cobre:     { bg: "#B87333", text: "#fff" },
@@ -141,6 +142,11 @@ export function TopCenterOrnament({ tipo, cor }: { tipo: string; cor: string }) 
 
 export function MolduraLiga({ ligaNome, bg, children }: { ligaNome: string | null; bg: string; children: React.ReactNode }) {
   const metal = ligaNome?.split(" ")[0] ?? "";
+
+  if (metal === "Cobre") {
+    return <BordaCobre bg={bg}>{children}</BordaCobre>;
+  }
+
   const cfg = FRAME_CFG[metal];
 
   const cardStyle: any = {

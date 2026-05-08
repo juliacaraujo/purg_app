@@ -593,9 +593,6 @@ export default function Objetivos() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[s.secaoHeader, { marginBottom: 12, marginTop: 8 }]}>
-          <Text style={[s.secaoTitulo, { color: colors.textPrimary }]}>Liga</Text>
-        </View>
 
         {pontos && (() => {
           const total = pontos.total;
