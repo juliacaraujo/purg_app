@@ -88,7 +88,7 @@ export const makeWithdrawStyles = (c: ThemeColors) => StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 12,
     alignItems: "center",
-    marginBottom: 28,
+    marginBottom: 10,
     shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
@@ -99,6 +99,12 @@ export const makeWithdrawStyles = (c: ThemeColors) => StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  disclaimer: {
+    fontSize: 12,
+    color: c.textSecondary,
+    textAlign: "center",
+    marginBottom: 28,
   },
 
   sectionTitle: {

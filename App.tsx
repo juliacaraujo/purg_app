@@ -25,6 +25,7 @@ import imgRanking from "./assets/ranking.png";
 import imgChat from "./assets/chat.png";
 import imgPerfil from "./assets/perfil.png";
 import imgFamilia from "./assets/familia.png";
+import imgIndicar from "./assets/indicar.png";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { isWeb, MAX_WIDTH } from "./src/assets/global/responsive";
 
@@ -42,6 +43,8 @@ if (typeof window !== "undefined") {
     if (_cg) window.localStorage.setItem("purg_pending_convite_guardiao", _cg);
     const _ct = _p.get("convite");
     if (_ct) window.localStorage.setItem("purg_pending_invite", _ct);
+    const _ref = _p.get("ref");
+    if (_ref) window.localStorage.setItem("purg_pending_ref", _ref);
   } catch {}
 }
 import { BannerAtuandoComo } from "./src/assets/components/BannerAtuandoComo";
@@ -74,6 +77,7 @@ import Profile from "./src/assets/pages/profile";
 import Logo from "./src/assets/logo.png";
 import { tipoAcesso, getDadosCadastro, getPinNegociacaoStatus } from "./src/services/api";
 import ChatScreen from "./src/assets/pages/chat";
+import Indicacao from "./src/assets/pages/indicacao";
 import SetupApelido from "./src/assets/pages/setupApelido";
 import MolduraPreview from "./src/assets/pages/moldura-preview";
 import SetupPinCadastro from "./src/assets/pages/setupPinCadastro";
@@ -236,6 +240,7 @@ function ModalEventos() {
       setProcessando(true);
       setErro(null);
       await aceitarEvento(evento);
+      Alert.alert("Vínculo ativado!", "O convite foi aceito com sucesso.");
     } catch (e: any) {
       setErro(e?.message || "Não foi possível processar o convite.");
     } finally {
@@ -248,6 +253,7 @@ function ModalEventos() {
       setProcessando(true);
       setErro(null);
       await rejeitarEvento(evento);
+      Alert.alert("Convite recusado", "O convite foi recusado com sucesso.");
     } catch (e: any) {
       setErro(e?.message || "Não foi possível recusar o convite.");
     } finally {
@@ -317,6 +323,12 @@ function HeaderRight({ navigation }: { navigation: any }) {
 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginRight: 14, gap: 16 }}>
+      <TouchableOpacity
+        onPress={() => navigation.navigate("Indicacao")}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Image source={imgIndicar} style={{ width: 26, height: 26, tintColor: colors.textTertiary }} resizeMode="contain" />
+      </TouchableOpacity>
       <TouchableOpacity
         onPress={() => setSeletorVisivel(true)}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -513,6 +525,7 @@ function AppTabs() {
       }} />
       <Tab.Screen name="Profile" component={Profile} options={{ tabBarButton: () => null }} />
       <Tab.Screen name="Chat" component={ChatScreen} options={{ tabBarButton: () => null }} />
+      <Tab.Screen name="Indicacao" component={Indicacao} options={{ tabBarButton: () => null }} />
     </Tab.Navigator>
   );
 }
@@ -734,7 +747,7 @@ const linking: LinkingOptions<any> = {
       AppTabs: {
         screens: {
           Home: "home", "Patrimônio": "patrimonio", Objetivos: "objetivos",
-          Ranking: "ranking", Profile: "perfil", Chat: "chat",
+          Ranking: "ranking", Profile: "perfil", Chat: "chat", Indicacao: "indicacao",
         },
       },
       Withdraw: "sacar", Deposit: "depositar", PixInfo: "pix",

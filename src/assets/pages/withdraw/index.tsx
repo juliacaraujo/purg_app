@@ -342,6 +342,7 @@ export default function Withdraw() {
                 <Text style={styles.sacarText}>Sacar</Text>
               </TouchableOpacity>
             )}
+            <Text style={styles.disclaimer}>O saque será efetuado em até 1 dia útil.</Text>
           </>
         )}
 

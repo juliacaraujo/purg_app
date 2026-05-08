@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import avatarMap from "../../avatarMap";
+import { BadgeInsignia } from "../../components/BadgeInsignia";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import { useTheme } from "../../../context/ThemeContext";
 import type { ThemeColors } from "../../../context/ThemeContext";
@@ -88,6 +89,9 @@ export default function Ranking() {
                 <Text style={[s.apelido, isMe && s.apelidoMe]} numberOfLines={1}>
                   {item.apelido}
                 </Text>
+              </View>
+              <View style={s.centerBadge}>
+                <BadgeInsignia ligaNome={item.liga} size={24} />
                 <Text style={s.liga}>{item.liga}</Text>
               </View>
               <View style={s.pontosBox}>
@@ -209,5 +213,11 @@ const makeStyle = (c: ThemeColors) =>
       color: c.textSecondary,
       fontWeight: "600",
       textTransform: "uppercase",
+    },
+    centerBadge: {
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      minWidth: 64,
+      marginHorizontal: 6,
     },
   });

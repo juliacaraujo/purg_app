@@ -10,12 +10,14 @@ import {
   Image,
 } from "react-native";
 import imgOlhoAberto from "../../../../assets/olho_aberto.png";
+import imgIndicar from "../../../../assets/indicar.png";
 import imgOlhoFechado from "../../../../assets/olho_fechado.png";
 import imgChat from "../../../../assets/chat.png";
 import imgPerfil from "../../../../assets/perfil.png";
 import imgFamilia from "../../../../assets/familia.png";
 import { makeHomeStyle } from "./styles";
 import avatarMap from "../../avatarMap";
+import { BadgeInsignia } from "../../components/BadgeInsignia";
 import { ModalSelecionarAvatar } from "../../components/ModalSelecionarAvatar";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
@@ -31,6 +33,7 @@ import {
   getRendimentosUsuario,
   getHistoricoPatrimonio,
   getHistoricoRendimentos,
+  getPinsUsuario,
   putAvatar,
   getVisualizacaoValores,
   putVisualizacaoValores,
@@ -85,7 +88,6 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
   const loadingRef = useRef(false);
 
   const [nome, setNome] = useState("");
-  const [assinatura, setAssinatura] = useState<string | boolean | null>(null);
 
   const [saldo, setSaldo] = useState(0);
   const [investido, setInvestido] = useState(0);
@@ -93,6 +95,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
 
   const [rendimentoTotal, setRendimentoTotal] = useState(0);
   const [rendimentoDiario, setRendimentoDiario] = useState(0);
+  const [pins, setPins] = useState<import("../../../types").PinUsuario[]>([]);
   const [historicoPatrimonio, setHistoricoPatrimonio] = useState<GraficoPoint[]>([]);
   const [historicoRendimentos, setHistoricoRendimentos] = useState<GraficoPoint[]>([]);
 
@@ -100,20 +103,16 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
 
   const patrimonio = useMemo(() => saldo + investido, [saldo, investido]);
 
-  const hasAssinatura = useMemo(() => {
-    if (assinatura === true) return true;
-    if (assinatura === false) return false;
-    if (!assinatura) return false;
-    if (typeof assinatura === "string") return assinatura.trim().length > 0;
-    return !!assinatura;
-  }, [assinatura]);
+  const { rendimentoMensal, taxaAa } = useMemo(() => {
+    const pinsAtivos = pins.filter((p) => Number(p.quantidade_tokens_total_usuario) > 0);
+    if (pinsAtivos.length === 0 || investido <= 0) return { rendimentoMensal: null, taxaAa: null };
+    const totalQtd = pinsAtivos.reduce((acc, p) => acc + Number(p.quantidade_tokens_total_usuario), 0);
+    const taxaAaPonderada = pinsAtivos.reduce((acc, p) => acc + Number(p.juros_a_a) * Number(p.quantidade_tokens_total_usuario), 0) / totalQtd;
+    const taxaMensal = Math.pow(1 + taxaAaPonderada / 100, 1 / 12) - 1;
+    const mensal = investido * taxaMensal;
+    return { rendimentoMensal: mensal, taxaAa: taxaAaPonderada };
+  }, [pins, investido]);
 
-  const assinaturaLabel = useMemo(() => {
-    if (typeof assinatura === "string" && assinatura.trim()) return assinatura.trim();
-    return "Poppy Pro";
-  }, [assinatura]);
-
-  const isPro = assinaturaLabel === "Poppy Pro";
 
   const carregar = useCallback(async () => {
     if (!user?.id) return;
@@ -123,19 +122,19 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
     const capturedUserId = user.id;
     try {
       setLoading(true);
-      const [cad, cart, rend, hist, histRend, viz] = await Promise.allSettled([
+      const [cad, cart, rend, hist, histRend, viz, pinsRes] = await Promise.allSettled([
         getDadosCadastro(capturedUserId),
         getCarteira(capturedUserId),
         getRendimentosUsuario(capturedUserId),
         getHistoricoPatrimonio(capturedUserId),
         getHistoricoRendimentos(capturedUserId),
         getVisualizacaoValores(capturedUserId),
+        getPinsUsuario(capturedUserId),
       ]);
       // Se o usuário mudou durante o fetch (logout/troca), descarta resultado
       if (user?.id !== capturedUserId) return;
       if (cad.status === "fulfilled") {
         setNome(cad.value?.apelido ?? "");
-        setAssinatura(cad.value?.assinatura ?? null);
       }
       if (cart.status === "fulfilled") {
         setSaldo(Number(cart.value?.saldo || 0));
@@ -161,6 +160,9 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
       if (viz.status === "fulfilled") {
         setHidden(!viz.value);
       }
+      if (pinsRes.status === "fulfilled") {
+        setPins(Array.isArray(pinsRes.value?.data) ? pinsRes.value.data : []);
+      }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         Alert.alert("Erro", err.message || "Falha ao carregar dados.");
@@ -180,12 +182,8 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: "row", alignItems: "center", marginRight: 14, gap: 16 }}>
-          <TouchableOpacity onPress={handleToggleHidden} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Image
-              source={hidden ? imgOlhoFechado : imgOlhoAberto}
-              style={{ width: 28, height: 28, tintColor: colors.textTertiary }}
-              resizeMode="contain"
-            />
+          <TouchableOpacity onPress={() => navigation.navigate("Indicacao")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Image source={imgIndicar} style={{ width: 26, height: 26, tintColor: colors.textTertiary }} resizeMode="contain" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setSeletorVisivel(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Image
@@ -203,14 +201,20 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
         </View>
       ),
     });
-  }, [hidden, colors, atuandoComo]);
+  }, [colors, atuandoComo]);
 
   const onRefresh = () => { setRefreshing(true); carregar(); };
 
   function handleToggleHidden() {
+    const anterior = hidden;
     const novoHidden = !hidden;
     setHidden(novoHidden);
-    if (user?.id) putVisualizacaoValores(user.id, !novoHidden).catch(() => {});
+    if (user?.id) {
+      putVisualizacaoValores(user.id, !novoHidden).catch(() => {
+        setHidden(anterior);
+        Alert.alert("Erro", "Não foi possível salvar a preferência de exibição.");
+      });
+    }
   }
 
   async function handleSalvarAvatar(avatarId: number) {
@@ -226,10 +230,6 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
       setSalvandoAvatar(false);
     }
   }
-
-  const handleAssinar = () => {
-    Alert.alert("Poppy Pro", "Aqui você liga o fluxo de assinatura quando existir.");
-  };
 
   const handleDepositar = () => { navigation.navigate("Deposit"); };
 
@@ -273,20 +273,17 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
 
           {(() => {
             const ligaCores = getLigaCores(liga);
-            return ligaCores ? (
-              <View style={[style.badgeLiga, { backgroundColor: ligaCores.bg }]}>
-                <Text style={[style.badgeLigaText, { color: ligaCores.text }]}>{liga}</Text>
+            return liga ? (
+              <View style={{ alignItems: "center", gap: 4 }}>
+                <BadgeInsignia ligaNome={liga} size={64} />
+                {ligaCores && (
+                  <View style={[style.badgeLiga, { backgroundColor: ligaCores.bg, alignSelf: "center" }]}>
+                    <Text style={[style.badgeLigaText, { color: ligaCores.text }]}>{liga}</Text>
+                  </View>
+                )}
               </View>
             ) : null;
           })()}
-
-          {hasAssinatura && (
-            <View style={isPro ? style.badgePro : style.badgeBasic}>
-              <Text style={isPro ? style.badgeProText : style.badgeBasicText}>
-                {assinaturaLabel}
-              </Text>
-            </View>
-          )}
         </View>
 
         {loading && <ActivityIndicator style={{ marginTop: 10 }} />}
@@ -296,7 +293,16 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
           <View style={style.heroCard}>
             <View style={style.heroDecor1} />
             <View style={style.heroDecor2} />
-            <Text style={style.heroLabel}>Patrimônio</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <Text style={[style.heroLabel, { marginBottom: 0 }]}>Patrimônio</Text>
+              <TouchableOpacity onPress={handleToggleHidden} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Image
+                  source={hidden ? imgOlhoFechado : imgOlhoAberto}
+                  style={{ width: 22, height: 22, tintColor: "rgba(255,255,255,0.6)" }}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            </View>
             <Text style={style.heroValue}>
               {hidden ? "••••••" : moneyTrunc(patrimonio)}
             </Text>
@@ -314,25 +320,25 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
             <Text style={style.cardValueGreen}>
               {hidden ? "••••••" : moneyTrunc(rendimentoDiario)}
             </Text>
+            {rendimentoMensal !== null && (
+              <Text style={{ fontSize: 11, color: style.cardLabel.color, marginTop: 10 }}>
+                {hidden ? "••••••" : `~${moneyTrunc(rendimentoMensal)}/mês`}
+              </Text>
+            )}
           </View>
-        </View>
 
-        {/* Assinatura */}
-        {!hasAssinatura && (
-          <>
-            <Text style={style.sectionTitle}>Assinatura</Text>
-            <View style={style.cardFull}>
-              <Text style={style.cardLabel}>Status</Text>
-              <Text style={style.cardValue}>Sem assinatura</Text>
-              <TouchableOpacity
-                style={[style.btn, style.btnPrimary, { marginTop: 12 }]}
-                onPress={handleAssinar}
-              >
-                <Text style={style.btnPrimaryText}>Assinar Poppy Pro</Text>
-              </TouchableOpacity>
+          {taxaAa !== null && (
+            <View style={style.card}>
+              <Text style={style.cardLabel}>Rendimento Estimado ao Ano</Text>
+              <Text style={style.cardValueGreen}>
+                {hidden ? "••••••" : `${taxaAa.toFixed(2).replace(".", ",")}%`}
+              </Text>
+              <Text style={{ fontSize: 10, color: style.cardLabel.color, marginTop: 10, lineHeight: 14 }}>
+                Já considera o IR cobrado sobre cada rendimento.
+              </Text>
             </View>
-          </>
-        )}
+          )}
+        </View>
 
         {/* Ações */}
         <TouchableOpacity

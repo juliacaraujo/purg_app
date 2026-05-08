@@ -14,10 +14,11 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
-import { getObjetivos, getObjetivoDetalhe, getLigas, criarObjetivo, cancelarObjetivo, getProjecaoPatrimonio, getProjecaoRendimento } from "../../../services/api";
+import { getObjetivos, getObjetivoDetalhe, getLigas, criarObjetivo, editarObjetivo, getProjecaoPatrimonio, getProjecaoRendimento } from "../../../services/api";
 import type { ObjetivoItem, MetaDetalhe, PontosInfo, LigaItem, ProjecaoItem } from "../../../types";
 import GraficoLinha from "../../components/GraficoLinha";
 import { MolduraLiga, getLigaCores } from "../../components/MolduraLiga";
+import { BadgeInsignia } from "../../components/BadgeInsignia";
 
 function moeda(v: any) {
   const n = Math.trunc((Number(v) || 0) * 100) / 100;
@@ -68,10 +69,10 @@ function SegmentedBar({ completas, total, cor, bgColor, metas }: { completas: nu
   );
 }
 
-function CardObjetivo({ item, metas, onCancelar, colors }: {
+function CardObjetivo({ item, metas, onEditar, colors }: {
   item: ObjetivoItem;
   metas?: MetaDetalhe[];
-  onCancelar: (id: number, desc: string) => void;
+  onEditar: (item: ObjetivoItem) => void;
   colors: ReturnType<typeof import("../../../context/ThemeContext").useTheme>["colors"];
 }) {
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -99,7 +100,7 @@ function CardObjetivo({ item, metas, onCancelar, colors }: {
           </View>
         )}
         <View style={{ alignItems: "flex-end" }}>
-          <Text style={[s.label, { color: colors.textTertiary }]}>Meta</Text>
+          <Text style={[s.label, { color: colors.textTertiary }]}>Objetivo</Text>
           <Text style={[s.valor, { color: colors.textPrimary }]}>{moeda(item.valor_alvo)}</Text>
         </View>
         <View style={{ alignItems: "flex-end", marginLeft: 12 }}>
@@ -108,6 +109,11 @@ function CardObjetivo({ item, metas, onCancelar, colors }: {
             {metas && metas.length > 0 ? formatDataLimite(metas[metas.length - 1].data_limite) : "—"}
           </Text>
         </View>
+        {!item.objetivo_completo && (
+          <TouchableOpacity style={[s.editarBtn, { backgroundColor: colors.textTertiary, marginLeft: 12 }]} onPress={() => onEditar(item)}>
+            <Text style={s.editarBtnText}>✎</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={s.secaoBloco}>
@@ -147,20 +153,16 @@ function CardObjetivo({ item, metas, onCancelar, colors }: {
             <View style={[s.rodapeDivisor, { backgroundColor: colors.border }]} />
             <View style={s.rodapeCol}>
               <Text style={[s.label, { color: colors.textTertiary }]}>Parcela</Text>
-              <Text style={[s.metas, { color: colors.textPrimary }]}>{moeda(metas.length > 1 ? metas[1].valor_alvo : metas[0].valor_alvo)}</Text>
+              <Text style={[s.metas, { color: colors.textPrimary }]}>{moeda((metas.find((m) => !m.completo) ?? metas[metas.length - 1]).valor_alvo)}</Text>
             </View>
           </>
-        )}
-        {!item.is_patrimonio && !item.objetivo_completo && (
-          <TouchableOpacity style={{ marginLeft: "auto" as any }} onPress={() => onCancelar(item.objetivo_id, item.objetivo_descricao)}>
-            <Text style={s.cancelar}>Cancelar</Text>
-          </TouchableOpacity>
         )}
       </View>
 
       {metas && metas.length > 0 && (() => {
-        const pontosPorMeta = metas[0].pontos;
-        const valorParcela = metas.length > 1 ? metas[1].valor_alvo : metas[0].valor_alvo;
+        const proximaMeta = metas.find((m) => !m.completo) ?? metas[metas.length - 1];
+        const pontosPorMeta = proximaMeta.pontos;
+        const valorParcela = proximaMeta.valor_alvo;
         const pontosPorReal = valorParcela > 0
           ? (pontosPorMeta / valorParcela).toFixed(2)
           : "—";
@@ -281,9 +283,11 @@ function ModalNovoObjetivo({ visible, onClose, onSalvar, loading, colors }: {
             value={valorAlvo}
             onChangeText={(t) => setValorAlvo(formatarMoeda(t))}
           />
-          <Text style={[s.inputHint, { color: valorInvalido ? "#FF3B30" : colors.textTertiary }]}>
-            Mínimo R$ 200,00
-          </Text>
+          {valorInvalido && (
+            <Text style={[s.inputHint, { color: "#FF3B30" }]}>
+              O valor mínimo é R$ 200,00
+            </Text>
+          )}
 
           <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Aporte Inicial (R$)</Text>
           <TextInput
@@ -341,6 +345,140 @@ function ModalNovoObjetivo({ visible, onClose, onSalvar, loading, colors }: {
   );
 }
 
+function ModalEditarObjetivo({ visible, onClose, onSalvar, salvando, colors, item, metas }: {
+  visible: boolean;
+  onClose: () => void;
+  onSalvar: (dados: { valor_alvo?: number; prazo?: number; descricao?: string }) => Promise<void>;
+  salvando: boolean;
+  colors: ReturnType<typeof import("../../../context/ThemeContext").useTheme>["colors"];
+  item: ObjetivoItem | null;
+  metas?: MetaDetalhe[];
+}) {
+  const [descricao, setDescricao] = useState("");
+  const [valorAlvo, setValorAlvo] = useState("");
+  const [mesSel, setMesSel] = useState(new Date().getMonth() + 1);
+  const [anoSel, setAnoSel] = useState(new Date().getFullYear() + 1);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const saldoNum = Math.trunc(Number(item?.saldo_alocado_total || 0) * 100) / 100;
+  const valorNum = parseMoeda(valorAlvo);
+  const prazo = calcMeses(anoSel, mesSel);
+  const parcela = valorNum > saldoNum && prazo > 0 ? (valorNum - saldoNum) / prazo : null;
+  const parcelaInvalida = parcela !== null && parcela < 5;
+  const canSave = !salvando && valorNum > saldoNum && prazo >= 1 && !parcelaInvalida;
+
+  const prazoOriginal = useMemo(() => {
+    if (!metas || metas.length === 0) return null;
+    const d = new Date(metas[metas.length - 1].data_limite);
+    return { mes: d.getUTCMonth() + 1, ano: d.getUTCFullYear() };
+  }, [metas]);
+
+  useEffect(() => {
+    if (!item || !visible) return;
+    setDescricao(item.objetivo_descricao);
+    setValorAlvo(formatarMoeda(String(Math.trunc(item.valor_alvo))));
+    if (prazoOriginal) {
+      setMesSel(prazoOriginal.mes);
+      setAnoSel(prazoOriginal.ano);
+    } else {
+      const agora = new Date();
+      setMesSel(agora.getMonth() + 1);
+      setAnoSel(agora.getFullYear() + 1);
+    }
+    setErro(null);
+  }, [item, visible, prazoOriginal]);
+
+  function anteriorMes() {
+    if (mesSel === 1) { setMesSel(12); setAnoSel((y) => y - 1); } else setMesSel((m) => m - 1);
+  }
+  function proximoMes() {
+    if (mesSel === 12) { setMesSel(1); setAnoSel((y) => y + 1); } else setMesSel((m) => m + 1);
+  }
+
+  async function handleSalvar() {
+    const body: { valor_alvo?: number; prazo?: number } = {};
+    if (valorNum !== Math.trunc((item!.valor_alvo || 0) * 100) / 100) body.valor_alvo = valorNum;
+    const prazoAtual = prazoOriginal ? (prazoOriginal.mes !== mesSel || prazoOriginal.ano !== anoSel) : true;
+    if (prazoAtual) body.prazo = prazo;
+    if (Object.keys(body).length === 0) { onClose(); return; }
+    setErro(null);
+    try {
+      await onSalvar(body);
+    } catch (e: any) {
+      setErro(e?.message || "Não foi possível editar o objetivo.");
+    }
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={s.overlay}>
+        <View style={[s.modal, { backgroundColor: colors.background }]}>
+          <Text style={[s.modalTitulo, { color: colors.textPrimary }]}>Editar Objetivo</Text>
+
+          <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Descrição</Text>
+          <View style={[s.input, s.inputFixo, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}>
+            <Text style={{ fontSize: 15, color: colors.textTertiary }}>{descricao}</Text>
+          </View>
+
+          <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Valor Alvo (R$)</Text>
+          <TextInput
+            style={[s.input, { borderColor: valorNum > 0 && valorNum <= saldoNum ? "#FF3B30" : colors.border, color: colors.textPrimary, backgroundColor: colors.backgroundSecondary, marginBottom: 4 }]}
+            placeholder="R$ 5.000"
+            placeholderTextColor="#bbb"
+            keyboardType="number-pad"
+            value={valorAlvo}
+            onChangeText={(t) => setValorAlvo(formatarMoeda(t))}
+          />
+          <Text style={[s.inputHint, { color: valorNum > 0 && valorNum <= saldoNum ? "#FF3B30" : colors.textTertiary }]}>
+            {saldoNum > 0 ? `Já investido: ${moeda(saldoNum)} — valor alvo deve ser maior` : "Informe o novo valor alvo"}
+          </Text>
+
+          <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Prazo — {prazo} {prazo === 1 ? "mês" : "meses"} a partir de agora</Text>
+          <View style={dp.row}>
+            <View style={[dp.seletor, { borderColor: colors.border }]}>
+              <TouchableOpacity style={dp.arrow} onPress={anteriorMes}><Text style={[dp.arrowText, { color: colors.primary }]}>{"‹"}</Text></TouchableOpacity>
+              <Text style={[dp.valor, { color: colors.textPrimary }]}>{MESES_NOMES[mesSel - 1]}</Text>
+              <TouchableOpacity style={dp.arrow} onPress={proximoMes}><Text style={[dp.arrowText, { color: colors.primary }]}>{"›"}</Text></TouchableOpacity>
+            </View>
+            <View style={[dp.seletor, { borderColor: colors.border }]}>
+              <TouchableOpacity style={dp.arrow} onPress={() => setAnoSel((y) => y - 1)}><Text style={[dp.arrowText, { color: colors.primary }]}>{"‹"}</Text></TouchableOpacity>
+              <Text style={[dp.valor, { color: colors.textPrimary }]}>{anoSel}</Text>
+              <TouchableOpacity style={dp.arrow} onPress={() => setAnoSel((y) => y + 1)}><Text style={[dp.arrowText, { color: colors.primary }]}>{"›"}</Text></TouchableOpacity>
+            </View>
+          </View>
+
+          <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Parcela mensal estimada</Text>
+          <View style={[s.input, s.inputFixo, { borderColor: parcelaInvalida ? "#FF3B30" : colors.border, backgroundColor: colors.backgroundSecondary }]}>
+            <Text style={{ fontSize: 15, color: parcela !== null ? (parcelaInvalida ? "#FF3B30" : colors.textPrimary) : colors.textTertiary }}>
+              {parcela !== null ? moeda(parcela) : "—"}
+            </Text>
+          </View>
+          {parcelaInvalida && (
+            <Text style={[s.inputHint, { color: "#FF3B30" }]}>Parcela mínima é R$ 5,00. Aumente o valor alvo ou reduza o prazo.</Text>
+          )}
+
+          <Text style={{ fontSize: 12, color: colors.textTertiary, textAlign: "center", marginBottom: 14, lineHeight: 17 }}>
+            Os pontos obtidos pelo aporte e pelas metas finalizadas não serão perdidos.
+          </Text>
+
+          {erro && (
+            <Text style={{ fontSize: 13, color: "#FF3B30", marginBottom: 12, textAlign: "center" }}>{erro}</Text>
+          )}
+
+          <View style={s.modalBtns}>
+            <TouchableOpacity style={[s.btnCancelar, { borderColor: colors.border }]} onPress={onClose} disabled={salvando}>
+              <Text style={[s.btnCancelarText, { color: colors.textSecondary }]}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.btnSalvar, { backgroundColor: colors.primary }, (!canSave) && { opacity: 0.4 }]} onPress={handleSalvar} disabled={!canSave}>
+              {salvando ? <ActivityIndicator color="#fff" /> : <Text style={s.btnSalvarText}>Salvar</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function Objetivos() {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -351,6 +489,9 @@ export default function Objetivos() {
   const [metasDetalhe, setMetasDetalhe] = useState<Record<number, MetaDetalhe[]>>({});
   const [pontos, setPontos] = useState<PontosInfo | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalEditarVisible, setModalEditarVisible] = useState(false);
+  const [objetivoParaEditar, setObjetivoParaEditar] = useState<ObjetivoItem | null>(null);
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
   const [tooltipNovoVisible, setTooltipNovoVisible] = useState(false);
   const [ligas, setLigas] = useState<LigaItem[]>([]);
   const [projecaoPatrimonio, setProjecaoPatrimonio] = useState<ProjecaoItem[]>([]);
@@ -414,14 +555,22 @@ export default function Objetivos() {
     } finally { setSalvando(false); }
   }
 
-  function handleCancelar(objetivoId: number, descricao: string) {
-    Alert.alert("Cancelar objetivo", `Deseja cancelar "${descricao}"? O saldo alocado será zerado.`, [
-      { text: "Não", style: "cancel" },
-      { text: "Sim, cancelar", style: "destructive", onPress: async () => {
-        try { await cancelarObjetivo(user!.id, objetivoId); carregar(); Alert.alert("Sucesso", "Objetivo cancelado com sucesso."); }
-        catch (e: any) { Alert.alert("Erro", e?.message || "Não foi possível cancelar."); }
-      }},
-    ]);
+  function handleEditar(item: ObjetivoItem) {
+    setObjetivoParaEditar(item);
+    setModalEditarVisible(true);
+  }
+
+  async function handleSalvarEdicao(dados: { valor_alvo?: number; prazo?: number; descricao?: string }) {
+    if (!user?.id || !objetivoParaEditar) return;
+    setSalvandoEdicao(true);
+    try {
+      await editarObjetivo(user.id, objetivoParaEditar.objetivo_id, dados);
+      setModalEditarVisible(false);
+      await carregar();
+      Alert.alert("Sucesso", "Objetivo atualizado com sucesso.");
+    } finally {
+      setSalvandoEdicao(false);
+    }
   }
 
   const containerStyle = useMemo(() => ({ flex: 1, backgroundColor: colors.backgroundSecondary }), [colors]);
@@ -480,17 +629,18 @@ export default function Objetivos() {
               </View>
 
               {/* Linha inferior: Pontos | Liga Atual | Próxima Liga */}
-              <View style={[s.rodapeRow, { marginTop: 8 }]}>
-                <View style={s.rodapeCol}>
+              <View style={[s.rodapeRow, { marginTop: 8, alignItems: "flex-start" }]}>
+                <View style={[s.rodapeCol, { minHeight: 48 + 4 + 22, justifyContent: "flex-start" }]}>
                   <Text style={[s.label, { color: colors.textTertiary }]}>Pontos</Text>
-                  <Text style={[s.pontoValor, { color: colors.primary }]}>{total}</Text>
+                  <Text style={[s.pontoValor, { color: colors.primary, fontSize: 28, lineHeight: 36, marginTop: 14 }]}>{total}</Text>
                 </View>
                 {ligaCores && ligaAtual && (
                   <>
                     <View style={[s.rodapeDivisor, { backgroundColor: colors.border }]} />
                     <View style={s.rodapeCol}>
                       <Text style={[s.label, { color: colors.textTertiary }]}>Liga Atual</Text>
-                      <View style={{ backgroundColor: ligaCores.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, marginTop: 2 }}>
+                      <BadgeInsignia ligaNome={ligaAtual.nome} size={48} style={{ marginTop: 2 }} />
+                      <View style={{ backgroundColor: ligaCores.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 }}>
                         <Text style={{ fontSize: 11, fontWeight: "700", color: ligaCores.text }}>{ligaAtual.nome}</Text>
                       </View>
                     </View>
@@ -500,8 +650,9 @@ export default function Objetivos() {
                   <>
                     <View style={[s.rodapeDivisor, { backgroundColor: colors.border }]} />
                     <View style={s.rodapeCol}>
-                      <Text style={[s.label, { color: colors.textTertiary }]}>Próxima</Text>
-                      <View style={{ backgroundColor: proxCores.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, marginTop: 2 }}>
+                      <Text style={[s.label, { color: colors.textTertiary }]}>Próxima Liga</Text>
+                      <BadgeInsignia ligaNome={proximaLiga.nome} size={48} style={{ marginTop: 2 }} />
+                      <View style={{ backgroundColor: proxCores.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 }}>
                         <Text style={{ fontSize: 11, fontWeight: "700", color: proxCores.text }}>{proximaLiga.nome}</Text>
                       </View>
                     </View>
@@ -545,7 +696,7 @@ export default function Objetivos() {
           <Text style={[s.vazio, { color: colors.textTertiary }]}>Nenhum objetivo cadastrado ainda.</Text>
         ) : (
           objetivos.map((item) => (
-            <CardObjetivo key={item.objetivo_id} item={item} metas={metasDetalhe[item.objetivo_id]} onCancelar={handleCancelar} colors={colors} />
+            <CardObjetivo key={item.objetivo_id} item={item} metas={metasDetalhe[item.objetivo_id]} onEditar={(i) => handleEditar(i)} colors={colors} />
           ))
         )}
 
@@ -592,6 +743,15 @@ export default function Objetivos() {
         onSalvar={handleCriar}
         loading={salvando}
         colors={colors}
+      />
+      <ModalEditarObjetivo
+        visible={modalEditarVisible}
+        onClose={() => setModalEditarVisible(false)}
+        onSalvar={handleSalvarEdicao}
+        salvando={salvandoEdicao}
+        colors={colors}
+        item={objetivoParaEditar}
+        metas={objetivoParaEditar ? metasDetalhe[objetivoParaEditar.objetivo_id] : undefined}
       />
     </SwipeTabsWrapper>
   );
@@ -641,7 +801,8 @@ const s = StyleSheet.create({
   label: { fontSize: 10, fontWeight: "600", marginBottom: 2 },
   valor: { fontSize: 13, fontWeight: "700" },
   metas: { fontSize: 11 },
-  cancelar: { fontSize: 12, color: "#FF3B30", fontWeight: "600" },
+  editarBtn: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  editarBtnText: { color: "#fff", fontSize: 13, lineHeight: 15 },
   tooltip: { marginTop: 10, borderWidth: 1, borderRadius: 10, padding: 10 },
   tooltipText: { fontSize: 12, lineHeight: 17 },
   tooltipBtn: { width: 16, height: 16, borderRadius: 8, borderWidth: 1, alignItems: "center", justifyContent: "center" },

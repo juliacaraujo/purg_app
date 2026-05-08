@@ -23,14 +23,18 @@ export class ApiError extends Error {
 
 // Wrapper que garante credentials: "include" em todas as chamadas (necessário para enviar o connect.sid)
 async function apiFetch(path: string, init: RequestInit = {}) {
-  return fetch(`${BASE_URL}${path}`, {
-    ...init,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
+  try {
+    return await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch {
+    throw new ApiError("Sem conexão com a internet. Verifique sua rede e tente novamente.", 0);
+  }
 }
 
 /* ======================================================
@@ -280,6 +284,7 @@ export async function criarConta(dados: {
   senha: string;
   data_nascimento?: string;
   genero?: string;
+  codigo_ref?: string;
   termos_de_uso: "1";
   termos_de_privacidade: "1";
   termos_de_riscos_da_plataforma: "1";
@@ -510,6 +515,25 @@ export async function getObjetivoDetalhe(usuarioId: number, objetivoId: number):
   }
 
   return response.json();
+}
+
+export async function editarObjetivo(
+  usuarioId: number,
+  objetivoId: number,
+  dados: { valor_alvo?: number; prazo?: number; descricao?: string }
+): Promise<{ success: boolean; message: string; recalculo: boolean }> {
+  const response = await apiFetch(`/api/v1/objetivos/${usuarioId}/${objetivoId}`, {
+    method: "PUT",
+    body: JSON.stringify(dados),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const msg = Array.isArray(data?.errors)
+      ? data.errors.map((e: any) => e.msg).join(" ")
+      : data?.error || data?.message || "Erro ao editar objetivo.";
+    throw new ApiError(msg, response.status);
+  }
+  return data;
 }
 
 export async function criarObjetivo(
@@ -811,6 +835,31 @@ export async function getProjecaoRendimento(usuarioId: number): Promise<import("
    ====================================================== */
 export function getTotalPinsFromPins(pins: PinUsuario[]): number {
   return pins.length;
+}
+
+/* ======================================================
+   INDICAÇÃO
+   ====================================================== */
+export async function getMeuCodigoIndicacao(): Promise<{
+  codigo_indicacao: string;
+  link: string;
+  total_indicados: number;
+}> {
+  const response = await apiFetch("/api/v1/indicacoes/meu-codigo");
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao buscar código de indicação.", response.status);
+  return data;
+}
+
+export async function getIndicacoes(usuarioId: number): Promise<{
+  codigo_indicacao: string;
+  pontos_indicacao: number;
+  indicados: { indicado_id: number; nome_completo: string }[];
+}> {
+  const response = await apiFetch(`/api/v1/indicacoes/${usuarioId}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || data?.error || "Erro ao buscar indicações.", response.status);
+  return data;
 }
 
 /* ======================================================

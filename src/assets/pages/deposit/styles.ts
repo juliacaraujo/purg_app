@@ -126,18 +126,40 @@ export const makeDepositStyles = (c: ThemeColors) => StyleSheet.create({
     paddingVertical: 20,
   },
 
+  pendenteBtns: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 8,
+    marginTop: 8,
+  },
   cancelarBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#ef4444",
-    marginTop: 8,
-    alignSelf: "flex-end",
   },
   cancelarText: {
     fontWeight: "900",
     color: "#ef4444",
     fontSize: 12,
+  },
+  copiarBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: c.primary,
+  },
+  copiarBtnCopiado: {
+    backgroundColor: c.primary,
+  },
+  copiarText: {
+    fontWeight: "900",
+    color: c.primary,
+    fontSize: 12,
+  },
+  copiarTextCopiado: {
+    color: "#fff",
   },
 });

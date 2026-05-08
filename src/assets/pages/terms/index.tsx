@@ -231,6 +231,12 @@ export default function Terms({ navigation, route }: any) {
       return;
     }
 
+    let codigoRef: string | undefined;
+    try {
+      const stored = typeof window !== "undefined" ? window.localStorage.getItem("purg_pending_ref") : null;
+      if (stored) codigoRef = stored;
+    } catch {}
+
     try {
       setEnviando(true);
       setFeedback(null);
@@ -244,6 +250,7 @@ export default function Terms({ navigation, route }: any) {
         senha,
         data_nascimento,
         genero,
+        ...(codigoRef ? { codigo_ref: codigoRef } : {}),
         termos_de_uso: "1",
         termos_de_privacidade: "1",
         termos_de_riscos_da_plataforma: "1",
@@ -253,6 +260,8 @@ export default function Terms({ navigation, route }: any) {
         setFeedback({ msg: result.message || "Não foi possível criar a conta.", tipo: "erro" });
         return;
       }
+
+      try { if (typeof window !== "undefined") window.localStorage.removeItem("purg_pending_ref"); } catch {}
 
       // Faz login automático para estabelecer sessão (necessário para criar o PIN)
       let loginOk = false;

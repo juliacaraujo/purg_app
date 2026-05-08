@@ -16,6 +16,7 @@ import { getHistoricoDepositos, getBuscarDepositosPendentes, cancelarDeposito, s
 import { AppBottomBar } from "../../components/AppBottomBar";
 import { BloqueioTela } from "../../components/BloqueioTela";
 import { useRestricao } from "../../../context/RestricaoContext";
+import * as Clipboard from "expo-clipboard";
 
 // Trunca para 2 casas decimais SEM arredondar (vírgula)
 const moneyTrunc = (v: any) => {
@@ -65,6 +66,13 @@ export default function Deposit({ navigation }: any) {
   const [pendentes, setPendentes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [parcela, setParcela] = useState<number | null>(null);
+  const [copiadoId, setCopiadoId] = useState<number | null>(null);
+
+  const copiarPix = useCallback(async (id: number, texto: string) => {
+    await Clipboard.setStringAsync(texto);
+    setCopiadoId(id);
+    setTimeout(() => setCopiadoId(null), 2000);
+  }, []);
 
   const carregarHistorico = useCallback(async () => {
     if (!user?.id) return;
@@ -227,9 +235,21 @@ export default function Deposit({ navigation }: any) {
                     {formatData(item.data_criacao)}
                   </Text>
                 )}
-                <TouchableOpacity style={styles.cancelarBtn} onPress={() => handleCancelarDeposito(item.id)}>
-                  <Text style={styles.cancelarText}>Cancelar</Text>
-                </TouchableOpacity>
+                <View style={styles.pendenteBtns}>
+                  {item.qr_code && (
+                    <TouchableOpacity
+                      style={[styles.copiarBtn, copiadoId === item.id && styles.copiarBtnCopiado]}
+                      onPress={() => copiarPix(item.id, item.qr_code)}
+                    >
+                      <Text style={[styles.copiarText, copiadoId === item.id && styles.copiarTextCopiado]}>
+                        {copiadoId === item.id ? "Copiado!" : "Copiar PIX"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={styles.cancelarBtn} onPress={() => handleCancelarDeposito(item.id)}>
+                    <Text style={styles.cancelarText}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             );
           })}

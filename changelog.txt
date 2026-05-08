@@ -1,3 +1,23 @@
+purg-develop-23 — 2026-05-08
+- Indicações: nova tela de Indicação com código e link exclusivo do usuário, botão Copiar e Compartilhar, lista de indicados com nome e pontos ganhos; acessível pelo ícone de indicação no header de todas as telas
+- Indicações: URL ?ref=CODIGO capturado no localStorage antes do login e enviado automaticamente no cadastro via campo codigo_ref
+- Indicações: API — getMeuCodigoIndicacao (GET /api/v1/indicacoes/meu-codigo) e getIndicacoes (GET /api/v1/indicacoes/:id)
+- Insígnias: sistema completo de badges por liga — BadgeInsignia.tsx e insigniaMap.ts mapeando 50 imagens (Cobre a Diamante, I a V cada); exibidas no Ranking, Home e Objetivos
+- Insígnias — Ranking: badge movida para coluna central entre nome e pontos; nome da liga exibido abaixo da insígnia; estilo centerBadge com minWidth 64
+- Insígnias — Home: insígnia no canto direito do topo em 64px; badge da liga centralizado com a insígnia (alignSelf: center)
+- Insígnias — Objetivos: insígnias ampliadas para 48px; labels "Pontos", "Liga Atual" e "Próxima Liga" alinhados ao topo (alignItems: flex-start); "Próxima" renomeado para "Próxima Liga"; valor dos pontos com fontSize 28 e margem vertical ajustada
+- Depósito: botão "Copiar PIX" adicionado nos depósitos pendentes com qr_code; feedback visual "Copiado!" por 2 segundos via expo-clipboard
+- Saque: aviso "O saque será efetuado em até 1 dia útil." exibido abaixo do botão Sacar
+- Home: seção de Assinatura removida (card "Sem assinatura", botão "Assinar Poppy Pro" e badge de status); variáveis e lógica relacionadas limpas
+- Objetivos: modal de edição de objetivo — permite alterar valor alvo e/ou prazo de um objetivo existente; pontos já conquistados são preservados; API editarObjetivo (PUT /api/v1/objetivos/:uid/:oid)
+- Perfil: restrição de "Trocar senha de acesso" para menores de idade removida
+- Perfil: toggle "Pode criar objetivos" removido das permissões configuráveis de dependente
+- Eventos: Alert de confirmação ao aceitar ("Vínculo ativado!") e ao recusar ("Convite recusado") evento de convite
+- API: apiFetch com try/catch de rede — lança ApiError "Sem conexão com a internet. Verifique sua rede e tente novamente." em vez de falha silenciosa
+- API: criarConta aceita campo opcional codigo_ref para rastrear indicações
+- Web: meta tags Open Graph e Twitter Card no index.html (og:title, og:description, og:image, twitter:card) para compartilhamento em redes sociais
+- Web: logo.png copiada para /var/www/purg/logo.png pelo deploy-web.sh para servir a imagem das OG tags
+
 purg-develop-22 — 2026-05-03
 - Restrições para menores de idade: novo RestricaoContext detecta se o usuário logado é menor (adulto === 0) e carrega permissões do guardião via GET /api/v1/familia/permissoes-proprias/:id; expõe menorDeIdade e permissoes (podeDepositar, podeSacar, podeAlterarPerfil, podeAlterarPix)
 - Depósito e Saque bloqueados para menores: tela BloqueioTela exibida quando permissão negada; botões Depositar/Sacar na Home e Patrimônio desabilitados com 🔒

@@ -868,12 +868,11 @@ export default function Profile() {
         <View style={style.secao}>
           <Text style={[style.secaoTitulo, { marginBottom: 12 }]}>Segurança</Text>
           <TouchableOpacity
-            style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }, menorDeIdade && !restricoes.podeAlterarPerfil && { opacity: 0.4 }]}
+            style={[ms.secaoBtn, { backgroundColor: isDark ? colors.backgroundSecondary : colors.primary, borderColor: isDark ? colors.border : colors.primary }]}
             onPress={abrirModalSenha}
-            disabled={menorDeIdade && !restricoes.podeAlterarPerfil}
           >
             <Text style={[ms.secaoBtnText, { color: isDark ? colors.textPrimary : "#fff" }]}>
-              {menorDeIdade && !restricoes.podeAlterarPerfil ? "🔒 Trocar senha de acesso" : "Trocar senha de acesso"}
+              Trocar senha de acesso
             </Text>
           </TouchableOpacity>
         </View>
@@ -1248,7 +1247,6 @@ export default function Profile() {
                 </Text>
                 {([
                   { campo: "pode_depositar" as const, label: "Pode realizar depósitos" },
-                  { campo: "pode_criar_objetivos" as const, label: "Pode criar objetivos" },
                   { campo: "pode_alterar_perfil" as const, label: "Pode alterar dados de perfil" },
                   { campo: "pode_alterar_pix" as const, label: "Pode alterar chaves Pix" },
                 ] as const).map(({ campo, label }) => (
