@@ -10,6 +10,13 @@ export default function NewPassword({ route, navigation }) {
 
   const email = route?.params?.email || "";
 
+  const criterios = {
+    tamanho: newPassword.length >= 8,
+    maiuscula: /[A-Z]/.test(newPassword),
+    especial: /[!@#$&*]/.test(newPassword),
+    especialInvalido: newPassword.length > 0 && /[^a-zA-Z0-9!@#$&*]/.test(newPassword),
+  };
+
   const handleChangePassword = async () => {
     if (!newPassword || !confirmPassword) {
       Alert.alert("Atenção", "Preencha os dois campos de senha.");
@@ -21,14 +28,18 @@ export default function NewPassword({ route, navigation }) {
       return;
     }
 
-    if (
-      newPassword.length < 8 ||
-      !/[A-Z]/.test(newPassword) ||
-      !/[!@#$%^&*()\-_=+.]/.test(newPassword)
-    ) {
+    if (criterios.especialInvalido) {
+      Alert.alert(
+        "Caractere não permitido",
+        "Sua senha contém caracteres especiais não permitidos. Use apenas: ! @ # $ & *"
+      );
+      return;
+    }
+
+    if (!criterios.tamanho || !criterios.maiuscula || !criterios.especial) {
       Alert.alert(
         "Senha inválida",
-        "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula e um caractere especial (! @ # $ % ^ & * - _ = + .)."
+        "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula e um caractere especial (! @ # $ & *)."
       );
       return;
     }
@@ -95,6 +106,28 @@ export default function NewPassword({ route, navigation }) {
         value={newPassword}
         onChangeText={setNewPassword}
       />
+
+      <View style={style.criteriosContainer}>
+        <Text style={style.criteriosTitulo}>A senha deve conter:</Text>
+        <View style={style.criterioRow}>
+          <Text style={[style.criterioIcon, criterios.tamanho && style.criterioOk]}>●</Text>
+          <Text style={[style.criterioTexto, criterios.tamanho && style.criterioOk]}>No mínimo 8 caracteres</Text>
+        </View>
+        <View style={style.criterioRow}>
+          <Text style={[style.criterioIcon, criterios.maiuscula && style.criterioOk]}>●</Text>
+          <Text style={[style.criterioTexto, criterios.maiuscula && style.criterioOk]}>No mínimo 1 letra maiúscula</Text>
+        </View>
+        <View style={style.criterioRow}>
+          <Text style={[style.criterioIcon, criterios.especial && style.criterioOk]}>●</Text>
+          <Text style={[style.criterioTexto, criterios.especial && style.criterioOk]}>No mínimo 1 caractere especial (! @ # $ & *)</Text>
+        </View>
+        {criterios.especialInvalido && (
+          <View style={style.criterioRow}>
+            <Text style={[style.criterioIcon, style.criterioErro]}>●</Text>
+            <Text style={[style.criterioTexto, style.criterioErro]}>Contém caractere(s) não permitido(s). Use apenas: ! @ # $ & *</Text>
+          </View>
+        )}
+      </View>
 
       <TextInput
         style={style.input}

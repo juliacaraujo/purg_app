@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
-  RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
@@ -14,9 +12,12 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useRefresh } from "../../../context/RefreshContext";
 import { getObjetivos, getObjetivoDetalhe, getLigas, criarObjetivo, editarObjetivo, getProjecaoPatrimonio, getProjecaoRendimento } from "../../../services/api";
 import type { ObjetivoItem, MetaDetalhe, PontosInfo, LigaItem, ProjecaoItem } from "../../../types";
 import GraficoLinha from "../../components/GraficoLinha";
+import ScrollViewRefresh from "../../components/ScrollViewRefresh";
 import { MolduraLiga, getLigaCores } from "../../components/MolduraLiga";
 import { BadgeInsignia } from "../../components/BadgeInsignia";
 
@@ -51,16 +52,29 @@ function SegmentedBar({ completas, total, cor, bgColor, metas }: { completas: nu
       {Array.from({ length: n }).map((_, i) => {
         const mostraData = i === 0 || i % intervalo === 0;
         const dataLabel = i === 0 ? "aporte" : mostraData && metas?.[i]?.data_limite ? formatDataLimite(metas[i].data_limite) : "";
+        const isAtiva = i === completas && !metas?.[i]?.completo;
+        const pct = isAtiva ? Math.min(100, Math.max(0, metas?.[i]?.percentual ?? 0)) : 0;
         return (
           <View key={i} style={{ flex: 1, alignItems: "center" }}>
             <View
               style={[
                 s.segItem,
-                { backgroundColor: i < completas ? cor : bgColor },
+                { backgroundColor: bgColor, overflow: "hidden" },
                 i === 0 && s.segFirst,
                 i === n - 1 && s.segLast,
               ]}
-            />
+            >
+              {(i < completas || isAtiva) && (
+                <View
+                  style={{
+                    position: "absolute",
+                    left: 0, top: 0, bottom: 0,
+                    width: i < completas ? "100%" : `${pct}%`,
+                    backgroundColor: cor,
+                  }}
+                />
+              )}
+            </View>
             {dataLabel ? <Text style={s.segData}>{dataLabel}</Text> : <Text style={s.segData}>{" "}</Text>}
           </View>
         );
@@ -480,8 +494,10 @@ function ModalEditarObjetivo({ visible, onClose, onSalvar, salvando, colors, ite
 }
 
 export default function Objetivos() {
+  const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { refreshToken, triggerRefresh } = useRefresh();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -538,7 +554,9 @@ export default function Objetivos() {
   }, [user?.id]);
 
 
-  useEffect(() => { carregar(); }, [carregar]);
+  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+
+  useEffect(() => { if (refreshToken > 0) carregar(); }, [refreshToken]);
 
   const onRefresh = () => { setRefreshing(true); carregar(); };
 
@@ -548,8 +566,8 @@ export default function Objetivos() {
       setSalvando(true);
       await criarObjetivo(user.id, dados);
       setModalVisible(false);
-      await carregar();
-      Alert.alert("Sucesso", "Objetivo criado com sucesso.");
+      triggerRefresh();
+      navigation.navigate("Deposit");
     } catch (e: any) {
       Alert.alert("Erro", e?.message || "Não foi possível criar o objetivo.");
     } finally { setSalvando(false); }
@@ -566,7 +584,7 @@ export default function Objetivos() {
     try {
       await editarObjetivo(user.id, objetivoParaEditar.objetivo_id, dados);
       setModalEditarVisible(false);
-      await carregar();
+      triggerRefresh();
       Alert.alert("Sucesso", "Objetivo atualizado com sucesso.");
     } finally {
       setSalvandoEdicao(false);
@@ -587,10 +605,12 @@ export default function Objetivos() {
 
   return (
     <SwipeTabsWrapper currentTab="Objetivos">
-      <ScrollView
+      <ScrollViewRefresh
         style={containerStyle}
         contentContainerStyle={s.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={colors.primary}
         showsVerticalScrollIndicator={false}
       >
 
@@ -732,7 +752,7 @@ export default function Objetivos() {
             )}
           </>
         )}
-      </ScrollView>
+      </ScrollViewRefresh>
 
       <ModalNovoObjetivo
         visible={modalVisible}

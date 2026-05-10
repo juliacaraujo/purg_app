@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   ActivityIndicator,
-  RefreshControl,
   TouchableOpacity,
   Pressable,
   Modal,
@@ -33,6 +32,7 @@ import { useFamilia } from "../../../context/FamiliaContext";
 import { useRestricao } from "../../../context/RestricaoContext";
 import { cadastrarBiometria, isPasskeySupported } from "../../../services/biometria";
 import { ModalSelecionarAvatar } from "../../components/ModalSelecionarAvatar";
+import ScrollViewRefresh from "../../components/ScrollViewRefresh";
 
 const PREP_MINUSCULA = new Set(["da", "de", "do", "das", "dos", "e", "a", "o", "as", "os"]);
 
@@ -227,6 +227,24 @@ export default function Profile() {
   const [cidadeEdit, setCidadeEdit] = useState("");
   const [estadoEdit, setEstadoEdit] = useState("");
   const [cepEdit, setCepEdit] = useState("");
+  const [buscandoCep, setBuscandoCep] = useState(false);
+
+  const buscarCEP = async (cepDigits: string) => {
+    if (cepDigits.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        if (data.logradouro) setLogradouroEdit(data.logradouro);
+        if (data.bairro) setBairroEdit(data.bairro);
+        if (data.localidade) setCidadeEdit(data.localidade);
+        if (data.uf) setEstadoEdit(data.uf);
+      }
+    } catch {} finally {
+      setBuscandoCep(false);
+    }
+  };
 
   const [pixCpfEdit, setPixCpfEdit] = useState("");
   const [pixCelEdit, setPixCelEdit] = useState("");
@@ -762,10 +780,12 @@ export default function Profile() {
   return (
     <>
     <SwipeTabsWrapper currentTab="Patrimônio">
-      <ScrollView
+      <ScrollViewRefresh
         style={style.container}
         contentContainerStyle={style.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={colors.primary}
       >
         {/* Cabeçalho */}
         <View style={style.header}>
@@ -1193,7 +1213,7 @@ export default function Profile() {
         <TouchableOpacity style={style.botaoSair} onPress={logout}>
           <Text style={style.botaoSairTexto}>Sair</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </ScrollViewRefresh>
 
       {/* Modal — Convidar tutelado */}
       <Modal visible={modalConvite} animationType="slide" transparent>
@@ -1401,7 +1421,7 @@ export default function Profile() {
           ))}
         </View>
         <Campo ms={ms} label="Celular" value={celularEdit} onChangeText={(v) => { setCelularEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("celular"); return n; }); }} placeholder="(11) 99999-9999" keyboardType="phone-pad" erro={camposComErroDados.has("celular")} />
-        <Campo ms={ms} label="CEP" value={cepEdit} onChangeText={(v) => { setCepEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("cep"); return n; }); }} placeholder="00000-000" keyboardType="number-pad" erro={camposComErroDados.has("cep")} />
+        <Campo ms={ms} label={buscandoCep ? "CEP (buscando...)" : "CEP"} value={cepEdit} onChangeText={(v) => { setCepEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("cep"); return n; }); const digits = v.replace(/\D/g, ""); if (digits.length === 8) buscarCEP(digits); }} placeholder="00000-000" keyboardType="number-pad" erro={camposComErroDados.has("cep")} />
         <Campo ms={ms} label="Logradouro" value={logradouroEdit} onChangeText={(v) => { setLogradouroEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("logradouro"); return n; }); }} placeholder="Rua, Av..." erro={camposComErroDados.has("logradouro")} />
         <Campo ms={ms} label="Número" value={numeroEdit} onChangeText={(v) => { setNumeroEdit(v); setCamposComErroDados((s) => { const n = new Set(s); n.delete("numero"); return n; }); }} placeholder="0" keyboardType="number-pad" erro={camposComErroDados.has("numero")} />
         <Campo ms={ms} label="Complemento (opcional)" value={complementoEdit} onChangeText={setComplementoEdit} placeholder="Apto, Bloco..." />

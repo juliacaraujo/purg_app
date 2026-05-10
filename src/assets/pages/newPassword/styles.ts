@@ -53,4 +53,11 @@ export const style = StyleSheet.create({
     color: theme.colors.textSecondary,
     fontSize: 14,
   },
+  criteriosContainer: { marginTop: -8, marginBottom: 16, gap: 6 },
+  criteriosTitulo: { fontSize: 13, fontWeight: "600", color: "#333", marginBottom: 4 },
+  criterioRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  criterioIcon: { fontSize: 8, color: "#aaa" },
+  criterioTexto: { fontSize: 13, color: "#aaa" },
+  criterioOk: { color: "#166534" },
+  criterioErro: { color: "#FF3B30" },
 });

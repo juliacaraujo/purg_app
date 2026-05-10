@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   Alert,
 } from "react-native";
@@ -17,6 +16,7 @@ import { AppBottomBar } from "../../components/AppBottomBar";
 import { BloqueioTela } from "../../components/BloqueioTela";
 import { useRestricao } from "../../../context/RestricaoContext";
 import * as Clipboard from "expo-clipboard";
+import ScrollViewRefresh from "../../components/ScrollViewRefresh";
 
 // Trunca para 2 casas decimais SEM arredondar (vírgula)
 const moneyTrunc = (v: any) => {
@@ -55,18 +55,22 @@ function formatData(val: string) {
   }
 }
 
-export default function Deposit({ navigation }: any) {
+export default function Deposit({ navigation, route }: any) {
   const { user } = useAuth();
   const { colors } = useTheme();
   const styles = useMemo(() => makeDepositStyles(colors), [colors]);
   const { menorDeIdade, permissoes } = useRestricao();
 
-  const [valor, setValor] = useState("");
+  const [valor, setValor] = useState<string>(() => {
+    const v = route?.params?.valorInicial;
+    return v != null ? String(Number(v).toFixed(2)).replace(".", ",") : "";
+  });
   const [historico, setHistorico] = useState<any[]>([]);
   const [pendentes, setPendentes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [parcela, setParcela] = useState<number | null>(null);
   const [copiadoId, setCopiadoId] = useState<number | null>(null);
+  const [semObjetivo, setSemObjetivo] = useState<boolean | null>(null);
 
   const copiarPix = useCallback(async (id: number, texto: string) => {
     await Clipboard.setStringAsync(texto);
@@ -86,14 +90,15 @@ export default function Deposit({ navigation }: any) {
       const lista = Array.isArray(hist) ? hist : Array.isArray(hist?.data) ? hist.data : [];
       setHistorico(lista);
       setPendentes(pend);
-      const ativo = objs.objetivos?.find((o) => !o.objetivo_completo);
+      const ativo = objs.objetivos?.find((o: any) => !o.objetivo_completo);
+      setSemObjetivo(!ativo);
       if (ativo) {
         try {
           const detalhe = await getObjetivoDetalhe(user.id, ativo.objetivo_id);
           const metas = detalhe.metas ?? [];
           if (metas.length > 0) {
-            const valorParcela = metas.length > 1 ? metas[1].valor_alvo : metas[0].valor_alvo;
-            setParcela(Math.trunc(Number(valorParcela) * 100) / 100);
+            const proxMeta = metas.find((m: any) => !m.completo) ?? metas[metas.length - 1];
+            setParcela(Math.trunc(Number(proxMeta.valor_alvo) * 100) / 100);
           }
         } catch {
           // parcela opcional — não bloqueia a tela
@@ -105,6 +110,13 @@ export default function Deposit({ navigation }: any) {
       setLoading(false);
     }
   }, [user?.id]);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await carregarHistorico();
+    setRefreshing(false);
+  }, [carregarHistorico]);
 
   useEffect(() => {
     carregarHistorico();
@@ -178,9 +190,38 @@ export default function Deposit({ navigation }: any) {
     );
   }
 
+  if (semObjetivo === true) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 32 }}>
+          <Text style={[styles.title, { textAlign: "center", marginBottom: 16 }]}>
+            Nenhum objetivo ativo
+          </Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 15, textAlign: "center", lineHeight: 22, marginBottom: 32 }}>
+            Para fazer um depósito você precisa ter um objetivo configurado. Crie seu primeiro objetivo e comece a guardar dinheiro!
+          </Text>
+          <TouchableOpacity
+            style={[styles.depositBtn, { paddingHorizontal: 32, flex: 0, alignSelf: "center" }]}
+            onPress={() => navigation.navigate("AppTabs", { screen: "Objetivos" })}
+          >
+            <Text style={styles.depositBtnText}>Criar meu primeiro objetivo</Text>
+          </TouchableOpacity>
+        </View>
+        <AppBottomBar />
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollViewRefresh
+      style={{ flex: 1 }}
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      tintColor={colors.primary}
+    >
       <Text style={styles.title}>Depósito</Text>
 
       {/* Input de valor */}
@@ -292,7 +333,7 @@ export default function Deposit({ navigation }: any) {
           );
         })
       )}
-    </ScrollView>
+    </ScrollViewRefresh>
     <AppBottomBar />
     </View>
   );

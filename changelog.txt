@@ -1,3 +1,13 @@
+purg-develop-25 — 2026-05-10
+- Pull-to-refresh web: novo componente ScrollViewRefresh que implementa gesto de arrastar-para-recarregar nativamente no navegador via listeners DOM (touchstart/touchmove/touchend com preventDefault), indicador animado com Animated.spring e fallback transparente para iOS/Android (usa RefreshControl nativo)
+- Pull-to-refresh: migração de todas as 9 telas (Home, Patrimônio, Objetivos, Perfil, Ranking, Indicação, Saque, Depósito, Ficha do Jogador) para ScrollViewRefresh — arrastar para baixo recarrega em qualquer plataforma
+- Gráficos de barras: substituição dos gráficos de linha por barras agrupadas por mês em Crescimento de Patrimônio e Crescimento dos Rendimentos (Home e Patrimônio); componente GraficoBarras com eixo Y adaptativo que não extrapola o valor máximo dos dados
+- Atualização global de dados: novo contexto RefreshContext com triggerRefresh() — após depósito confirmado (PixInfo), saque solicitado, objetivo criado ou objetivo editado, todas as telas recarregam os dados automaticamente
+- PixInfo: removidos ambos os botões de voltar (headerLeft e botão no corpo) para evitar saída acidental antes da confirmação do Pix
+- Web: corrigido bug de tela branca ao pressionar o botão Voltar do navegador — interceptação captura do evento popstate com stopImmediatePropagation() e rastreamento de URL via monkey-patch em pushState/replaceState para navegação correta pelo React Navigation
+- Saque: mensagens atualizadas para informar que o saque pode levar até 1 dia útil para ser processado
+- Depósito: corrigido botão "Criar meu primeiro objetivo" na tela de estado vazio que estava com largura excessiva (adicionado flex: 0 e alignSelf: center)
+
 purg-develop-24 — 2026-05-08
 - Ranking: redesenho completo dos cards — bordas à esquerda na cor da liga, layout compacto em linha, medalhas dourada/prateada/bronze para top 3, escala 1.2x e título decorativo com diamantes e linhas SVG
 - Ranking: cards clicáveis com chevron › no canto direito indicando navegação para ficha do jogador

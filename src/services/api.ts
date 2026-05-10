@@ -285,6 +285,12 @@ export async function criarConta(dados: {
   data_nascimento?: string;
   genero?: string;
   codigo_ref?: string;
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
   termos_de_uso: "1";
   termos_de_privacidade: "1";
   termos_de_riscos_da_plataforma: "1";
@@ -783,6 +789,18 @@ export interface RankingDados {
   avatar_id?: number | null;
   created_at: string;
   estado?: string | null;
+  total_indicacoes?: number | null;
+}
+
+export async function getRankingContatos(telefones: string[]): Promise<RankingItem[]> {
+  const response = await apiFetch("/api/v1/ranking/contatos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ telefones }),
+  });
+  if (!response.ok) throw new ApiError("Erro ao buscar ranking de contatos", response.status);
+  const data = await response.json();
+  return Array.isArray(data) ? data : (data.ranking ?? []);
 }
 
 export async function getRankingDados(usuarioId: number): Promise<RankingDados> {

@@ -224,7 +224,7 @@ export default function Terms({ navigation, route }: any) {
   };
 
   const handleConfirmar = async () => {
-    const { nome, nome_da_mae, cpf, celular, email, senha, data_nascimento, genero } = dadosCadastro;
+    const { nome, nome_da_mae, cpf, celular, email, senha, data_nascimento, genero, cep, logradouro, numero, bairro, cidade, estado } = dadosCadastro;
 
     if (!nome || !cpf || !celular || !email || !senha) {
       setFeedback({ msg: "Dados incompletos. Volte e preencha todos os campos.", tipo: "erro" });
@@ -251,6 +251,12 @@ export default function Terms({ navigation, route }: any) {
         data_nascimento,
         genero,
         ...(codigoRef ? { codigo_ref: codigoRef } : {}),
+        ...(cep ? { cep } : {}),
+        ...(logradouro ? { logradouro } : {}),
+        ...(numero ? { numero } : {}),
+        ...(bairro ? { bairro } : {}),
+        ...(cidade ? { cidade } : {}),
+        ...(estado ? { estado } : {}),
         termos_de_uso: "1",
         termos_de_privacidade: "1",
         termos_de_riscos_da_plataforma: "1",

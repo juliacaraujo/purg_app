@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  RefreshControl,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -18,6 +16,7 @@ import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
 import { makeProfileStyle } from "../profile/styles";
 import { getIndicacoes } from "../../../services/api";
+import ScrollViewRefresh from "../../components/ScrollViewRefresh";
 import { isWeb } from "../../global/responsive";
 
 type DadosIndicacao = {
@@ -107,10 +106,12 @@ export default function Indicacao() {
   const totalIndicados = dados?.indicados?.length ?? 0;
 
   return (
-    <ScrollView
+    <ScrollViewRefresh
       style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}
       contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      tintColor={colors.primary}
     >
       {/* Como funciona */}
       <View style={style.secao}>
@@ -222,7 +223,7 @@ export default function Indicacao() {
           ))}
         </View>
       )}
-    </ScrollView>
+    </ScrollViewRefresh>
   );
 }
 

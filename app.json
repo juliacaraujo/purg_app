@@ -40,6 +40,12 @@
             "usesCleartextTraffic": true
           }
         }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "O Purg precisa acessar seus contatos para mostrar quais deles já usam o app."
+        }
       ]
     ],
     "owner": "juliacaraujo"

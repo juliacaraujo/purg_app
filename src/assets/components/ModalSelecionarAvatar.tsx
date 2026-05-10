@@ -38,7 +38,7 @@ export function ModalSelecionarAvatar({ visible, onClose, avatarAtual, onSalvar,
               <Text style={[s.vazioTexto, { color: colors.textTertiary }]}>Nenhum avatar disponível ainda.</Text>
             </View>
           ) : (
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 280 }}>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 364 }}>
               <View style={s.grid}>
                 {avatarEntries.map((item) => (
                   <TouchableOpacity
@@ -88,7 +88,7 @@ const s = StyleSheet.create({
   container: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, maxHeight: "85%" as any },
   titulo: { fontSize: 18, fontWeight: "700", marginBottom: 16, textAlign: "center" },
   grid: { flexDirection: "row", flexWrap: "wrap", paddingBottom: 8 },
-  item: { width: "22%", margin: "1.5%" as any, aspectRatio: 1, borderRadius: 50, overflow: "hidden", borderWidth: 3, borderColor: "transparent" },
+  item: { width: "29%" as any, margin: "1%" as any, aspectRatio: 1, borderRadius: 50, overflow: "hidden", borderWidth: 3, borderColor: "transparent" },
   itemImg: { width: "100%", height: "100%", resizeMode: "cover" },
   preview: { alignItems: "center", marginVertical: 16 },
   previewImg: { width: 72, height: 72, borderRadius: 36 },

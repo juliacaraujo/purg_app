@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  View, Text, Image, ScrollView, ActivityIndicator,
+  View, Text, Image, ActivityIndicator,
   StyleSheet, Modal, TouchableOpacity, TouchableWithoutFeedback,
 } from "react-native";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
-import { getRankingDados, type RankingDados } from "../../../services/api";
+import { getRankingDados, getObjetivos, getObjetivoDetalhe, type RankingDados } from "../../../services/api";
+import ScrollViewRefresh from "../../components/ScrollViewRefresh";
 import { FRAME_CFG } from "../../components/MolduraLiga";
 import avatarMap from "../../avatarMap";
 import insigniaMap from "../../insigniaMap";
@@ -54,27 +55,59 @@ function StatLinha({ label, valor, cor }: { label: string; valor: string; cor: s
 
 type InsigniaModal = { source: ReturnType<typeof require>; nome: string; cor: string } | null;
 
-export default function RankingPerfil({ route }: { route: any }) {
+export default function RankingPerfil({ route, navigation }: { route: any; navigation: any }) {
   const { usuario_id, meus_pontos } = route.params as { usuario_id: number; meus_pontos?: number };
   const { colors } = useTheme();
   const { user } = useAuth();
 
   const [dados, setDados] = useState<RankingDados | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [erro, setErro] = useState(false);
   const [insigniaModal, setInsigniaModal] = useState<InsigniaModal>(null);
+  const [realsPorPonto, setRealsPorPonto] = useState<number | null>(null);
 
   const souEu = user?.id === usuario_id;
 
-  useEffect(() => {
-    setLoading(true);
-    setDados(null);
+  const carregar = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
     setErro(false);
-    getRankingDados(usuario_id)
-      .then(setDados)
-      .catch(() => setErro(true))
-      .finally(() => setLoading(false));
-  }, [usuario_id]);
+    setRealsPorPonto(null);
+
+    const fetchRanking = getRankingDados(usuario_id);
+    const fetchObj = !souEu && user?.id ? getObjetivos(user.id) : Promise.resolve(null);
+
+    try {
+      const [rankDados, objRes] = await Promise.all([fetchRanking, fetchObj]);
+      setDados(rankDados);
+      if (objRes && user?.id) {
+        const lista = Array.isArray(objRes.objetivos) ? objRes.objetivos : [];
+        const obj = lista.find((o: any) => o.is_patrimonio) ?? lista[0];
+        if (obj) {
+          try {
+            const detalhe = await getObjetivoDetalhe(user.id!, obj.objetivo_id);
+            const metas = detalhe.metas ?? [];
+            const prox = metas.find((m: any) => !m.completo) ?? metas[metas.length - 1];
+            if (prox && prox.valor_alvo > 0 && prox.pontos > 0) {
+              setRealsPorPonto(prox.valor_alvo / prox.pontos);
+            }
+          } catch {}
+        }
+      }
+    } catch {
+      setErro(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [usuario_id, user?.id, souEu]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    carregar(true);
+  }, [carregar]);
+
+  useEffect(() => { carregar(false); }, [carregar]);
 
   if (loading) {
     return (
@@ -100,10 +133,13 @@ export default function RankingPerfil({ route }: { route: any }) {
 
   return (
     <>
-      <ScrollView
+      <ScrollViewRefresh
         style={{ backgroundColor: colors.backgroundSecondary }}
         contentContainerStyle={[s.container, { backgroundColor: colors.backgroundSecondary }]}
         showsVerticalScrollIndicator={false}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={colors.primary}
       >
         {/* ── Ficha principal ── */}
         <View style={[s.card, { backgroundColor: colors.card, borderColor: cor + "55" }]}>
@@ -147,6 +183,7 @@ export default function RankingPerfil({ route }: { route: any }) {
               <StatLinha label="POSIÇÃO" valor={`#${dados.posicao}`} cor={cor} />
               <StatLinha label="PONTOS" valor={String(dados.pontos)} cor={cor} />
               <StatLinha label="LIGA" valor={dados.liga ?? "–"} cor={cor} />
+              {dados.total_indicacoes != null ? <StatLinha label="INDICAÇÕES" valor={String(dados.total_indicacoes)} cor={cor} /> : null}
               {dados.estado ? <StatLinha label="ESTADO" valor={dados.estado} cor={cor} /> : null}
               <StatLinha label="MEMBRO HÁ" valor={tempoNaCasa(dados.created_at)} cor={cor} />
             </View>
@@ -163,11 +200,30 @@ export default function RankingPerfil({ route }: { route: any }) {
                 { color: difPontos > 0 ? "#FF3B30" : difPontos < 0 ? colors.primary : colors.textSecondary },
               ]}>
                 {difPontos > 0
-                  ? `${difPontos} pontos à frente`
+                  ? `Você está ${difPontos} pontos atrás desse usuário.`
                   : difPontos < 0
-                  ? `${Math.abs(difPontos)} pontos atrás`
+                  ? `Você está ${Math.abs(difPontos)} pontos na frente desse usuário.`
                   : "Empatados"}
               </Text>
+              {difPontos > 0 && realsPorPonto !== null && (() => {
+                const z = difPontos + 1;
+                const y = z * realsPorPonto;
+                const yStr = `R$ ${y.toFixed(2).replace(".", ",")}`;
+                return (
+                  <View style={[s.disclaimerRow, { borderTopColor: colors.border }]}>
+                    <Text style={[s.comparativoDisclaimer, { color: colors.textTertiary, flex: 1 }]}>
+                      {`Para você passar esse usuário precisa investir mais ${yStr}, que é o equivalente a ${z} pontos.`}
+                    </Text>
+                    <View style={[s.disclaimerDivisor, { backgroundColor: colors.border }]} />
+                    <TouchableOpacity
+                      style={[s.depositarBtn, { backgroundColor: colors.primary }]}
+                      onPress={() => navigation.navigate("Deposit", { valorInicial: y })}
+                    >
+                      <Text style={s.depositarBtnText}>Depositar</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })()}
             </View>
           )}
 
@@ -217,7 +273,7 @@ export default function RankingPerfil({ route }: { route: any }) {
             </View>
           )}
         </View>
-      </ScrollView>
+      </ScrollViewRefresh>
 
       {/* ── Modal de detalhe da insígnia ── */}
       <Modal visible={insigniaModal !== null} transparent animationType="fade">
@@ -339,9 +395,21 @@ const s = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
     letterSpacing: 0.5,
-    marginBottom: 4,
+    marginBottom: 18,
   },
-  comparativoValor: { fontSize: 20, fontWeight: "800" },
+  comparativoValor: { fontSize: 15, fontWeight: "800" },
+  comparativoDisclaimer: { fontSize: 12, lineHeight: 18 },
+  disclaimerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+  disclaimerDivisor: { width: StyleSheet.hairlineWidth, alignSelf: "stretch" },
+  depositarBtn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  depositarBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
 
   insigniasSecao: {
     paddingHorizontal: 20,

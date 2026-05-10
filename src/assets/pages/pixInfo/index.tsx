@@ -11,6 +11,7 @@ import * as Clipboard from "expo-clipboard";
 import { useAuth } from "../../../context/AuthContext";
 import { getBuscarDepositosPendentes } from "../../../services/api";
 import { styles } from "./styles";
+import { useRefresh } from "../../../context/RefreshContext";
 
 const moneyFmt = (v: any) => {
   const n = Math.trunc((Number(v) || 0) * 100) / 100;
@@ -25,6 +26,7 @@ const fmtTime = (s: number) => {
 
 export default function PixInfo({ route, navigation }: any) {
   const { user } = useAuth();
+  const { triggerRefresh } = useRefresh();
   const {
     valor = 0,
     pix_copia_cola,
@@ -63,6 +65,7 @@ export default function PixInfo({ route, navigation }: any) {
           done = true;
           clearInterval(timerId);
           clearInterval(pollId);
+          triggerRefresh();
           setStep("confirmed");
         }
       } catch {}
@@ -117,10 +120,6 @@ export default function PixInfo({ route, navigation }: any) {
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-        <Text style={styles.backBtnText}>← Voltar</Text>
-      </TouchableOpacity>
-
       <Text style={styles.title}>Pagar com Pix</Text>
 
       {valor > 0 && (

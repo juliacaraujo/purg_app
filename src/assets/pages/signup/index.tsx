@@ -22,6 +22,7 @@ import {
   Alert,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { style } from "./styles";
 import imgOlhoAberto from "../../../../assets/olho_aberto.png";
@@ -40,6 +41,16 @@ export default function Signup({ navigation, route }: any) {
 
   const [dataNasc, setDataNasc] = useState("");
   const [genero, setGenero] = useState("");
+
+  const [cep, setCep] = useState("");
+  const [rua, setRua] = useState("");
+  const [numero, setNumero] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [estado, setEstado] = useState("");
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [erroCep, setErroCep] = useState("");
+
   const [erroNome, setErroNome] = useState("");
   const [erroCpf, setErroCpf] = useState("");
   const [erroCelular, setErroCelular] = useState("");
@@ -74,6 +85,30 @@ export default function Signup({ navigation, route }: any) {
     out += p1;
     if (p2) out += `-${p2}`;
     return out.trim();
+  };
+
+  const formatCEP = (value: string) => {
+    const d = onlyDigits(value).slice(0, 8);
+    return d.length > 5 ? d.slice(0, 5) + "-" + d.slice(5) : d;
+  };
+
+  const buscarCEP = async (cepDigits: string) => {
+    if (cepDigits.length !== 8) return;
+    setBuscandoCep(true);
+    setErroCep("");
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`);
+      const data = await res.json();
+      if (data.erro) { setErroCep("CEP não encontrado."); return; }
+      setRua(data.logradouro ?? "");
+      setBairro(data.bairro ?? "");
+      setCidade(data.localidade ?? "");
+      setEstado(data.uf ?? "");
+    } catch {
+      setErroCep("Não foi possível buscar o CEP. Preencha manualmente.");
+    } finally {
+      setBuscandoCep(false);
+    }
   };
 
   const normalizeSpaces = (value: string) =>
@@ -153,9 +188,10 @@ export default function Signup({ navigation, route }: any) {
   const criterios = {
     tamanho: senha.length >= 8,
     maiuscula: /[A-Z]/.test(senha),
-    especial: /[!@#$%^&*()\-_=+.]/.test(senha),
+    especial: /[!@#$&*]/.test(senha),
+    especialInvalido: senha.length > 0 && /[^a-zA-Z0-9!@#$&*]/.test(senha),
   };
-  const senhaValida = criterios.tamanho && criterios.maiuscula && criterios.especial;
+  const senhaValida = criterios.tamanho && criterios.maiuscula && criterios.especial && !criterios.especialInvalido;
 
   const todosCamposPreenchidos =
     nome.trim() !== "" &&
@@ -218,10 +254,18 @@ export default function Signup({ navigation, route }: any) {
       return;
     }
 
+    if (criterios.especialInvalido) {
+      Alert.alert(
+        "Caractere não permitido",
+        "Sua senha contém caracteres especiais não permitidos. Use apenas: ! @ # $ & *"
+      );
+      return;
+    }
+
     if (!senhaValida) {
       Alert.alert(
         "Senha inválida",
-        "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula e um caractere especial (! @ # $ % ^ & * - _ = + .)."
+        "A senha deve ter no mínimo 8 caracteres, uma letra maiúscula e um caractere especial (! @ # $ & *)."
       );
       return;
     }
@@ -236,6 +280,12 @@ export default function Signup({ navigation, route }: any) {
       data_nascimento: dataNascParaISO(dataNasc),
       genero,
       convite: conviteToken || undefined,
+      cep: onlyDigits(cep) || undefined,
+      logradouro: rua || undefined,
+      numero: numero || undefined,
+      bairro: bairro || undefined,
+      cidade: cidade || undefined,
+      estado: estado || undefined,
     });
   };
 
@@ -317,6 +367,64 @@ export default function Signup({ navigation, route }: any) {
       />
       {erroEmail ? <Text style={style.erroTexto}>{erroEmail}</Text> : null}
 
+      {/* ── Endereço ── */}
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <TextInput
+          style={[style.input, { flex: 1 }, erroCep ? style.inputErro : null]}
+          placeholder="CEP"
+          keyboardType="number-pad"
+          value={cep}
+          onChangeText={(t) => {
+            const formatted = formatCEP(t);
+            setCep(formatted);
+            setErroCep("");
+            const digits = onlyDigits(formatted);
+            if (digits.length === 8) buscarCEP(digits);
+          }}
+        />
+        {buscandoCep && <ActivityIndicator style={{ marginLeft: 8 }} />}
+      </View>
+      {erroCep ? <Text style={style.erroTexto}>{erroCep}</Text> : null}
+
+      <TextInput
+        style={style.input}
+        placeholder="Rua / Logradouro"
+        value={rua}
+        onChangeText={setRua}
+      />
+
+      <TextInput
+        style={style.input}
+        placeholder="Número"
+        keyboardType="number-pad"
+        value={numero}
+        onChangeText={setNumero}
+      />
+
+      <TextInput
+        style={style.input}
+        placeholder="Bairro"
+        value={bairro}
+        onChangeText={setBairro}
+      />
+
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <TextInput
+          style={[style.input, { flex: 1 }]}
+          placeholder="Cidade"
+          value={cidade}
+          onChangeText={setCidade}
+        />
+        <TextInput
+          style={[style.input, { width: 70 }]}
+          placeholder="UF"
+          autoCapitalize="characters"
+          maxLength={2}
+          value={estado}
+          onChangeText={setEstado}
+        />
+      </View>
+
       <View style={style.inputSenhaWrap}>
         <TextInput
           style={style.inputSenha}
@@ -352,8 +460,14 @@ export default function Signup({ navigation, route }: any) {
         </View>
         <View style={style.criterioRow}>
           <Text style={[style.criterioIcon, criterios.especial && style.criterioOk]}>●</Text>
-          <Text style={[style.criterioTexto, criterios.especial && style.criterioOk]}>No mínimo 1 caractere especial (! @ # $ % ^ & * - _ = + .)</Text>
+          <Text style={[style.criterioTexto, criterios.especial && style.criterioOk]}>No mínimo 1 caractere especial (! @ # $ & *)</Text>
         </View>
+        {criterios.especialInvalido && (
+          <View style={style.criterioRow}>
+            <Text style={[style.criterioIcon, style.criterioErro]}>●</Text>
+            <Text style={[style.criterioTexto, style.criterioErro]}>Contém caractere(s) não permitido(s). Use apenas: ! @ # $ & *</Text>
+          </View>
+        )}
       </View>
 
       <TouchableOpacity

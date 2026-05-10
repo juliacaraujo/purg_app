@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { StatusBar } from "expo-status-bar";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, createNavigationContainerRef } from "@react-navigation/native";
 import type { LinkingOptions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -34,6 +34,7 @@ import { ThemeProvider, useTheme, lightColors } from "./src/context/ThemeContext
 import { FamiliaProvider, useFamilia } from "./src/context/FamiliaContext";
 import { EventosProvider, useEventos, type Evento } from "./src/context/EventosContext";
 import { RestricaoProvider } from "./src/context/RestricaoContext";
+import { RefreshProvider } from "./src/context/RefreshContext";
 
 // Captura tokens de convite da URL antes de qualquer render (resolve timing com FamiliaContext)
 if (typeof window !== "undefined") {
@@ -46,6 +47,36 @@ if (typeof window !== "undefined") {
     const _ref = _p.get("ref");
     if (_ref) window.localStorage.setItem("purg_pending_ref", _ref);
   } catch {}
+}
+
+const navigationRef = createNavigationContainerRef<any>();
+
+// Fix tela branca no web ao pressionar botão de voltar do celular/browser.
+// React Navigation reconstrói o estado a partir da URL quando popstate dispara,
+// o que falha em navegadores com histórico complexo. Interceptamos o evento em
+// modo captura (antes do React Navigation), restauramos a URL e delegamos o
+// "voltar" ao navigationRef para que a transição ocorra corretamente.
+if (isWeb && typeof window !== "undefined") {
+  let _navUrl = window.location.href;
+
+  const _origPush = window.history.pushState.bind(window.history);
+  const _origReplace = window.history.replaceState.bind(window.history);
+
+  window.history.pushState = (...args: Parameters<typeof window.history.pushState>) => {
+    _origPush(...args);
+    _navUrl = window.location.href;
+  };
+  window.history.replaceState = (...args: Parameters<typeof window.history.replaceState>) => {
+    _origReplace(...args);
+    _navUrl = window.location.href;
+  };
+
+  window.addEventListener("popstate", (e) => {
+    if (!navigationRef.isReady() || !navigationRef.canGoBack()) return;
+    e.stopImmediatePropagation();
+    window.history.pushState(null, document.title, _navUrl);
+    navigationRef.goBack();
+  }, { capture: true });
 }
 import { BannerAtuandoComo } from "./src/assets/components/BannerAtuandoComo";
 import { SeletorPerfilModal } from "./src/assets/components/SeletorPerfilModal";
@@ -411,7 +442,7 @@ function AuthStack() {
     >
       <AuthStackNav.Screen name="Login" component={LoginScreen} />
       <AuthStackNav.Screen name="LoginPassword" component={LoginPassword} options={backOptions} />
-      <AuthStackNav.Screen name="LoginBiometria" component={LoginBiometria} options={backOptions} />
+      <AuthStackNav.Screen name="LoginBiometria" component={LoginBiometria} options={({ navigation }) => ({ ...backOptions({ navigation }), headerLeft: () => null })} />
       <AuthStackNav.Screen name="Signup" component={Signup} options={backOptions} />
       <AuthStackNav.Screen name="RecoverAccount" component={RecoverAccount} options={backOptions} />
       <AuthStackNav.Screen name="CodeValidation" component={CodeValidation} options={backOptions} />
@@ -665,7 +696,7 @@ function RootNavigator() {
           <RootStack.Screen
             name="PixInfo"
             component={PixInfo}
-            options={({ navigation }) => ({
+            options={{
               animation: "slide_from_bottom",
               headerShown: true,
               title: "Informações Pix",
@@ -673,12 +704,8 @@ function RootNavigator() {
               headerShadowVisible: false,
               headerTintColor: colors.textPrimary,
               contentStyle: { backgroundColor: colors.backgroundSecondary },
-              headerLeft: () => (
-                <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 14 }}>
-                  <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
-                </TouchableOpacity>
-              ),
-            })}
+              headerLeft: () => null,
+            }}
           />
         </>
       ) : (
@@ -769,10 +796,11 @@ export default function App() {
           <FamiliaProvider>
             <EventosProvider>
             <RestricaoProvider>
+            <RefreshProvider>
             <ConvitePendenteAlerta />
             <ConviteGuardiaoPendenteAlerta />
             <ModalEventos />
-            <NavigationContainer linking={linking} documentTitle={{ formatter: () => "Purg" }}>
+            <NavigationContainer ref={navigationRef} linking={linking} documentTitle={{ formatter: () => "Purg" }}>
               <StatusBar style="auto" />
               {isWeb ? (
                 <View style={appStyles.webOuter}>
@@ -788,6 +816,7 @@ export default function App() {
                 </>
               )}
             </NavigationContainer>
+            </RefreshProvider>
             </RestricaoProvider>
             </EventosProvider>
           </FamiliaProvider>

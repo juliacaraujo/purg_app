@@ -134,6 +134,10 @@ export const style = StyleSheet.create({
     color: "#166534",
   },
 
+  criterioErro: {
+    color: "#FF3B30",
+  },
+
   inputSenhaWrap: {
     flexDirection: "row",
     alignItems: "center",

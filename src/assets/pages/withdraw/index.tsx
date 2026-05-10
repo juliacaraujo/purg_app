@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  ScrollView,
   Modal,
   StyleSheet,
 } from "react-native";
@@ -17,6 +16,8 @@ import type { ThemeColors } from "../../../context/ThemeContext";
 import { AppBottomBar } from "../../components/AppBottomBar";
 import { BloqueioTela } from "../../components/BloqueioTela";
 import { useRestricao } from "../../../context/RestricaoContext";
+import { useRefresh } from "../../../context/RefreshContext";
+import ScrollViewRefresh from "../../components/ScrollViewRefresh";
 import {
   getCarteira,
   getDadosCadastro,
@@ -71,8 +72,10 @@ export default function Withdraw() {
   const styles = useMemo(() => makeWithdrawStyles(colors), [colors]);
   const ps = useMemo(() => makePinStyles(colors), [colors]);
   const { menorDeIdade, permissoes } = useRestricao();
+  const { triggerRefresh } = useRefresh();
 
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [saldo, setSaldo] = useState(0);
   const [investido, setInvestido] = useState(0);
   const [valor, setValor] = useState("");
@@ -133,6 +136,12 @@ export default function Withdraw() {
     }
   }, [user?.id]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await carregarDados();
+    setRefreshing(false);
+  }, [carregarDados]);
+
   useEffect(() => { carregarDados(); }, [carregarDados]);
 
   const handleCancelar = (saqueId: number) => {
@@ -180,7 +189,8 @@ export default function Withdraw() {
     try {
       setLoading(true);
       await solicitarSaque(user.id, valorNum, pixSelecionado, pinInput);
-      Alert.alert("Saque em processamento", "O valor chegará em instantes após a confirmação do banco.");
+      Alert.alert("Saque solicitado com sucesso!", "Seu saque foi recebido e será processado em até 1 dia útil.");
+      triggerRefresh();
       setValor("");
       setPinInput("");
       carregarDados();
@@ -259,7 +269,14 @@ export default function Withdraw() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.backgroundSecondary }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollViewRefresh
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={colors.primary}
+      >
         <Text style={styles.title}>Saque</Text>
 
         {/* Saldo disponível */}
@@ -501,7 +518,7 @@ export default function Withdraw() {
             </View>
           </View>
         </Modal>
-      </ScrollView>
+      </ScrollViewRefresh>
       <AppBottomBar />
     </View>
   );

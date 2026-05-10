@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useRefresh } from "../../../context/RefreshContext";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  RefreshControl,
   ActivityIndicator,
   Alert,
 } from "react-native";
@@ -14,7 +14,8 @@ import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import { useRestricao } from "../../../context/RestricaoContext";
-import GraficoLinha from "../../components/GraficoLinha";
+import GraficoBarras from "../../components/GraficoBarras";
+import ScrollViewRefresh from "../../components/ScrollViewRefresh";
 import GraficoPizza from "../../components/GraficoPizza";
 import type { FatiaPizza } from "../../components/GraficoPizza";
 import {
@@ -42,6 +43,7 @@ export default function Account({ navigation }: { navigation: { navigate: (route
   const { menorDeIdade, permissoes } = useRestricao();
   const { colors } = useTheme();
   const styles = useMemo(() => makeAccountStyles(colors), [colors]);
+  const { refreshToken } = useRefresh();
 
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -160,7 +162,9 @@ export default function Account({ navigation }: { navigation: { navigate: (route
     }
   }, [user?.id]);
 
-  useEffect(() => { carregar(); }, [carregar]);
+  useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+
+  useEffect(() => { if (refreshToken > 0) carregar(); }, [refreshToken]);
 
   const onRefresh = () => { setRefreshing(true); carregar(); };
 
@@ -177,9 +181,11 @@ export default function Account({ navigation }: { navigation: { navigate: (route
 
   return (
     <SwipeTabsWrapper currentTab="Patrimônio">
-      <ScrollView
+      <ScrollViewRefresh
         contentContainerStyle={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={colors.primary}
         showsVerticalScrollIndicator={false}
       >
         {/* Título + botões */}
@@ -232,7 +238,7 @@ export default function Account({ navigation }: { navigation: { navigate: (route
             <Text style={styles.secaoTitulo}>Gráficos</Text>
             <View style={styles.secaoCard}>
               {historicoPatrimonio.length >= 2 && (
-                <GraficoLinha
+                <GraficoBarras
                   pontos={historicoPatrimonio}
                   cor="#4BC0C0"
                   titulo="CRESCIMENTO DE PATRIMÔNIO"
@@ -242,7 +248,7 @@ export default function Account({ navigation }: { navigation: { navigate: (route
               )}
               {historicoRendimentos.length >= 2 && (
                 <View style={historicoPatrimonio.length >= 2 ? { marginTop: 20 } : undefined}>
-                  <GraficoLinha
+                  <GraficoBarras
                     pontos={historicoRendimentos}
                     cor="#A0D47C"
                     titulo="CRESCIMENTO DOS RENDIMENTOS"
@@ -336,7 +342,7 @@ export default function Account({ navigation }: { navigation: { navigate: (route
             </View>
           </>
         )}
-      </ScrollView>
+      </ScrollViewRefresh>
     </SwipeTabsWrapper>
   );
 }

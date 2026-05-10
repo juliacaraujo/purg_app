@@ -18,6 +18,12 @@ import { getDadosCadastro } from "../../../services/api";
 const WEBHOOK_URL = "https://n8n-n8n.rqkx8g.easypanel.host/webhook/purg-chat";
 const MAX_HISTORICO = 20; // 10 pares usuário/bot
 
+const SUGESTOES = [
+  "Como a Purg funciona?",
+  "A Purg é confiável?",
+  "O que são Objetivos?",
+];
+
 function chatStorageGet(key: string): string | null {
   try {
     if (typeof window !== "undefined" && window.localStorage)
@@ -35,7 +41,7 @@ function chatStorageSet(key: string, value: string) {
 
 function persistirHistorico(msgs: Mensagem[], uid: number | undefined) {
   if (!uid) return;
-  const toSave = msgs.filter((m) => m.id !== "intro" && m.id !== "aviso_historico");
+  const toSave = msgs.filter((m) => m.id !== "intro" && m.id !== "aviso_historico" && m.id !== "sugestoes");
   if (toSave.length === 0) return;
   chatStorageSet(`purg_chat_${uid}`, JSON.stringify(toSave.slice(-MAX_HISTORICO)));
 }
@@ -45,6 +51,7 @@ interface Mensagem {
   texto: string;
   doUsuario: boolean;
   sistema?: boolean;
+  sugestoes?: boolean;
 }
 
 function DigitandoIndicador({ cor, cardBg }: { cor: string; cardBg: string }) {
@@ -111,7 +118,10 @@ export default function Chat() {
 
   useEffect(() => {
     if (!user?.id) {
-      setMensagens([{ id: "intro", texto: "Como posso te ajudar?", doUsuario: false }]);
+      setMensagens([
+        { id: "intro", texto: "Como posso te ajudar?", doUsuario: false },
+        { id: "sugestoes", texto: "Se não souber por onde começar, segue algumas dicas!", doUsuario: false, sugestoes: true },
+      ]);
       return;
     }
 
@@ -134,10 +144,16 @@ export default function Chat() {
       .then((d) => {
         const apelido = d?.apelido?.trim();
         const texto = apelido ? `Como posso te ajudar, ${apelido}?` : "Como posso te ajudar?";
-        setMensagens([{ id: "intro", texto, doUsuario: false }]);
+        setMensagens([
+          { id: "intro", texto, doUsuario: false },
+          { id: "sugestoes", texto: "Se não souber por onde começar, segue algumas dicas!", doUsuario: false, sugestoes: true },
+        ]);
       })
       .catch(() => {
-        setMensagens([{ id: "intro", texto: "Como posso te ajudar?", doUsuario: false }]);
+        setMensagens([
+          { id: "intro", texto: "Como posso te ajudar?", doUsuario: false },
+          { id: "sugestoes", texto: "Se não souber por onde começar, segue algumas dicas!", doUsuario: false, sugestoes: true },
+        ]);
       });
   }, [user?.id]);
 
@@ -145,8 +161,7 @@ export default function Chat() {
   const mensagensRef = useRef<Mensagem[]>([]);
   mensagensRef.current = mensagens;
 
-  const enviar = useCallback(async () => {
-    const msg = texto.trim();
+  const enviarMsg = useCallback(async (msg: string) => {
     if (!msg || carregando) return;
 
     setMensagens((prev) => [...prev, { id: `msg_${Date.now()}_u`, texto: msg, doUsuario: true }]);
@@ -186,13 +201,35 @@ export default function Chat() {
     } finally {
       setCarregando(false);
     }
-  }, [texto, carregando, user?.id]);
+  }, [carregando, user?.id]);
+
+  const enviar = useCallback(() => enviarMsg(texto.trim()), [texto, enviarMsg]);
 
   function renderMensagem({ item }: { item: Mensagem }) {
     if (item.sistema) {
       return (
         <View style={s.avisoSistema}>
           <Text style={s.avisoSistemaTexto}>{item.texto}</Text>
+        </View>
+      );
+    }
+    if (item.sugestoes) {
+      if (mensagens.some(m => m.doUsuario)) return null;
+      return (
+        <View style={[s.bolha, s.bolhaBot]}>
+          <Text style={s.nomeBot}>Purg</Text>
+          <Text style={[s.bolhaTexto, s.textoBot]}>{item.texto}</Text>
+          <View style={s.sugestoesChips}>
+            {SUGESTOES.map((sugestao) => (
+              <TouchableOpacity
+                key={sugestao}
+                style={[s.sugestaoChip, { borderColor: colors.primary }]}
+                onPress={() => enviarMsg(sugestao)}
+              >
+                <Text style={[s.sugestaoTexto, { color: colors.primary }]}>{sugestao}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       );
     }
@@ -307,5 +344,8 @@ function makeStyle(colors: ReturnType<typeof import("../../../context/ThemeConte
     enviarTexto: { color: "#fff", fontSize: 16 },
     avisoSistema: { alignSelf: "center", marginBottom: 10, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: colors.backgroundSecondary, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
     avisoSistemaTexto: { fontSize: 11, color: colors.textTertiary, fontStyle: "italic", textAlign: "center" },
+    sugestoesChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+    sugestaoChip: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 7 },
+    sugestaoTexto: { fontSize: 13, fontWeight: "600" },
   });
 }

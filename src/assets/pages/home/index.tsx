@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   View,
   Text,
-  ScrollView,
-  RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
   Alert,
@@ -24,6 +22,7 @@ import { useTheme } from "../../../context/ThemeContext";
 import { useFamilia } from "../../../context/FamiliaContext";
 import { useRestricao } from "../../../context/RestricaoContext";
 import { useFocusEffect } from "@react-navigation/native";
+import { useRefresh } from "../../../context/RefreshContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import { SeletorPerfilModal } from "../../components/SeletorPerfilModal";
 import {
@@ -38,7 +37,8 @@ import {
   getVisualizacaoValores,
   putVisualizacaoValores,
 } from "../../../services/api";
-import GraficoLinha from "../../components/GraficoLinha";
+import GraficoBarras from "../../components/GraficoBarras";
+import ScrollViewRefresh from "../../components/ScrollViewRefresh";
 import type { GraficoPoint } from "../../../types";
 
 const LIGA_CORES: Record<string, { bg: string; text: string }> = {
@@ -77,6 +77,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
   const { colors } = useTheme();
   const { atuandoComo } = useFamilia();
   const { menorDeIdade, permissoes } = useRestricao();
+  const { refreshToken } = useRefresh();
   const style = useMemo(() => makeHomeStyle(colors), [colors]);
   const [seletorVisivel, setSeletorVisivel] = useState(false);
   const [modalAvatar, setModalAvatar] = useState(false);
@@ -183,6 +184,8 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
 
   useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
+  useEffect(() => { if (refreshToken > 0) carregar(); }, [refreshToken]);
+
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -254,9 +257,11 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
     <>
     <SwipeTabsWrapper currentTab="Home">
       <SeletorPerfilModal visible={seletorVisivel} onClose={() => setSeletorVisivel(false)} />
-      <ScrollView
+      <ScrollViewRefresh
         contentContainerStyle={style.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        tintColor={colors.primary}
         showsVerticalScrollIndicator={false}
       >
         {/* Topo */}
@@ -362,7 +367,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
         {(historicoPatrimonio.length >= 2 || historicoRendimentos.length >= 2) && (
           <View style={style.chartCard}>
             {historicoPatrimonio.length >= 2 && (
-              <GraficoLinha
+              <GraficoBarras
                 pontos={historicoPatrimonio}
                 cor="#4BC0C0"
                 titulo="CRESCIMENTO DE PATRIMÔNIO"
@@ -372,18 +377,18 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
             )}
             {historicoRendimentos.length >= 2 && (
               <View style={historicoPatrimonio.length >= 2 ? { marginTop: 20 } : undefined}>
-                <GraficoLinha
+                <GraficoBarras
                   pontos={historicoRendimentos}
                   cor="#A0D47C"
                   titulo="CRESCIMENTO DOS RENDIMENTOS"
                   altura={140}
-                  formatarValor={(v) => `R$ ${v.toFixed(8).replace(".", ",")}`}
+                  formatarValor={(v: number) => `R$ ${v.toFixed(8).replace(".", ",")}`}
                 />
               </View>
             )}
           </View>
         )}
-      </ScrollView>
+      </ScrollViewRefresh>
     </SwipeTabsWrapper>
     <ModalSelecionarAvatar
       visible={modalAvatar}
