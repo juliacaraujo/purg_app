@@ -4,13 +4,20 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Image,
   Alert,
+  ActivityIndicator,
 } from "react-native";
-import { style } from "./styles";
+import { useTheme } from "../../../context/ThemeContext";
+import { makeLoginStyle } from "../login/styles";
 import { requestRecoveryCode } from "../../../services/api";
 
-export default function RecoverAccount({ navigation }: any) {
-  const [email, setEmail] = useState("");
+export default function RecoverAccount({ navigation, route }: any) {
+  const { colors } = useTheme();
+  const style = makeLoginStyle(colors);
+
+  const emailParam: string = route?.params?.email ?? "";
+  const email = emailParam;
   const [loading, setLoading] = useState(false);
 
   const handleRecover = async () => {
@@ -25,30 +32,21 @@ export default function RecoverAccount({ navigation }: any) {
 
     try {
       setLoading(true);
-
       const result = await requestRecoveryCode(email);
 
       if (!result.success) {
-        Alert.alert(
-          "Erro",
-          result.message || "Não foi possível iniciar a recuperação."
-        );
+        Alert.alert("Erro", result.message || "Não foi possível iniciar a recuperação.");
         return;
       }
 
       Alert.alert(
         "Código enviado",
-        result.message ||
-          "Se os dados estiverem corretos, você receberá um código no e-mail."
+        result.message || "Se os dados estiverem corretos, você receberá um código no e-mail."
       );
 
-      // Agora seguimos o fluxo da documentação:
-      // ir para a tela de Validação do Código (2.1) levando o e-mail
       navigation.navigate("CodeValidation", { email });
     } catch (error: any) {
-      const msg =
-        error?.message || "Não foi possível iniciar a recuperação.";
-      Alert.alert("Erro", msg);
+      Alert.alert("Erro", error?.message || "Não foi possível iniciar a recuperação.");
     } finally {
       setLoading(false);
     }
@@ -56,32 +54,39 @@ export default function RecoverAccount({ navigation }: any) {
 
   return (
     <View style={style.container}>
-      <Text style={style.title}>Recuperação de Conta</Text>
+      <View style={style.boxTop}>
+        <Image
+          source={require("../../../assets/logo.png")}
+          style={style.logo}
+        />
+      </View>
 
-      <TextInput
-        style={style.input}
-        placeholder="E-mail"
-        placeholderTextColor="#999"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoCorrect={false}
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <TouchableOpacity
-        style={style.button}
-        onPress={handleRecover}
-        disabled={loading}
-      >
-        <Text style={style.buttonText}>
-          {loading ? "Enviando..." : "Recuperar"}
+      <View style={style.boxMid}>
+        <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: "center", marginBottom: 20, lineHeight: 20 }}>
+          Enviaremos um código de verificação para o e-mail abaixo. Use-o na próxima etapa para criar uma nova senha.
         </Text>
-      </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.goBack()}>
-        <Text style={style.linkText}>Voltar para o login</Text>
-      </TouchableOpacity>
+        <TextInput
+          style={[style.input, { color: colors.textPrimary, opacity: 0.7 }]}
+          value={email}
+          editable={false}
+          selectTextOnFocus={false}
+        />
+
+        {loading ? (
+          <ActivityIndicator color={colors.primary} style={{ marginBottom: 20 }} />
+        ) : (
+          <TouchableOpacity style={style.loginButton} onPress={handleRecover}>
+            <Text style={style.loginButtonText}>Recuperar</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+          <Text style={[style.forgotPasswordText, { textAlign: "center", marginTop: 8 }]}>
+            Voltar para o login
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

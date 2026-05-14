@@ -87,7 +87,16 @@ export default function LoginBiometria({ navigation, route }: any) {
           </>
         )}
 
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 20 }}>
+        <TouchableOpacity
+          style={loginStyle.forgotPasswordButton}
+          onPress={() => navigation.navigate("RecoverAccount", { email })}
+        >
+          <Text style={[loginStyle.forgotPasswordText, { fontSize: 15, textAlign: "center", marginTop: 20 }]}>
+            Esqueci minha senha
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 8 }}>
           <Text style={[loginStyle.forgotPasswordText, { textAlign: "center" }]}>Usar outro e-mail</Text>
         </TouchableOpacity>
       </View>

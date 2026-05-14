@@ -343,10 +343,10 @@ export async function validateRecoveryCode(email: string, code: string) {
   };
 }
 
-export async function changePassword(email: string, novaSenha: string) {
+export async function changePassword(email: string, codigo: string, novaSenha: string) {
   const response = await apiFetch("/api/v1/nova-senha", {
     method: "POST",
-    body: JSON.stringify({ email, nova_senha: novaSenha }),
+    body: JSON.stringify({ email, codigo, nova_senha: novaSenha }),
   });
 
   const data = await response.json().catch(() => ({}));
@@ -426,14 +426,19 @@ export async function solicitarDeposito(usuarioId: number, amount: number) {
   }
 
   if (response.status === 429) {
-    throw new ApiError("Depósito pendente.", 429, data);
+    throw new ApiError(
+      "Você já tem uma solicitação de depósito, faça ela ou cancele para poder criar uma nova.",
+      429,
+      data
+    );
   }
 
   if (!response.ok) {
     throw new ApiError(data?.message || "Erro ao solicitar depósito", response.status);
   }
 
-  return data;
+  // 201 = novo PIX criado, 200 = PIX existente reutilizado
+  return { ...data, jaExistente: response.status === 200 };
 }
 
 /* ======================================================
@@ -441,7 +446,7 @@ export async function solicitarDeposito(usuarioId: number, amount: number) {
    ====================================================== */
 export async function cancelarDeposito(depositoId: number) {
   const response = await apiFetch(`/api/v1/cancelar-deposito/${depositoId}`, {
-    method: "POST",
+    method: "DELETE",
     body: JSON.stringify({ motivo: "Depósito cancelado pelo usuário." }),
   });
 
@@ -1110,6 +1115,25 @@ export async function putAvatar(usuarioId: number, avatarId: number): Promise<nu
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new ApiError(data?.message || "Erro ao atualizar avatar.", response.status);
   return data.avatar_id;
+}
+
+/* ======================================================
+   NAMI (NOTIFICAÇÕES WHATSAPP)
+   ====================================================== */
+export async function getNami(usuarioId: number): Promise<boolean> {
+  const response = await apiFetch(`/api/v1/nami/${usuarioId}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || "Erro ao buscar preferência de WhatsApp.", response.status);
+  return data.nami_ativo === 1;
+}
+
+export async function putNami(usuarioId: number, ativo: boolean): Promise<void> {
+  const response = await apiFetch(`/api/v1/nami/${usuarioId}`, {
+    method: "PUT",
+    body: JSON.stringify({ ativo: ativo ? 1 : 0 }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || "Erro ao salvar preferência de WhatsApp.", response.status);
 }
 
 /* ======================================================

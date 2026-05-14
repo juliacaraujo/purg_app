@@ -156,7 +156,7 @@ export default function LoginPassword({ navigation, route }: any) {
 
         <TouchableOpacity
           style={styles.forgotBtn}
-          onPress={() => navigation.navigate("RecoverAccount")}
+          onPress={() => navigation.navigate("RecoverAccount", { email })}
         >
           <Text style={styles.forgotBtnText}>Esqueci minha senha</Text>
         </TouchableOpacity>

@@ -89,7 +89,7 @@ export default function Login({ navigation }: any) {
       const result = await biometriaLoginConcluir(assertion);
 
       if (!result.success || !result.usuario_id) {
-        Alert.alert("Erro", result.message || "Falha na autenticação biométrica.");
+        Alert.alert("Erro", "Falha na autenticação biométrica.");
         return;
       }
       login({ id: Number(result.usuario_id), email: email.trim() });
@@ -163,7 +163,7 @@ export default function Login({ navigation }: any) {
 
             <TouchableOpacity
               style={style.forgotPasswordButton}
-              onPress={() => navigation.navigate("RecoverAccount")}
+              onPress={() => navigation.navigate("RecoverAccount", { email: email.trim() })}
             >
               <Text style={style.forgotPasswordText}>Esqueci minha senha</Text>
             </TouchableOpacity>
@@ -206,8 +206,17 @@ export default function Login({ navigation }: any) {
               </>
             )}
 
+            <TouchableOpacity
+              style={style.forgotPasswordButton}
+              onPress={() => navigation.navigate("RecoverAccount", { email: email.trim() })}
+            >
+              <Text style={[style.forgotPasswordText, { fontSize: 15, textAlign: "center", marginTop: 12 }]}>
+                Esqueci minha senha
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity onPress={voltarParaEmail}>
-              <Text style={[style.forgotPasswordText, { textAlign: "center", marginTop: 12 }]}>
+              <Text style={[style.forgotPasswordText, { textAlign: "center", marginTop: 8 }]}>
                 Usar outro e-mail
               </Text>
             </TouchableOpacity>

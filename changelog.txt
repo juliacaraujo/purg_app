@@ -1,3 +1,14 @@
+purg-develop-26 — 2026-05-13
+- Fluxo de recuperação de senha redesenhado de ponta a ponta: todas as telas agora têm o logo Purg centralizado no topo, sem botão Voltar do header
+- Login (etapa biometria): botão "Esqueci minha senha" adicionado acima de "Usar outro e-mail", com fonte maior; navega para RecoverAccount passando o e-mail
+- LoginBiometria: botão "Esqueci minha senha" adicionado acima de "Usar outro e-mail"; e-mail passado para RecoverAccount
+- LoginPassword: navigate para RecoverAccount atualizado para passar o e-mail
+- RecoverAccount: tela totalmente refeita com logo, sem header; texto explicativo sobre o código acima do campo; campo de e-mail pré-preenchido com o e-mail da tentativa de login (somente leitura); "Voltar para o login" navega diretamente para Login
+- CodeValidation: tela totalmente refeita com logo, sem header; campo de código substituído por 6 quadrados individuais — digitação avança automaticamente para o próximo; backspace em campo vazio retrocede; suporte a colar preenche todos os quadrados de uma vez; botão "Enviar novo código" com feedback inline (verde/vermelho); erros de validação exibidos inline (sem Alert)
+- NewPassword: tela totalmente refeita com logo, sem header; "Confirmar nova senha" movido para logo abaixo de "Nova senha"; borda vermelha e mensagem inline quando senhas não coincidem; botão "Alterar" desabilitado (opaco) até todos os critérios de senha serem atendidos E as senhas coincidirem; tela de sucesso exibida após troca com botão verde "Fazer login" redirecionando para Login
+- API: changePassword atualizado para enviar email + codigo + nova_senha conforme novo contrato do endpoint POST /api/v1/nova-senha
+- CodeValidation: código validado repassado para NewPassword via parâmetro de navegação
+
 purg-develop-25 — 2026-05-10
 - Pull-to-refresh web: novo componente ScrollViewRefresh que implementa gesto de arrastar-para-recarregar nativamente no navegador via listeners DOM (touchstart/touchmove/touchend com preventDefault), indicador animado com Animated.spring e fallback transparente para iOS/Android (usa RefreshControl nativo)
 - Pull-to-refresh: migração de todas as 9 telas (Home, Patrimônio, Objetivos, Perfil, Ranking, Indicação, Saque, Depósito, Ficha do Jogador) para ScrollViewRefresh — arrastar para baixo recarrega em qualquer plataforma

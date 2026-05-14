@@ -444,9 +444,9 @@ function AuthStack() {
       <AuthStackNav.Screen name="LoginPassword" component={LoginPassword} options={backOptions} />
       <AuthStackNav.Screen name="LoginBiometria" component={LoginBiometria} options={({ navigation }) => ({ ...backOptions({ navigation }), headerLeft: () => null })} />
       <AuthStackNav.Screen name="Signup" component={Signup} options={backOptions} />
-      <AuthStackNav.Screen name="RecoverAccount" component={RecoverAccount} options={backOptions} />
-      <AuthStackNav.Screen name="CodeValidation" component={CodeValidation} options={backOptions} />
-      <AuthStackNav.Screen name="NewPassword" component={NewPassword} options={backOptions} />
+      <AuthStackNav.Screen name="RecoverAccount" component={RecoverAccount} options={{ headerShown: false }} />
+      <AuthStackNav.Screen name="CodeValidation" component={CodeValidation} options={{ headerShown: false }} />
+      <AuthStackNav.Screen name="NewPassword" component={NewPassword} options={{ headerShown: false }} />
       <AuthStackNav.Screen name="Terms" component={Terms} options={backOptions} />
       <AuthStackNav.Screen
         name="SetupPinCadastro"
