@@ -144,6 +144,18 @@ export const makeDepositStyles = (c: ThemeColors) => StyleSheet.create({
     color: "#ef4444",
     fontSize: 12,
   },
+  cancelarNaoBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: c.borderLight,
+  },
+  cancelarNaoText: {
+    fontWeight: "600",
+    color: c.textSecondary,
+    fontSize: 12,
+  },
   copiarBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,

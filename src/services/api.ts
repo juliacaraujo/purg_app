@@ -1155,3 +1155,14 @@ export async function putVisualizacaoValores(usuarioId: number, visivel: boolean
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new ApiError(data?.message || "Erro ao salvar preferência.", response.status);
 }
+
+/* ======================================================
+   TAXA CDI
+   ====================================================== */
+
+export async function getTaxaCdi(): Promise<{ valor: number; atualizado_em: string }> {
+  const response = await apiFetch("/api/v1/taxa-cdi");
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.message || "Erro ao buscar taxa CDI.", response.status);
+  return data;
+}

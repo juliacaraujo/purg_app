@@ -1,3 +1,22 @@
+purg-develop-27 — 2026-05-14
+- Cadastro: label "Gênero" descido uma linha (marginTop: 8) nas telas de cadastro e edição de perfil
+- Cadastro: placeholder do campo de e-mail alterado de "Email" para "E-mail"
+- Cadastro: placeholder do campo de nome alterado para "Nome completo (sem abreviação)"
+- SetupPinCadastro: olhinho (toggle de visibilidade) adicionado nos campos Senha e Confirmar Senha, com estados independentes
+- SetupPinCadastro: nova validação bloqueia senhas com o mesmo dígito repetido 3 vezes seguidas (ex: 1333, 2229)
+- Objetivos: campo "Patrimônio" (descrição não editável) exibido com opacity 0.5 e cor secundária para indicar que não pode ser alterado
+- Depósito e Saque: máscara de moeda com vírgula e duas casas decimais implementada (estilo centavos-first: digitar 100 → exibe 1,00); valor enviado ao backend permanece numérico
+- Home: taxa CDI buscada do endpoint GET /api/v1/taxa-cdi; cálculo do rendimento após IR aplicado (taxa × 0,775); texto atualizado para "a uma taxa de X% está rendendo Y% ao pagar o IR"; exibição removida quando endpoint não retorna dado
+- Home: estimativa de rendimento mensal alterada de "~R$ X/mês" para "R$ X/mês (estimado)" para evitar confusão com sinal negativo
+- API: função getTaxaCdi adicionada (GET /api/v1/taxa-cdi)
+- Chat: chamada de inicialização ao webhook disparada ao abrir sessão nova, com campos action "iniciar_sessao" e usuario_id; campo usuario_id incluído em todas as mensagens enviadas
+- LoginBiometria: separador "ou" adicionado entre o botão de biometria e o botão "Usar senha", reutilizando estilos existentes
+- Web: atributo translate="no" adicionado na tag <html> para evitar tradução automática do navegador em toda a aplicação
+- GraficoLinha: suporte a segundo dataset tracejado opcional (pontosTracejados, corTracejada, legendas); refatoração de buildPath para função reutilizável
+- Account: gráfico de rendimentos mensais agrupados adicionado à tela de conta
+- SetupApelido: validação aprimorada — bloqueia apelidos que contenham partes do nome real do usuário
+- PixInfo: countdown baseado em expiracao_seconds quando disponível, com fallback para expiracao_min
+
 purg-develop-26 — 2026-05-13
 - Fluxo de recuperação de senha redesenhado de ponta a ponta: todas as telas agora têm o logo Purg centralizado no topo, sem botão Voltar do header
 - Login (etapa biometria): botão "Esqueci minha senha" adicionado acima de "Usar outro e-mail", com fonte maior; navega para RecoverAccount passando o e-mail

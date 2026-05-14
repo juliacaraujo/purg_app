@@ -14,8 +14,8 @@ import { useTheme } from "../../../context/ThemeContext";
 import { SwipeTabsWrapper } from "../../components/SwipeTabsWrapper";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useRefresh } from "../../../context/RefreshContext";
-import { getObjetivos, getObjetivoDetalhe, getLigas, criarObjetivo, editarObjetivo, getProjecaoPatrimonio, getProjecaoRendimento } from "../../../services/api";
-import type { ObjetivoItem, MetaDetalhe, PontosInfo, LigaItem, ProjecaoItem } from "../../../types";
+import { getObjetivos, getObjetivoDetalhe, getLigas, criarObjetivo, editarObjetivo, getProjecaoPatrimonio, getProjecaoRendimento, getHistoricoPatrimonio, getHistoricoRendimentos } from "../../../services/api";
+import type { ObjetivoItem, MetaDetalhe, PontosInfo, LigaItem, ProjecaoItem, GraficoPoint } from "../../../types";
 import GraficoLinha from "../../components/GraficoLinha";
 import ScrollViewRefresh from "../../components/ScrollViewRefresh";
 import { MolduraLiga, getLigaCores } from "../../components/MolduraLiga";
@@ -284,8 +284,8 @@ function ModalNovoObjetivo({ visible, onClose, onSalvar, loading, colors }: {
           <Text style={[s.modalTitulo, { color: colors.textPrimary }]}>Novo Objetivo</Text>
 
           <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Descrição</Text>
-          <View style={[s.input, s.inputFixo, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}>
-            <Text style={{ fontSize: 15, color: colors.textPrimary }}>Patrimônio</Text>
+          <View style={[s.input, s.inputFixo, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary, opacity: 0.5 }]}>
+            <Text style={{ fontSize: 15, color: colors.textSecondary }}>Patrimônio</Text>
           </View>
 
           <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Valor alvo (R$)</Text>
@@ -512,6 +512,34 @@ export default function Objetivos() {
   const [ligas, setLigas] = useState<LigaItem[]>([]);
   const [projecaoPatrimonio, setProjecaoPatrimonio] = useState<ProjecaoItem[]>([]);
   const [projecaoRendimento, setProjecaoRendimento] = useState<ProjecaoItem[]>([]);
+  const [historicoPatrimonio, setHistoricoPatrimonio] = useState<GraficoPoint[]>([]);
+  const [historicoRendimentos, setHistoricoRendimentos] = useState<GraficoPoint[]>([]);
+
+  // Para cada mês projetado, busca o último valor histórico registrado naquele mês.
+  // Para quando um mês projetado não tem histórico — sólido fica menor que o tracejado.
+  const realizadoPatAlinhado = useMemo((): GraficoPoint[] => {
+    if (!projecaoPatrimonio.length || !historicoPatrimonio.length) return [];
+    const result: GraficoPoint[] = [];
+    for (const proj of projecaoPatrimonio) {
+      const mes = proj.mes;
+      const dadosMes = historicoPatrimonio.filter((p) => p.data.startsWith(mes));
+      if (dadosMes.length === 0) break;
+      result.push({ data: mes + "-01", valor: dadosMes[dadosMes.length - 1].valor });
+    }
+    return result;
+  }, [projecaoPatrimonio, historicoPatrimonio]);
+
+  const realizadoRendAlinhado = useMemo((): GraficoPoint[] => {
+    if (!projecaoRendimento.length || !historicoRendimentos.length) return [];
+    const result: GraficoPoint[] = [];
+    for (const proj of projecaoRendimento) {
+      const mes = proj.mes;
+      const dadosMes = historicoRendimentos.filter((p) => p.data.startsWith(mes));
+      if (dadosMes.length === 0) break;
+      result.push({ data: mes + "-01", valor: dadosMes.reduce((s, p) => s + p.valor, 0) });
+    }
+    return result;
+  }, [projecaoRendimento, historicoRendimentos]);
 
   const carregar = useCallback(async () => {
     if (!user?.id) return;
@@ -539,12 +567,22 @@ export default function Objetivos() {
         setLigas(ligasRes.value);
       }
 
-      const [projPatRes, projRendRes] = await Promise.allSettled([
+      const [projPatRes, projRendRes, histPatRes, histRendRes] = await Promise.allSettled([
         getProjecaoPatrimonio(user.id),
         getProjecaoRendimento(user.id),
+        getHistoricoPatrimonio(user.id),
+        getHistoricoRendimentos(user.id),
       ]);
       if (projPatRes.status === "fulfilled") setProjecaoPatrimonio(projPatRes.value);
       if (projRendRes.status === "fulfilled") setProjecaoRendimento(projRendRes.value);
+      if (histPatRes.status === "fulfilled") {
+        const items = Array.isArray(histPatRes.value?.historico) ? histPatRes.value.historico : [];
+        setHistoricoPatrimonio(items.map((i: any) => ({ data: i.data, valor: Number(i.carteira_dia) || 0 })));
+      }
+      if (histRendRes.status === "fulfilled") {
+        const items = Array.isArray(histRendRes.value?.historico) ? histRendRes.value.historico : [];
+        setHistoricoRendimentos(items.map((i: any) => ({ data: i.data, valor: Number(i.rendimento_dia) || 0 })));
+      }
     } catch {
       Alert.alert("Erro", "Não foi possível carregar os objetivos.");
     } finally {
@@ -727,12 +765,13 @@ export default function Objetivos() {
               <View style={[s.card, { backgroundColor: colors.card }]}>
                 <GraficoLinha
                   titulo="PATRIMÔNIO PROJETADO"
-                  pontos={projecaoPatrimonio.map((p) => ({ data: p.mes + "-01", valor: p.valor }))}
+                  pontos={realizadoPatAlinhado}
                   cor="#4BC0C0"
                   altura={160}
-                  mostrarPontos
                   suavizar={false}
                   formatarValor={(v) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  pontosTracejados={projecaoPatrimonio.map((p) => ({ data: p.mes + "-01", valor: p.valor }))}
+                  legendas={{ solido: "Realizado", tracejado: "Projetado" }}
                 />
               </View>
             )}
@@ -741,12 +780,13 @@ export default function Objetivos() {
               <View style={[s.card, { backgroundColor: colors.card }]}>
                 <GraficoLinha
                   titulo="RENDIMENTO MENSAL PROJETADO"
-                  pontos={projecaoRendimento.map((p) => ({ data: p.mes + "-01", valor: p.valor }))}
+                  pontos={realizadoRendAlinhado}
                   cor="#A0D47C"
                   altura={160}
-                  mostrarPontos
                   suavizar={false}
                   formatarValor={(v) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`}
+                  pontosTracejados={projecaoRendimento.map((p) => ({ data: p.mes + "-01", valor: p.valor }))}
+                  legendas={{ solido: "Realizado", tracejado: "Projetado" }}
                 />
               </View>
             )}

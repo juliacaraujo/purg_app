@@ -23,7 +23,7 @@ import {
   getPinNegociacaoStatus, criarPinNegociacao, alterarPinNegociacao, recuperarPinSolicitar, verificarSenhaNegociacao,
   familiaConvidar, familiaGetPermissoes, familiaPutPermissoes, familiaRevogar, familiaGetConvitesPendentes, familiaGetConvitesGuardiaoPendentes, familiaGetGuardioes, desvinculaGuardiao,
   convidarGuardiaoPorEmail, getGuardioesElegiveis,
-  putAvatar,
+  putAvatar, getNami, putNami,
 } from "../../../services/api";
 import avatarMap from "../../avatarMap";
 import type { DadosCadastroResponse, TuteladoItem, PermissoesTutelado, ConvitePendenteItem, ConviteGuardiaoPendenteItem, GuardiaoItem } from "../../../types";
@@ -88,6 +88,19 @@ function validarCPF(digits: string): boolean {
   resto = (soma * 10) % 11;
   if (resto === 10) resto = 0;
   return resto === +digits[10];
+}
+
+function contemCombinacaoNome(apelido: string, nomeCompleto: string): boolean {
+  if (!nomeCompleto) return false;
+  const norm = (s: string) =>
+    s.normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "").toLowerCase();
+  const apelidoNorm = norm(apelido.replace(/\s+/g, ""));
+  const partes = nomeCompleto.trim().split(/\s+/).filter(p => p.length >= 3);
+  let encontradas = 0;
+  for (const parte of partes) {
+    if (apelidoNorm.includes(norm(parte)) && ++encontradas >= 2) return true;
+  }
+  return false;
 }
 
 const familiaS = StyleSheet.create({
@@ -255,6 +268,9 @@ export default function Profile() {
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
 
+  const [namiAtivo, setNamiAtivo] = useState(true);
+  const [salvandoNami, setSalvandoNami] = useState(false);
+
   const [cadastrandoBio, setCadastrandoBio] = useState(false);
   const biometriaSuportada = isPasskeySupported();
 
@@ -353,6 +369,7 @@ export default function Profile() {
     getPinNegociacaoStatus(user.id)
       .then((s) => { if (user?.id) setPinCadastrado(s.senha_cadastrada); })
       .catch(() => { if (user?.id) setPinCadastrado(null); });
+    getNami(user.id).then(setNamiAtivo).catch(() => {});
     if (!atuandoComo) {
       familiaGetGuardioes()
         .then((g) => { setGuardioes(g); setGuardioesCarregados(true); })
@@ -584,6 +601,12 @@ export default function Profile() {
     if (erros.size > 0) {
       setCamposComErroDados(erros);
       setErroDados("Preencha todos os campos obrigatórios.");
+      setShakeKeyDados((k) => k + 1);
+      return;
+    }
+    if (contemCombinacaoNome(apelidoEdit, nomeEdit)) {
+      setCamposComErroDados(new Set(["apelido"]));
+      setErroDados("O apelido não pode combinar partes do seu nome completo.");
       setShakeKeyDados((k) => k + 1);
       return;
     }
@@ -833,6 +856,36 @@ export default function Profile() {
             >
               <Text style={[style.toggleBtnText, isDark && style.toggleBtnTextActive]}>Escuro</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Notificações */}
+        <View style={style.secao}>
+          <Text style={[style.secaoTitulo, { marginBottom: 12 }]}>Notificações via WhatsApp</Text>
+          <View style={[familiaS.permRow, { borderBottomColor: colors.border, borderBottomWidth: 0 }]}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 4 }}>
+                Receba avisos de eventos, saques, depósitos e muito mais pelo WhatsApp.
+              </Text>
+            </View>
+            <Switch
+              value={namiAtivo}
+              onValueChange={async (v) => {
+                setNamiAtivo(v);
+                setSalvandoNami(true);
+                try {
+                  await putNami(user!.id, v);
+                } catch (e: any) {
+                  setNamiAtivo(!v);
+                  mostrarToast(e?.message || "Não foi possível salvar a preferência.", "erro");
+                } finally {
+                  setSalvandoNami(false);
+                }
+              }}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#fff"
+              disabled={salvandoNami}
+            />
           </View>
         </View>
 
@@ -1408,7 +1461,7 @@ export default function Profile() {
         <View style={{ backgroundColor: "#fff8e1", borderLeftWidth: 3, borderLeftColor: "#f59e0b", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 }}>
           <Text style={{ fontSize: 12, color: "#92400e", lineHeight: 17 }}>🔒 Por sua segurança, evite usar partes do seu nome real no apelido.</Text>
         </View>
-        <Text style={ms.inputLabel}>Gênero</Text>
+        <Text style={[ms.inputLabel, { marginTop: 8 }]}>Gênero</Text>
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
           {(["Masculino", "Feminino", "Outros"] as const).map((op) => (
             <TouchableOpacity

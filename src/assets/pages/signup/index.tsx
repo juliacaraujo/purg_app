@@ -295,7 +295,7 @@ export default function Signup({ navigation, route }: any) {
 
       <TextInput
         style={[style.input, erroNome ? style.inputErro : null]}
-        placeholder="Nome completo"
+        placeholder="Nome completo (sem abreviação)"
         value={nome}
         onChangeText={(t) => { setNome(normalizeSpaces(t)); setErroNome(""); }}
         onBlur={() => { const n = titleCaseName(nome); setNome(n); validarNome(n); }}
@@ -357,7 +357,7 @@ export default function Signup({ navigation, route }: any) {
 
       <TextInput
         style={[style.input, erroEmail ? style.inputErro : null]}
-        placeholder="Email"
+        placeholder="E-mail"
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}

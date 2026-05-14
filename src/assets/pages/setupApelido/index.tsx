@@ -6,7 +6,7 @@
  * @lastUpdate 2026-04-20
  */
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,17 +17,38 @@ import {
   Animated,
 } from "react-native";
 import { useAuth } from "../../../context/AuthContext";
-import { editarPerfil } from "../../../services/api";
+import { editarPerfil, getDadosCadastro } from "../../../services/api";
 
 type Props = {
   onConcluido: () => void;
 };
+
+function contemCombinacaoNome(apelido: string, nomeCompleto: string): boolean {
+  if (!nomeCompleto) return false;
+  const norm = (s: string) =>
+    s.normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "").toLowerCase();
+  const apelidoNorm = norm(apelido.replace(/\s+/g, ""));
+  const partes = nomeCompleto.trim().split(/\s+/).filter(p => p.length >= 3);
+  let encontradas = 0;
+  for (const parte of partes) {
+    if (apelidoNorm.includes(norm(parte)) && ++encontradas >= 2) return true;
+  }
+  return false;
+}
 
 export default function SetupApelido({ onConcluido }: Props) {
   const { user } = useAuth();
   const [apelido, setApelido] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
+  const [nomeCompleto, setNomeCompleto] = useState("");
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getDadosCadastro(user.id)
+      .then(d => setNomeCompleto(d.nome_completo ?? ""))
+      .catch(() => {});
+  }, [user?.id]);
 
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
@@ -47,6 +68,7 @@ export default function SetupApelido({ onConcluido }: Props) {
     const valor = apelido.trim();
     if (!valor) { mostrarErro("Informe um apelido."); return; }
     if (valor.length < 3) { mostrarErro("O apelido deve ter pelo menos 3 caracteres."); return; }
+    if (contemCombinacaoNome(valor, nomeCompleto)) { mostrarErro("O apelido não pode combinar partes do seu nome completo."); return; }
 
     try {
       setLoading(true);

@@ -66,6 +66,21 @@ function tentativasLabel(n: number): string {
   return `${n} tentativa${n !== 1 ? "s" : ""} restante${n !== 1 ? "s" : ""}`;
 }
 
+function aplicarMascaraMoeda(text: string): string {
+  const digits = text.replace(/\D/g, "");
+  if (!digits) return "";
+  const num = parseInt(digits, 10);
+  const reais = Math.floor(num / 100);
+  const centavos = num % 100;
+  return reais.toLocaleString("pt-BR") + "," + String(centavos).padStart(2, "0");
+}
+
+function parseMascaraMoeda(formatted: string): number {
+  const digits = formatted.replace(/\D/g, "");
+  if (!digits) return 0;
+  return parseInt(digits, 10) / 100;
+}
+
 export default function Withdraw() {
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -168,7 +183,7 @@ export default function Withdraw() {
 
   const handleSacar = async () => {
     if (!user?.id) return;
-    const valorNum = Number(valor.replace(",", "."));
+    const valorNum = parseMascaraMoeda(valor);
     if (!valorNum || valorNum <= 0) {
       Alert.alert("Atenção", "Informe um valor válido.");
       return;
@@ -314,7 +329,7 @@ export default function Withdraw() {
               placeholderTextColor="#999"
               keyboardType="decimal-pad"
               value={valor}
-              onChangeText={setValor}
+              onChangeText={(t) => setValor(aplicarMascaraMoeda(t))}
             />
 
             <View style={styles.pixBox}>

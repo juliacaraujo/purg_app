@@ -78,8 +78,14 @@ export default function LoginBiometria({ navigation, route }: any) {
               <Text style={loginStyle.loginButtonText}>Entrar com biometria</Text>
             </TouchableOpacity>
 
+            <View style={loginStyle.separatorBox}>
+              <View style={loginStyle.line} />
+              <Text style={loginStyle.separatorText}>ou</Text>
+              <View style={loginStyle.line} />
+            </View>
+
             <TouchableOpacity
-              style={[loginStyle.loginButton, { backgroundColor: "#4a4a4a", marginTop: 10 }]}
+              style={[loginStyle.loginButton, { backgroundColor: "#4a4a4a" }]}
               onPress={() => navigation.navigate("LoginPassword", { email })}
             >
               <Text style={loginStyle.loginButtonText}>Usar senha</Text>

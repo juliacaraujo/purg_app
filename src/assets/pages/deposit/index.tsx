@@ -24,6 +24,21 @@ const moneyTrunc = (v: any) => {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
 };
 
+function aplicarMascaraMoeda(text: string): string {
+  const digits = text.replace(/\D/g, "");
+  if (!digits) return "";
+  const num = parseInt(digits, 10);
+  const reais = Math.floor(num / 100);
+  const centavos = num % 100;
+  return reais.toLocaleString("pt-BR") + "," + String(centavos).padStart(2, "0");
+}
+
+function parseMascaraMoeda(formatted: string): number {
+  const digits = formatted.replace(/\D/g, "");
+  if (!digits) return 0;
+  return parseInt(digits, 10) / 100;
+}
+
 function depositoCancelavel(status: string): boolean {
   return !["Executado", "Cancelado", "Rejeitado"].includes(status);
 }
@@ -63,13 +78,14 @@ export default function Deposit({ navigation, route }: any) {
 
   const [valor, setValor] = useState<string>(() => {
     const v = route?.params?.valorInicial;
-    return v != null ? String(Number(v).toFixed(2)).replace(".", ",") : "";
+    return v != null ? aplicarMascaraMoeda(String(Math.round(Number(v) * 100))) : "";
   });
   const [historico, setHistorico] = useState<any[]>([]);
   const [pendentes, setPendentes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [parcela, setParcela] = useState<number | null>(null);
   const [copiadoId, setCopiadoId] = useState<number | null>(null);
+  const [cancelandoId, setCancelandoId] = useState<number | null>(null);
   const [semObjetivo, setSemObjetivo] = useState<boolean | null>(null);
 
   const copiarPix = useCallback(async (id: number, texto: string) => {
@@ -122,31 +138,23 @@ export default function Deposit({ navigation, route }: any) {
     carregarHistorico();
   }, [carregarHistorico]);
 
-  const handleCancelarDeposito = (depositoId: number) => {
-    Alert.alert("Cancelar depósito", "Tem certeza que deseja cancelar este depósito?", [
-      { text: "Não", style: "cancel" },
-      {
-        text: "Sim, cancelar",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            setLoading(true);
-            await cancelarDeposito(depositoId);
-            Alert.alert("Sucesso", "Depósito cancelado com sucesso.");
-            carregarHistorico();
-          } catch (e: any) {
-            Alert.alert("Erro", e?.message || "Não foi possível cancelar o depósito.");
-          } finally {
-            setLoading(false);
-          }
-        },
-      },
-    ]);
+  const handleCancelarDeposito = async (depositoId: number) => {
+    try {
+      setLoading(true);
+      await cancelarDeposito(depositoId);
+      Alert.alert("Sucesso", "Depósito cancelado com sucesso.");
+      carregarHistorico();
+    } catch (e: any) {
+      Alert.alert("Erro", e?.message || "Não foi possível cancelar o depósito.");
+    } finally {
+      setLoading(false);
+      setCancelandoId(null);
+    }
   };
 
   const handleDepositar = async () => {
     if (!user?.id) return;
-    const valorNum = Number(valor.replace(/\./g, "").replace(",", "."));
+    const valorNum = parseMascaraMoeda(valor);
 
     if (!valorNum || isNaN(valorNum) || valorNum <= 0) {
       Alert.alert("Atenção", "Informe um valor válido.");
@@ -157,22 +165,40 @@ export default function Deposit({ navigation, route }: any) {
       setLoading(true);
       const res = await solicitarDeposito(user.id, valorNum);
       setValor("");
-      navigation.navigate("PixInfo", {
-        valor: valorNum,
-        pix_copia_cola: res.pix_copia_cola,
-        qr_code: res.qr_code,
-        expiracao_min: res.expiracao_min ?? 60,
-      });
+
+      if (res.jaExistente) {
+        // Cenário 1: PIX existente reutilizado (HTTP 200)
+        Alert.alert(
+          "Você já tem um Pix ativo",
+          "Você já tem uma solicitação de depósito, faça ela ou cancele para poder criar uma nova.",
+          [
+            { text: "Fechar", style: "cancel" },
+            {
+              text: "Ver Pix",
+              onPress: () =>
+                navigation.navigate("PixInfo", {
+                  pix_copia_cola: res.pix_copia_cola,
+                  qr_code: res.qr_code,
+                  expiracao_seconds: res.expiracao_restante,
+                }),
+            },
+          ]
+        );
+      } else {
+        // Cenário normal: novo PIX criado (HTTP 201)
+        navigation.navigate("PixInfo", {
+          valor: valorNum,
+          pix_copia_cola: res.pix_copia_cola,
+          qr_code: res.qr_code,
+          expiracao_min: res.expiracao_min ?? 60,
+        });
+      }
     } catch (e: any) {
       if (e?.status === 403 || e?.status === 422) {
         Alert.alert("Atenção", e.message);
       } else if (e?.status === 429) {
-        navigation.navigate("PixInfo", {
-          valor: valorNum,
-          pix_copia_cola: e.data?.pix_copia_cola,
-          qr_code: e.data?.qr_code,
-          expiracao_min: e.data?.expiracao_min ?? 60,
-        });
+        // Cenário 2: PIX existente sem QR Code (inconsistência interna)
+        Alert.alert("Depósito em análise", e.message);
       } else {
         Alert.alert("Erro", e?.message || "Não foi possível registrar o depósito.");
       }
@@ -231,7 +257,7 @@ export default function Deposit({ navigation, route }: any) {
         placeholderTextColor="#999"
         keyboardType="decimal-pad"
         value={valor}
-        onChangeText={setValor}
+        onChangeText={(t) => setValor(aplicarMascaraMoeda(t))}
       />
 
       {/* Botões */}
@@ -240,9 +266,9 @@ export default function Deposit({ navigation, route }: any) {
           <TouchableOpacity
             style={styles.parcelaBtn}
             onPress={() => {
-              const atual = Math.trunc((Number(valor.replace(/\./g, "").replace(",", ".")) || 0) * 100) / 100;
+              const atual = parseMascaraMoeda(valor);
               const novo = Math.trunc((atual + parcela) * 100) / 100;
-              setValor(novo.toFixed(2).replace(".", ","));
+              setValor(aplicarMascaraMoeda(String(Math.round(novo * 100))));
             }}
           >
             <Text style={styles.parcelaBtnText}>Meta: +{moneyTrunc(parcela)}</Text>
@@ -277,19 +303,30 @@ export default function Deposit({ navigation, route }: any) {
                   </Text>
                 )}
                 <View style={styles.pendenteBtns}>
-                  {item.qr_code && (
+                  {item.pix_copia_cola && (
                     <TouchableOpacity
                       style={[styles.copiarBtn, copiadoId === item.id && styles.copiarBtnCopiado]}
-                      onPress={() => copiarPix(item.id, item.qr_code)}
+                      onPress={() => copiarPix(item.id, item.pix_copia_cola)}
                     >
                       <Text style={[styles.copiarText, copiadoId === item.id && styles.copiarTextCopiado]}>
                         {copiadoId === item.id ? "Copiado!" : "Copiar PIX"}
                       </Text>
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity style={styles.cancelarBtn} onPress={() => handleCancelarDeposito(item.id)}>
-                    <Text style={styles.cancelarText}>Cancelar</Text>
-                  </TouchableOpacity>
+                  {cancelandoId === item.id ? (
+                    <>
+                      <TouchableOpacity style={styles.cancelarNaoBtn} onPress={() => setCancelandoId(null)}>
+                        <Text style={styles.cancelarNaoText}>Não</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.cancelarBtn} onPress={() => handleCancelarDeposito(item.id)}>
+                        <Text style={styles.cancelarText}>Confirmar</Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <TouchableOpacity style={styles.cancelarBtn} onPress={() => setCancelandoId(item.id)}>
+                      <Text style={styles.cancelarText}>Cancelar</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             );
@@ -302,10 +339,10 @@ export default function Deposit({ navigation, route }: any) {
 
       {loading ? (
         <ActivityIndicator />
-      ) : historico.length === 0 ? (
+      ) : historico.filter(item => !depositoCancelavel(item.status_deposito)).length === 0 ? (
         <Text style={styles.emptyText}>Nenhum depósito encontrado.</Text>
       ) : (
-        historico.map((item, i) => {
+        historico.filter(item => !depositoCancelavel(item.status_deposito)).map((item, i) => {
           const sc = statusColor(item.status_deposito);
           return (
             <View key={item.id ?? i} style={styles.historicoItem}>

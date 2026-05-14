@@ -31,16 +31,19 @@ export default function PixInfo({ route, navigation }: any) {
     valor = 0,
     pix_copia_cola,
     expiracao_min = 60,
+    expiracao_seconds,
   } = route?.params ?? {};
+
+  const initialSeconds = expiracao_seconds != null ? expiracao_seconds : expiracao_min * 60;
 
   const [copied, setCopied] = useState(false);
   const [step, setStep] = useState<"qrcode" | "confirmed" | "expired">("qrcode");
-  const [secondsLeft, setSecondsLeft] = useState(expiracao_min * 60);
+  const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
 
   useEffect(() => {
     if (!user?.id) return;
 
-    let remaining = expiracao_min * 60;
+    let remaining = initialSeconds;
     let done = false;
 
     let timerId: ReturnType<typeof setInterval>;

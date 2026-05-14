@@ -65,6 +65,7 @@ export const style = StyleSheet.create({
 
   generoSecao: {
     marginBottom: 12,
+    marginTop: 8,
   },
 
   generoTitulo: {

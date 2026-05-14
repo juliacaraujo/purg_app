@@ -59,6 +59,17 @@ export default function Account({ navigation }: { navigation: { navigate: (route
   const [historicoPatrimonio, setHistoricoPatrimonio] = useState<GraficoPoint[]>([]);
   const [historicoRendimentos, setHistoricoRendimentos] = useState<GraficoPoint[]>([]);
 
+  const rendimentosMensal = useMemo((): GraficoPoint[] => {
+    const mapa: Record<string, number> = {};
+    for (const p of historicoRendimentos) {
+      const mes = p.data.slice(0, 7);
+      mapa[mes] = (mapa[mes] ?? 0) + p.valor;
+    }
+    return Object.entries(mapa)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([mes, valor]) => ({ data: mes + "-01", valor }));
+  }, [historicoRendimentos]);
+
   const patrimonio = useMemo(() => saldo + investido, [saldo, investido]);
 
   const pinsSorted = useMemo(
@@ -246,10 +257,10 @@ export default function Account({ navigation }: { navigation: { navigate: (route
                   formatarValor={moneyTrunc2}
                 />
               )}
-              {historicoRendimentos.length >= 2 && (
+              {rendimentosMensal.length >= 2 && (
                 <View style={historicoPatrimonio.length >= 2 ? { marginTop: 20 } : undefined}>
                   <GraficoBarras
-                    pontos={historicoRendimentos}
+                    pontos={rendimentosMensal}
                     cor="#A0D47C"
                     titulo="CRESCIMENTO DOS RENDIMENTOS"
                     altura={140}

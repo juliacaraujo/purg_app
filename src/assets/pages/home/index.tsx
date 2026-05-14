@@ -36,6 +36,7 @@ import {
   putAvatar,
   getVisualizacaoValores,
   putVisualizacaoValores,
+  getTaxaCdi,
 } from "../../../services/api";
 import GraficoBarras from "../../components/GraficoBarras";
 import ScrollViewRefresh from "../../components/ScrollViewRefresh";
@@ -97,8 +98,20 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
   const [rendimentoTotal, setRendimentoTotal] = useState(0);
   const [rendimentoDiario, setRendimentoDiario] = useState(0);
   const [pins, setPins] = useState<import("../../../types").PinUsuario[]>([]);
+  const [taxaCdi, setTaxaCdi] = useState<number | null>(null);
   const [historicoPatrimonio, setHistoricoPatrimonio] = useState<GraficoPoint[]>([]);
   const [historicoRendimentos, setHistoricoRendimentos] = useState<GraficoPoint[]>([]);
+
+  const rendimentosMensal = useMemo((): GraficoPoint[] => {
+    const mapa: Record<string, number> = {};
+    for (const p of historicoRendimentos) {
+      const mes = p.data.slice(0, 7);
+      mapa[mes] = (mapa[mes] ?? 0) + p.valor;
+    }
+    return Object.entries(mapa)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([mes, valor]) => ({ data: mes + "-01", valor }));
+  }, [historicoRendimentos]);
 
   const primeiroNome = useMemo(() => nome?.split(" ")[0] ?? "", [nome]);
 
@@ -114,10 +127,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
     return { rendimentoMensal: mensal, taxaAa: taxaAaPonderada };
   }, [pins, investido]);
 
-  const taxaEmblemas = useMemo(() => {
-    const pin = pins.find((p) => p.razao_social?.toLowerCase().includes("emblema"));
-    return pin ? Number(pin.juros_a_a) : null;
-  }, [pins]);
+  const cdiAposIr = taxaCdi !== null ? taxaCdi * (1 - 0.225) : null;
 
 
   const carregar = useCallback(async () => {
@@ -128,7 +138,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
     const capturedUserId = user.id;
     try {
       setLoading(true);
-      const [cad, cart, rend, hist, histRend, viz, pinsRes] = await Promise.allSettled([
+      const [cad, cart, rend, hist, histRend, viz, pinsRes, cdiRes] = await Promise.allSettled([
         getDadosCadastro(capturedUserId),
         getCarteira(capturedUserId),
         getRendimentosUsuario(capturedUserId),
@@ -136,6 +146,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
         getHistoricoRendimentos(capturedUserId),
         getVisualizacaoValores(capturedUserId),
         getPinsUsuario(capturedUserId),
+        getTaxaCdi(),
       ]);
       // Se o usuário mudou durante o fetch (logout/troca), descarta resultado
       if (user?.id !== capturedUserId) return;
@@ -168,6 +179,9 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
       }
       if (pinsRes.status === "fulfilled") {
         setPins(Array.isArray(pinsRes.value?.data) ? pinsRes.value.data : []);
+      }
+      if (cdiRes.status === "fulfilled") {
+        setTaxaCdi(Number(cdiRes.value?.valor) || null);
       }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -332,7 +346,7 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
             </Text>
             {rendimentoMensal !== null && (
               <Text style={{ fontSize: 11, color: style.cardLabel.color, marginTop: 10 }}>
-                {hidden ? "••••••" : `~${moneyTrunc(rendimentoMensal)}/mês`}
+                {hidden ? "••••••" : `${moneyTrunc(rendimentoMensal)}/mês (estimado)`}
               </Text>
             )}
           </View>
@@ -343,11 +357,11 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
               <Text style={style.cardValueGreen}>
                 {hidden ? "••••••" : `${taxaAa.toFixed(2).replace(".", ",")}%`}
               </Text>
-              <Text style={{ fontSize: 10, color: style.cardLabel.color, marginTop: 10, lineHeight: 14 }}>
-                {taxaEmblemas !== null
-                  ? `Um banco que paga 100% do CDI está rendendo ${taxaEmblemas.toFixed(2).replace(".", ",")}% ao pagar o IR.`
-                  : "Um banco que paga 100% do CDI está rendendo menos ao pagar o IR."}
-              </Text>
+              {taxaCdi !== null && cdiAposIr !== null && (
+                <Text style={{ fontSize: 10, color: style.cardLabel.color, marginTop: 10, lineHeight: 14 }}>
+                  {`Um banco que paga 100% do CDI a uma taxa de ${taxaCdi.toFixed(2).replace(".", ",")}% está rendendo ${cdiAposIr.toFixed(2).replace(".", ",")}% ao pagar o IR.`}
+                </Text>
+              )}
             </View>
           )}
         </View>
@@ -375,10 +389,10 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
                 formatarValor={moneyTrunc}
               />
             )}
-            {historicoRendimentos.length >= 2 && (
+            {rendimentosMensal.length >= 2 && (
               <View style={historicoPatrimonio.length >= 2 ? { marginTop: 20 } : undefined}>
                 <GraficoBarras
-                  pontos={historicoRendimentos}
+                  pontos={rendimentosMensal}
                   cor="#A0D47C"
                   titulo="CRESCIMENTO DOS RENDIMENTOS"
                   altura={140}

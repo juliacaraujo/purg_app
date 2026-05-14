@@ -140,6 +140,16 @@ export default function Chat() {
       } catch {}
     }
 
+    fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "iniciar_sessao",
+        usuario_id: user.id,
+        sessionId: `purg_id_${user.id}`,
+      }),
+    }).catch(() => {});
+
     getDadosCadastro(user.id)
       .then((d) => {
         const apelido = d?.apelido?.trim();
@@ -181,6 +191,7 @@ export default function Chat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: msg,
+          usuario_id: user?.id ?? null,
           sessionId: `purg_id_${user?.id ?? "anonimo"}`,
         }),
       });
