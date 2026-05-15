@@ -7,6 +7,8 @@ import {
   Image,
   ActivityIndicator,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../../context/ThemeContext";
 import { makeLoginStyle } from "../login/styles";
 import { validateRecoveryCode, requestRecoveryCode } from "../../../services/api";
@@ -53,6 +55,16 @@ export default function CodeValidation({ route, navigation }: any) {
       setDigits(newDigits);
       inputs.current[index - 1]?.focus();
     }
+  };
+
+  const handlePaste = async () => {
+    const text = await Clipboard.getStringAsync();
+    const cleaned = text.replace(/\D/g, "").slice(0, 6);
+    if (!cleaned) return;
+    const newDigits = ["", "", "", "", "", ""];
+    cleaned.split("").forEach((d, i) => { newDigits[i] = d; });
+    setDigits(newDigits);
+    inputs.current[Math.min(cleaned.length - 1, 5)]?.focus();
   };
 
   const handleResend = async () => {
@@ -141,6 +153,14 @@ export default function CodeValidation({ route, navigation }: any) {
             />
           ))}
         </View>
+
+        <TouchableOpacity
+          onPress={handlePaste}
+          style={{ flexDirection: "row", alignItems: "center", alignSelf: "center", marginBottom: 20, gap: 6 }}
+        >
+          <MaterialCommunityIcons name="clipboard-text-outline" size={20} color={colors.textSecondary} />
+          <Text style={{ fontSize: 15, color: colors.textSecondary, fontWeight: "500" }}>Colar código</Text>
+        </TouchableOpacity>
 
         {errorMsg ? (
           <Text style={{ color: "#FF3B30", fontSize: 13, textAlign: "center", marginBottom: 12 }}>

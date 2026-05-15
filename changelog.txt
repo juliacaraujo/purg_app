@@ -1,3 +1,6 @@
+purg-develop-28 — 2026-05-15
+- CodeValidation: botão "Colar código" adicionado abaixo dos inputs de dígitos; lê a área de transferência, extrai os dígitos e preenche os 6 campos automaticamente
+
 purg-develop-27 — 2026-05-14
 - Cadastro: label "Gênero" descido uma linha (marginTop: 8) nas telas de cadastro e edição de perfil
 - Cadastro: placeholder do campo de e-mail alterado de "Email" para "E-mail"
