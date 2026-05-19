@@ -152,6 +152,9 @@ export default function Home({ navigation }: { navigation: { navigate: (route: s
       if (user?.id !== capturedUserId) return;
       if (cad.status === "fulfilled") {
         setNome(cad.value?.apelido ?? "");
+        if (cad.value?.avatar_id !== undefined && cad.value.avatar_id !== user?.avatarId) {
+          updateUser({ ...user!, avatarId: cad.value.avatar_id ?? null });
+        }
       }
       if (cart.status === "fulfilled") {
         setSaldo(Number(cart.value?.saldo || 0));

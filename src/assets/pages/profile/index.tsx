@@ -360,6 +360,9 @@ export default function Profile() {
     try {
       const res = await getDadosCadastro(user.id);
       setDados(res);
+      if (res.avatar_id !== undefined && res.avatar_id !== user.avatarId) {
+        updateUser({ ...user, avatarId: res.avatar_id ?? null });
+      }
     } catch {
       mostrarToast("Não foi possível carregar os dados do perfil.", "erro");
     } finally {

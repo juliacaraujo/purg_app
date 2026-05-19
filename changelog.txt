@@ -1,3 +1,6 @@
+purg-develop-30 — 2026-05-19
+- Avatar: carregar() em Home e Profile sincroniza user.avatarId com o campo avatar_id retornado pela API, corrigindo exibição do avatar do guardião após retornar do perfil de dependente
+
 purg-develop-29 — 2026-05-19
 - CodeValidation: ícone 📋 adicionado no botão "Colar código" (substituiu MaterialCommunityIcons que não renderizava no web)
 - Auth (web): telas RecoverAccount, CodeValidation e NewPassword passaram a usar lightColors fixo em vez de useTheme(), eliminando exibição em dark mode quando o navegador está configurado com tema escuro
