@@ -465,6 +465,27 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { colors } = useTheme();
   const paddingBottom = isWeb ? Math.max(insets.bottom, 10) : insets.bottom;
 
+  // No iOS PWA (Safari standalone), o state prop pode não re-renderizar quando
+  // o usuário troca de aba — o Safari interfere no ciclo de URL do React Navigation
+  // e state.index fica travado em 0. Assinamos o navigationRef diretamente como
+  // fonte de verdade para garantir o índice correto em todas as plataformas.
+  const [activeIndex, setActiveIndex] = useState(state.index);
+
+  useEffect(() => {
+    if (!isWeb) return;
+    const unsubscribe = navigationRef.addListener("state", () => {
+      if (!navigationRef.isReady()) return;
+      const rootState = navigationRef.getState();
+      const appTabsRoute = rootState?.routes?.find((r: any) => r.name === "AppTabs");
+      const tabIdx = appTabsRoute?.state?.index;
+      if (typeof tabIdx === "number") setActiveIndex(tabIdx);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Sincroniza com o prop (nativo e render inicial)
+  useEffect(() => { setActiveIndex(state.index); }, [state.index]);
+
   return (
     <View style={[
       tabBarStyles.bar,
@@ -478,7 +499,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         const { options } = descriptors[route.key];
         if (!options.tabBarIcon) return null;
 
-        const isFocused = state.index === index;
+        const isFocused = activeIndex === index;
 
         const onPress = () => {
           const event = navigation.emit({
@@ -788,6 +809,19 @@ const linking: LinkingOptions<any> = {
   },
 };
 
+function VersionGuard() {
+  useEffect(() => {
+    if (!isWeb) return;
+    const current = (window as any).__BUILD_TS;
+    if (!current) return;
+    fetch(`/version.json?_=${Date.now()}`)
+      .then((r) => r.json())
+      .then((data) => { if (data.ts !== current) window.location.reload(); })
+      .catch(() => {});
+  }, []);
+  return null;
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
@@ -797,6 +831,7 @@ export default function App() {
             <EventosProvider>
             <RestricaoProvider>
             <RefreshProvider>
+            <VersionGuard />
             <ConvitePendenteAlerta />
             <ConviteGuardiaoPendenteAlerta />
             <ModalEventos />

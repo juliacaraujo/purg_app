@@ -9,12 +9,12 @@ import {
   ActivityIndicator,
   ScrollView,
 } from "react-native";
-import { useTheme } from "../../../context/ThemeContext";
+import { lightColors } from "../../../context/ThemeContext";
 import { makeLoginStyle } from "../login/styles";
 import { changePassword } from "../../../services/api";
 
 export default function NewPassword({ route, navigation }: any) {
-  const { colors } = useTheme();
+  const colors = lightColors;
   const style = makeLoginStyle(colors);
 
   const email: string = route?.params?.email || "";

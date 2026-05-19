@@ -374,18 +374,30 @@ function ModalEditarObjetivo({ visible, onClose, onSalvar, salvando, colors, ite
   const [anoSel, setAnoSel] = useState(new Date().getFullYear() + 1);
   const [erro, setErro] = useState<string | null>(null);
 
+  const valorOriginal = Math.trunc(Number(item?.valor_alvo || 0) * 100) / 100;
   const saldoNum = Math.trunc(Number(item?.saldo_alocado_total || 0) * 100) / 100;
   const valorNum = parseMoeda(valorAlvo);
   const prazo = calcMeses(anoSel, mesSel);
+  const valorAbaixoDoOriginal = valorNum > 0 && valorNum < valorOriginal;
   const parcela = valorNum > saldoNum && prazo > 0 ? (valorNum - saldoNum) / prazo : null;
   const parcelaInvalida = parcela !== null && parcela < 5;
-  const canSave = !salvando && valorNum > saldoNum && prazo >= 1 && !parcelaInvalida;
 
   const prazoOriginal = useMemo(() => {
     if (!metas || metas.length === 0) return null;
     const d = new Date(metas[metas.length - 1].data_limite);
     return { mes: d.getUTCMonth() + 1, ano: d.getUTCFullYear() };
   }, [metas]);
+
+  const prazoMaiorOuIgualOriginal = !prazoOriginal ||
+    anoSel > prazoOriginal.ano ||
+    (anoSel === prazoOriginal.ano && mesSel >= prazoOriginal.mes);
+
+  const canSave = !salvando &&
+    valorNum >= valorOriginal &&
+    valorNum > 0 &&
+    prazoMaiorOuIgualOriginal &&
+    prazo >= 1 &&
+    !parcelaInvalida;
 
   useEffect(() => {
     if (!item || !visible) return;
@@ -403,11 +415,22 @@ function ModalEditarObjetivo({ visible, onClose, onSalvar, salvando, colors, ite
   }, [item, visible, prazoOriginal]);
 
   function anteriorMes() {
+    const prevMes = mesSel === 1 ? 12 : mesSel - 1;
+    const prevAno = mesSel === 1 ? anoSel - 1 : anoSel;
+    if (prazoOriginal && (prevAno < prazoOriginal.ano || (prevAno === prazoOriginal.ano && prevMes < prazoOriginal.mes))) return;
     if (mesSel === 1) { setMesSel(12); setAnoSel((y) => y - 1); } else setMesSel((m) => m - 1);
   }
   function proximoMes() {
     if (mesSel === 12) { setMesSel(1); setAnoSel((y) => y + 1); } else setMesSel((m) => m + 1);
   }
+
+  const mesBloqueadoParaTras = prazoOriginal
+    ? (mesSel === prazoOriginal.mes && anoSel === prazoOriginal.ano) ||
+      (anoSel === prazoOriginal.ano && mesSel <= prazoOriginal.mes)
+    : false;
+  const anoBloqueadoParaTras = prazoOriginal
+    ? anoSel <= prazoOriginal.ano
+    : false;
 
   async function handleSalvar() {
     const body: { valor_alvo?: number; prazo?: number } = {};
@@ -429,6 +452,12 @@ function ModalEditarObjetivo({ visible, onClose, onSalvar, salvando, colors, ite
         <View style={[s.modal, { backgroundColor: colors.background }]}>
           <Text style={[s.modalTitulo, { color: colors.textPrimary }]}>Editar Objetivo</Text>
 
+          <View style={[s.infoBox, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+            <Text style={[s.infoBoxText, { color: colors.textSecondary }]}>
+              Você pode <Text style={{ fontWeight: "700", color: colors.textPrimary }}>aumentar o valor</Text>, <Text style={{ fontWeight: "700", color: colors.textPrimary }}>estender o prazo</Text>, ou ambos. Reduções não são permitidas.
+            </Text>
+          </View>
+
           <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Descrição</Text>
           <View style={[s.input, s.inputFixo, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}>
             <Text style={{ fontSize: 15, color: colors.textTertiary }}>{descricao}</Text>
@@ -436,28 +465,46 @@ function ModalEditarObjetivo({ visible, onClose, onSalvar, salvando, colors, ite
 
           <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Valor Alvo (R$)</Text>
           <TextInput
-            style={[s.input, { borderColor: valorNum > 0 && valorNum <= saldoNum ? "#FF3B30" : colors.border, color: colors.textPrimary, backgroundColor: colors.backgroundSecondary, marginBottom: 4 }]}
+            style={[s.input, { borderColor: valorAbaixoDoOriginal ? "#FF3B30" : colors.border, color: colors.textPrimary, backgroundColor: colors.backgroundSecondary, marginBottom: 4 }]}
             placeholder="R$ 5.000"
             placeholderTextColor="#bbb"
             keyboardType="number-pad"
             value={valorAlvo}
             onChangeText={(t) => setValorAlvo(formatarMoeda(t))}
           />
-          <Text style={[s.inputHint, { color: valorNum > 0 && valorNum <= saldoNum ? "#FF3B30" : colors.textTertiary }]}>
-            {saldoNum > 0 ? `Já investido: ${moeda(saldoNum)} — valor alvo deve ser maior` : "Informe o novo valor alvo"}
+          <Text style={[s.inputHint, { color: valorAbaixoDoOriginal ? "#FF3B30" : colors.textTertiary }]}>
+            {valorAbaixoDoOriginal
+              ? `Valor mínimo: ${moeda(valorOriginal)} (valor atual do objetivo)`
+              : `Valor atual: ${moeda(valorOriginal)} — só pode aumentar`}
           </Text>
 
           <Text style={[s.inputLabel, { color: colors.textSecondary }]}>Prazo — {prazo} {prazo === 1 ? "mês" : "meses"} a partir de agora</Text>
           <View style={dp.row}>
-            <View style={[dp.seletor, { borderColor: colors.border }]}>
-              <TouchableOpacity style={dp.arrow} onPress={anteriorMes}><Text style={[dp.arrowText, { color: colors.primary }]}>{"‹"}</Text></TouchableOpacity>
+            <View style={[dp.seletor, { borderColor: mesBloqueadoParaTras ? colors.border : colors.border }]}>
+              <TouchableOpacity style={dp.arrow} onPress={anteriorMes} disabled={mesBloqueadoParaTras}>
+                <Text style={[dp.arrowText, { color: mesBloqueadoParaTras ? colors.textTertiary : colors.primary, opacity: mesBloqueadoParaTras ? 0.3 : 1 }]}>{"‹"}</Text>
+              </TouchableOpacity>
               <Text style={[dp.valor, { color: colors.textPrimary }]}>{MESES_NOMES[mesSel - 1]}</Text>
-              <TouchableOpacity style={dp.arrow} onPress={proximoMes}><Text style={[dp.arrowText, { color: colors.primary }]}>{"›"}</Text></TouchableOpacity>
+              <TouchableOpacity style={dp.arrow} onPress={proximoMes}>
+                <Text style={[dp.arrowText, { color: colors.primary }]}>{"›"}</Text>
+              </TouchableOpacity>
             </View>
             <View style={[dp.seletor, { borderColor: colors.border }]}>
-              <TouchableOpacity style={dp.arrow} onPress={() => setAnoSel((y) => y - 1)}><Text style={[dp.arrowText, { color: colors.primary }]}>{"‹"}</Text></TouchableOpacity>
+              <TouchableOpacity
+                style={dp.arrow}
+                onPress={() => {
+                  const prevAno = anoSel - 1;
+                  if (prazoOriginal && (prevAno < prazoOriginal.ano || (prevAno === prazoOriginal.ano && mesSel < prazoOriginal.mes))) return;
+                  setAnoSel((y) => y - 1);
+                }}
+                disabled={anoBloqueadoParaTras}
+              >
+                <Text style={[dp.arrowText, { color: anoBloqueadoParaTras ? colors.textTertiary : colors.primary, opacity: anoBloqueadoParaTras ? 0.3 : 1 }]}>{"‹"}</Text>
+              </TouchableOpacity>
               <Text style={[dp.valor, { color: colors.textPrimary }]}>{anoSel}</Text>
-              <TouchableOpacity style={dp.arrow} onPress={() => setAnoSel((y) => y + 1)}><Text style={[dp.arrowText, { color: colors.primary }]}>{"›"}</Text></TouchableOpacity>
+              <TouchableOpacity style={dp.arrow} onPress={() => setAnoSel((y) => y + 1)}>
+                <Text style={[dp.arrowText, { color: colors.primary }]}>{"›"}</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -877,4 +924,6 @@ const s = StyleSheet.create({
   btnSalvar: { flex: 1, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   btnSalvarText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   inputHint: { fontSize: 11, marginBottom: 10 },
+  infoBox: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16 },
+  infoBoxText: { fontSize: 12, lineHeight: 18 },
 });

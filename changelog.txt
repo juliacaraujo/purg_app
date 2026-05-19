@@ -1,3 +1,11 @@
+purg-develop-29 — 2026-05-19
+- CodeValidation: ícone 📋 adicionado no botão "Colar código" (substituiu MaterialCommunityIcons que não renderizava no web)
+- Auth (web): telas RecoverAccount, CodeValidation e NewPassword passaram a usar lightColors fixo em vez de useTheme(), eliminando exibição em dark mode quando o navegador está configurado com tema escuro
+- Web (cache): deploy-web.sh agora grava version.json com timestamp do build e injeta window.__BUILD_TS no index.html; VersionGuard no App força reload silencioso quando o usuário abre uma versão desatualizada
+- Web (cache): listener pageshow adicionado no index.html para forçar reload ao restaurar página do bfcache (back/forward cache)
+- Objetivos: edição de objetivo restringe reduções — valor alvo e prazo só podem aumentar; setas de prazo bloqueadas/acinzentadas no mínimo; campo de valor exibe borda vermelha e mensagem ao tentar reduzir; aviso explicativo adicionado no topo do modal
+- iOS PWA: CustomTabBar agora assina navigationRef.addListener("state") para rastrear o índice ativo diretamente, corrigindo bug onde ícones das tabs não mudavam de cor ao navegar no Safari standalone
+
 purg-develop-28 — 2026-05-15
 - CodeValidation: botão "Colar código" adicionado abaixo dos inputs de dígitos; lê a área de transferência, extrai os dígitos e preenche os 6 campos automaticamente
 

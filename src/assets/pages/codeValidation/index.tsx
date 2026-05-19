@@ -8,13 +8,12 @@ import {
   ActivityIndicator,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useTheme } from "../../../context/ThemeContext";
+import { lightColors } from "../../../context/ThemeContext";
 import { makeLoginStyle } from "../login/styles";
 import { validateRecoveryCode, requestRecoveryCode } from "../../../services/api";
 
 export default function CodeValidation({ route, navigation }: any) {
-  const { colors } = useTheme();
+  const colors = lightColors;
   const style = makeLoginStyle(colors);
 
   const email: string = route?.params?.email || "";
@@ -158,7 +157,7 @@ export default function CodeValidation({ route, navigation }: any) {
           onPress={handlePaste}
           style={{ flexDirection: "row", alignItems: "center", alignSelf: "center", marginBottom: 20, gap: 6 }}
         >
-          <MaterialCommunityIcons name="clipboard-text-outline" size={20} color={colors.textSecondary} />
+          <Text style={{ fontSize: 18 }}>📋</Text>
           <Text style={{ fontSize: 15, color: colors.textSecondary, fontWeight: "500" }}>Colar código</Text>
         </TouchableOpacity>
 

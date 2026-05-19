@@ -8,12 +8,12 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useTheme } from "../../../context/ThemeContext";
+import { lightColors } from "../../../context/ThemeContext";
 import { makeLoginStyle } from "../login/styles";
 import { requestRecoveryCode } from "../../../services/api";
 
 export default function RecoverAccount({ navigation, route }: any) {
-  const { colors } = useTheme();
+  const colors = lightColors;
   const style = makeLoginStyle(colors);
 
   const emailParam: string = route?.params?.email ?? "";
