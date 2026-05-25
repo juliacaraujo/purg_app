@@ -233,10 +233,6 @@ export default function Account({ navigation }: { navigation: { navigate: (route
             <Text style={styles.carteiraLabel}>Investido</Text>
             <Text style={styles.carteiraValor}>{moneyTrunc2(investido)}</Text>
           </View>
-          <View style={styles.carteiraLinha}>
-            <Text style={styles.carteiraLabel}>Saldo</Text>
-            <Text style={styles.carteiraValor}>{moneyTrunc8(saldo)}</Text>
-          </View>
           <View style={[styles.carteiraLinha, { borderBottomWidth: 0 }]}>
             <Text style={styles.carteiraLabel}>Rendimento diário</Text>
             <Text style={styles.carteiraValor}>{moneyTrunc8(rendimentoDiario)}</Text>

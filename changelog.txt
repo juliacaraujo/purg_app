@@ -1,3 +1,6 @@
+purg-develop-31 — 2026-05-25
+- Patrimônio: linha "Saldo" removida da seção Carteira (valor continua sendo usado internamente no cálculo do patrimônio total)
+
 purg-develop-30 — 2026-05-19
 - Avatar: carregar() em Home e Profile sincroniza user.avatarId com o campo avatar_id retornado pela API, corrigindo exibição do avatar do guardião após retornar do perfil de dependente
 
